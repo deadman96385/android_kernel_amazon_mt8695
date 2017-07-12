@@ -283,7 +283,7 @@ config PHYS_OFFSET
 	default 0x10000000 if ARCH_OMAP1 || ARCH_RPC
 	default 0x20000000 if ARCH_S5PV210
 	default 0x70000000 if REALVIEW_HIGH_PHYS_OFFSET
-	default 0xc0000000 if ARCH_SA1100
+	default 0xc0000000 if ARCH_SA1100 || ARCH_MT2601
 	help
 	  Please provide the physical address corresponding to the
 	  location of main memory in your system.
@@ -751,6 +751,27 @@ config ARCH_OMAP1
 	help
 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
 
+config ARCH_MT2601
+	bool "MediaTek MT2601"
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select ARCH_HAS_CPUFREQ
+	select ARM_AMBA
+	select CPU_V7
+	select HAVE_SMP
+	select NEED_MACH_MEMORY_H
+	select IRQ_DOMAIN
+	select IRQ_DOMAIN_DEBUG
+	select ARCH_REQUIRE_GPIOLIB
+	select VFP_OPT
+	select PINCTRL
+	select MFD_SYSCON
+	select ARM_HAS_SG_CHAIN
+	select KERNEL_MODE_NEON
+	select FIQ
+	help
+	  This enable support for MediaTek MT2601
+
 endchoice
 
 menu "Multiple platform selection"
@@ -875,6 +896,8 @@ source "arch/arm/mach-mv78xx0/Kconfig"
 source "arch/arm/mach-imx/Kconfig"
 
 source "arch/arm/mach-mediatek/Kconfig"
+
+source "arch/arm/mach-mt2601/Kconfig"
 
 source "arch/arm/mach-mxs/Kconfig"
 

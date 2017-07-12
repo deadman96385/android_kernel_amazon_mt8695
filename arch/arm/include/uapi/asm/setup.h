@@ -17,6 +17,11 @@
 #include <linux/types.h>
 
 #define COMMAND_LINE_SIZE 1024
+#define MBLOCK_RESERVED_NAME_SIZE 128
+#define MBLOCK_RESERVED_NUM_MAX  128
+#define MBLOCK_NUM_MAX 128
+#define MBLOCK_MAGIC 0x99999999
+#define MBLOCK_VERSION 0x2
 
 /* The list ends with an ATAG_NONE node. */
 #define ATAG_NONE	0x00000000
@@ -41,6 +46,14 @@ struct tag_core {
 struct tag_mem32 {
 	__u32	size;
 	__u32	start;	/* physical start address */
+};
+
+/* it is allowed to have multiple ATAG_MEM nodes */
+#define ATAG_MEM64	0x54420002
+
+struct tag_mem64 {
+	__u64	size;
+	__u64	start;	/* physical start address */
 };
 
 /* VGA text type displays */
@@ -143,11 +156,70 @@ struct tag_memclk {
 	__u32 fmemclk;
 };
 
+/* general memory descriptor */
+struct mem_desc {
+	u64 start;
+	u64 size;
+};
+
+/* mblock is used by CPU */
+struct mblock {
+	u64 start;
+	u64 size;
+	u32 rank;	/* rank the mblock belongs to */
+};
+
+struct mblock_reserved {
+	u64 start;
+	u64 size;
+	u32 mapping;   /* mapping or unmap*/
+	char name[MBLOCK_RESERVED_NAME_SIZE];
+};
+
+struct mblock_info {
+	u32 mblock_num;
+	struct mblock mblock[MBLOCK_NUM_MAX];
+	u32 mblock_magic;
+	u32 mblock_version;
+	u32 reserved_num;
+	struct mblock_reserved reserved[MBLOCK_RESERVED_NUM_MAX];
+};
+
+struct dram_info {
+	u32 rank_num;
+	struct mem_desc rank_info[4];
+};
+
+/* device information data */
+#define ATAG_DEVINFO_DATA	0x41000804
+#define ATAG_DEVINFO_DATA_SIZE	26
+
+struct tag_devinfo_data {
+	u32 devinfo_data[ATAG_DEVINFO_DATA_SIZE];	/* device information */
+	u32 devinfo_data_size;	/* device information size */
+};
+
+/* boot information */
+#define ATAG_BOOT	0x41000802
+
+struct tag_boot {
+	u32 bootmode;
+};
+
+/* META com port information */
+#define ATAG_META_COM	0x41000803
+
+struct tag_meta_com {
+	u32 meta_com_type;	/* identify meta via uart or usb */
+	u32 meta_com_id;	/* multiple meta need to know com port id */
+};
+
 struct tag {
 	struct tag_header hdr;
 	union {
 		struct tag_core		core;
 		struct tag_mem32	mem;
+		struct tag_mem64	mem64;
 		struct tag_videotext	videotext;
 		struct tag_ramdisk	ramdisk;
 		struct tag_initrd	initrd;
@@ -165,6 +237,9 @@ struct tag {
 		 * DC21285 specific
 		 */
 		struct tag_memclk	memclk;
+		struct tag_boot		boot;
+		struct tag_meta_com	meta_com;
+		struct tag_devinfo_data	devinfo_data;
 	} u;
 };
 

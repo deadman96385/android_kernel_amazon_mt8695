@@ -1,0 +1,8 @@
+config MTK_KEYPAD
+	tristate "MediaTek Keypad driver"
+	default n
+	---help---
+	  Keypad driver support for MediaTek SOC.
+	  If you want to use MediaTek Keypad driver, say Y here.
+	  If unsure, say N.
+

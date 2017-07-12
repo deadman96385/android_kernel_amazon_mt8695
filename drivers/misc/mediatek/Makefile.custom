@@ -23,6 +23,7 @@ subdir-ccflags-y += -I$(MTK_PLATFORM_PATH_ROOT)/include \
              -I$(MTK_PROJECT_PATH_ROOT)/rtc \
              -I$(MTK_PROJECT_PATH_ROOT)/sound/inc \
              -I$(MTK_PROJECT_PATH_ROOT)/touchpanel/ft5406_82 \
+             -I$(MTK_PROJECT_PATH_ROOT)/touchpanel/MXT144U \
              -I$(MTK_PROJECT_PATH_ROOT)/vibrator 
 
 subdir-ccflags-y += -I$(MTK_CUSTOM_PATH)/accdet/$(MTK_PLATFORM) \

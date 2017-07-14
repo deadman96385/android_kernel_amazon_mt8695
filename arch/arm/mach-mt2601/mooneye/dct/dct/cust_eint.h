@@ -52,5 +52,3 @@ extern "C" {
 }
 #endif
 #endif				/* _CUST_EINT_H */
-
-

@@ -59,10 +59,11 @@
 /*******************factory Customation***************************/
 /*****************************************************************/
 #define KEYS_PWRKEY_MAP		{ KEY_POWER, "Power" }
-#define DEFINE_KEYS_KEYMAP(x)		\
- struct key x[] = {	\
-	KEYS_PWRKEY_MAP,		\
-  { KEY_VOLUMEDOWN,   "VLDown"  }, \
+#define KEY_VOLUMEDOWN_MAP	{ KEY_VOLUMEDOWN, "VLDown" }
+#define DEFINE_KEYS_KEYMAP(x)	\
+struct key x[] = {		\
+	KEYS_PWRKEY_MAP,	\
+	KEY_VOLUMEDOWN_MAP,	\
 }
 /*****************************************************************/
 /*******************recovery Customation****************************/

@@ -16,7 +16,7 @@
 #define __CUST_GPIO_BOOT_H__
 
 
-//Configuration for GPIO SMT(Schmidt Trigger) Group output start
+/*Configuration for GPIO SMT(Schmidt Trigger) Group output start*/
 #define GPIO_SMT_GROUP_1   0
 #define GPIO_SMT_GROUP_2   0
 #define GPIO_SMT_GROUP_3   0
@@ -47,7 +47,7 @@
 #define GPIO_SMT_GROUP_28   0
 #define GPIO_SMT_GROUP_29   0
 /* Configuration for GPIO SMT(Schmidt Trigger) Group output end */
-/* Configureation for Pin 0 */
+/* Configuration for Pin 0 */
 #define GPIO0_MODE      GPIO_MODE_00
 #define GPIO0_DIR       GPIO_DIR_IN
 #define GPIO0_PULLEN    GPIO_PULL_ENABLE
@@ -57,7 +57,7 @@
 #define GPIO0_IES     1
 #define GPIO0_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 1
+/*Configuration for Pin 1*/
 #define GPIO1_MODE      GPIO_MODE_00
 #define GPIO1_DIR       GPIO_DIR_IN
 #define GPIO1_PULLEN    GPIO_PULL_ENABLE
@@ -67,7 +67,7 @@
 #define GPIO1_IES     0
 #define GPIO1_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 2
+/*Configuration for Pin 2*/
 #define GPIO2_MODE      GPIO_MODE_00
 #define GPIO2_DIR       GPIO_DIR_IN
 #define GPIO2_PULLEN    GPIO_PULL_ENABLE
@@ -77,7 +77,7 @@
 #define GPIO2_IES     1
 #define GPIO2_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 3
+/*Configuration for Pin 3*/
 #define GPIO3_MODE      GPIO_MODE_00
 #define GPIO3_DIR       GPIO_DIR_IN
 #define GPIO3_PULLEN    GPIO_PULL_ENABLE
@@ -87,7 +87,7 @@
 #define GPIO3_IES     0
 #define GPIO3_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 4
+/*Configuration for Pin 4*/
 #define GPIO4_MODE      GPIO_MODE_01
 #define GPIO4_DIR       GPIO_DIR_OUT
 #define GPIO4_PULLEN    GPIO_PULL_ENABLE
@@ -97,7 +97,7 @@
 #define GPIO4_IES     1
 #define GPIO4_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 5
+/*Configuration for Pin 5*/
 #define GPIO5_MODE      GPIO_MODE_01
 #define GPIO5_DIR       GPIO_DIR_IN
 #define GPIO5_PULLEN    GPIO_PULL_ENABLE
@@ -107,7 +107,7 @@
 #define GPIO5_IES     1
 #define GPIO5_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 6
+/*Configuration for Pin 6*/
 #define GPIO6_MODE      GPIO_MODE_01
 #define GPIO6_DIR       GPIO_DIR_OUT
 #define GPIO6_PULLEN    GPIO_PULL_ENABLE
@@ -117,7 +117,7 @@
 #define GPIO6_IES     1
 #define GPIO6_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 7
+/*Configuration for Pin 7*/
 #define GPIO7_MODE      GPIO_MODE_01
 #define GPIO7_DIR       GPIO_DIR_IN
 #define GPIO7_PULLEN    GPIO_PULL_ENABLE
@@ -127,7 +127,7 @@
 #define GPIO7_IES     1
 #define GPIO7_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 8
+/*Configuration for Pin 8*/
 #define GPIO8_MODE      GPIO_MODE_01
 #define GPIO8_DIR       GPIO_DIR_IN
 #define GPIO8_PULLEN    GPIO_PULL_ENABLE
@@ -137,7 +137,7 @@
 #define GPIO8_IES     1
 #define GPIO8_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 9
+/*Configuration for Pin 9*/
 #define GPIO9_MODE      GPIO_MODE_01
 #define GPIO9_DIR       GPIO_DIR_IN
 #define GPIO9_PULLEN    GPIO_PULL_ENABLE
@@ -147,7 +147,7 @@
 #define GPIO9_IES     1
 #define GPIO9_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 10
+/*Configuration for Pin 10*/
 #define GPIO10_MODE      GPIO_MODE_01
 #define GPIO10_DIR       GPIO_DIR_IN
 #define GPIO10_PULLEN    GPIO_PULL_ENABLE
@@ -157,7 +157,7 @@
 #define GPIO10_IES     1
 #define GPIO10_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 11
+/*Configuration for Pin 11*/
 #define GPIO11_MODE      GPIO_MODE_01
 #define GPIO11_DIR       GPIO_DIR_IN
 #define GPIO11_PULLEN    GPIO_PULL_ENABLE
@@ -167,7 +167,7 @@
 #define GPIO11_IES     1
 #define GPIO11_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 12
+/*Configuration for Pin 12*/
 #define GPIO12_MODE      GPIO_MODE_01
 #define GPIO12_DIR       GPIO_DIR_IN
 #define GPIO12_PULLEN    GPIO_PULL_ENABLE
@@ -177,7 +177,7 @@
 #define GPIO12_IES     1
 #define GPIO12_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 13
+/*Configuration for Pin 13*/
 #define GPIO13_MODE      GPIO_MODE_01
 #define GPIO13_DIR       GPIO_DIR_IN
 #define GPIO13_PULLEN    GPIO_PULL_ENABLE
@@ -187,7 +187,7 @@
 #define GPIO13_IES     1
 #define GPIO13_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 14
+/*Configuration for Pin 14*/
 #define GPIO14_MODE      GPIO_MODE_01
 #define GPIO14_DIR       GPIO_DIR_OUT
 #define GPIO14_PULLEN    GPIO_PULL_DISABLE
@@ -197,7 +197,7 @@
 #define GPIO14_IES     1
 #define GPIO14_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 15
+/*Configuration for Pin 15*/
 #define GPIO15_MODE      GPIO_MODE_01
 #define GPIO15_DIR       GPIO_DIR_OUT
 #define GPIO15_PULLEN    GPIO_PULL_DISABLE
@@ -207,7 +207,7 @@
 #define GPIO15_IES     1
 #define GPIO15_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 16
+/*Configuration for Pin 16*/
 #define GPIO16_MODE      GPIO_MODE_01
 #define GPIO16_DIR       GPIO_DIR_OUT
 #define GPIO16_PULLEN    GPIO_PULL_DISABLE
@@ -217,7 +217,7 @@
 #define GPIO16_IES     1
 #define GPIO16_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 17
+/*Configuration for Pin 17*/
 #define GPIO17_MODE      GPIO_MODE_01
 #define GPIO17_DIR       GPIO_DIR_OUT
 #define GPIO17_PULLEN    GPIO_PULL_DISABLE
@@ -227,7 +227,7 @@
 #define GPIO17_IES     1
 #define GPIO17_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 18
+/*Configuration for Pin 18*/
 #define GPIO18_MODE      GPIO_MODE_01
 #define GPIO18_DIR       GPIO_DIR_OUT
 #define GPIO18_PULLEN    GPIO_PULL_DISABLE
@@ -237,7 +237,7 @@
 #define GPIO18_IES     1
 #define GPIO18_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 19
+/*Configuration for Pin 19*/
 #define GPIO19_MODE      GPIO_MODE_01
 #define GPIO19_DIR       GPIO_DIR_OUT
 #define GPIO19_PULLEN    GPIO_PULL_DISABLE
@@ -247,7 +247,7 @@
 #define GPIO19_IES     1
 #define GPIO19_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 20
+/*Configuration for Pin 20*/
 #define GPIO20_MODE      GPIO_MODE_01
 #define GPIO20_DIR       GPIO_DIR_OUT
 #define GPIO20_PULLEN    GPIO_PULL_DISABLE
@@ -257,7 +257,7 @@
 #define GPIO20_IES     1
 #define GPIO20_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 21
+/*Configuration for Pin 21*/
 #define GPIO21_MODE      GPIO_MODE_01
 #define GPIO21_DIR       GPIO_DIR_OUT
 #define GPIO21_PULLEN    GPIO_PULL_DISABLE
@@ -267,7 +267,7 @@
 #define GPIO21_IES     1
 #define GPIO21_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 22
+/*Configuration for Pin 22*/
 #define GPIO22_MODE      GPIO_MODE_02
 #define GPIO22_DIR       GPIO_DIR_OUT
 #define GPIO22_PULLEN    GPIO_PULL_DISABLE
@@ -277,7 +277,7 @@
 #define GPIO22_IES     1
 #define GPIO22_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 23
+/*Configuration for Pin 23*/
 #define GPIO23_MODE      GPIO_MODE_00
 #define GPIO23_DIR       GPIO_DIR_IN
 #define GPIO23_PULLEN    GPIO_PULL_ENABLE
@@ -287,7 +287,7 @@
 #define GPIO23_IES     0
 #define GPIO23_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 24
+/*Configuration for Pin 24*/
 #define GPIO24_MODE      GPIO_MODE_00
 #define GPIO24_DIR       GPIO_DIR_IN
 #define GPIO24_PULLEN    GPIO_PULL_ENABLE
@@ -297,7 +297,7 @@
 #define GPIO24_IES     0
 #define GPIO24_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 25
+/*Configuration for Pin 25*/
 #define GPIO25_MODE      GPIO_MODE_02
 #define GPIO25_DIR       GPIO_DIR_IN
 #define GPIO25_PULLEN    GPIO_PULL_ENABLE
@@ -307,7 +307,7 @@
 #define GPIO25_IES     1
 #define GPIO25_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 26
+/*Configuration for Pin 26*/
 #define GPIO26_MODE      GPIO_MODE_00
 #define GPIO26_DIR       GPIO_DIR_OUT
 #define GPIO26_PULLEN    GPIO_PULL_ENABLE
@@ -317,7 +317,7 @@
 #define GPIO26_IES     1
 #define GPIO26_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 27
+/*Configuration for Pin 27*/
 #define GPIO27_MODE      GPIO_MODE_00
 #define GPIO27_DIR       GPIO_DIR_IN
 #define GPIO27_PULLEN    GPIO_PULL_ENABLE
@@ -327,7 +327,7 @@
 #define GPIO27_IES     0
 #define GPIO27_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 28
+/*Configuration for Pin 28*/
 #define GPIO28_MODE      GPIO_MODE_00
 #define GPIO28_DIR       GPIO_DIR_IN
 #define GPIO28_PULLEN    GPIO_PULL_ENABLE
@@ -337,7 +337,7 @@
 #define GPIO28_IES     0
 #define GPIO28_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 29
+/*Configuration for Pin 29*/
 #define GPIO29_MODE      GPIO_MODE_00
 #define GPIO29_DIR       GPIO_DIR_IN
 #define GPIO29_PULLEN    GPIO_PULL_ENABLE
@@ -347,7 +347,7 @@
 #define GPIO29_IES     0
 #define GPIO29_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 30
+/*Configuration for Pin 30*/
 #define GPIO30_MODE      GPIO_MODE_00
 #define GPIO30_DIR       GPIO_DIR_OUT
 #define GPIO30_PULLEN    GPIO_PULL_ENABLE
@@ -357,7 +357,7 @@
 #define GPIO30_IES     1
 #define GPIO30_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 31
+/*Configuration for Pin 31*/
 #define GPIO31_MODE      GPIO_MODE_00
 #define GPIO31_DIR       GPIO_DIR_IN
 #define GPIO31_PULLEN    GPIO_PULL_ENABLE
@@ -367,7 +367,7 @@
 #define GPIO31_IES     0
 #define GPIO31_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 32
+/*Configuration for Pin 32*/
 #define GPIO32_MODE      GPIO_MODE_04
 #define GPIO32_DIR       GPIO_DIR_IN
 #define GPIO32_PULLEN    GPIO_PULL_ENABLE
@@ -377,7 +377,7 @@
 #define GPIO32_IES     1
 #define GPIO32_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 33
+/*Configuration for Pin 33*/
 #define GPIO33_MODE      GPIO_MODE_04
 #define GPIO33_DIR       GPIO_DIR_IN
 #define GPIO33_PULLEN    GPIO_PULL_ENABLE
@@ -387,7 +387,7 @@
 #define GPIO33_IES     1
 #define GPIO33_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 34
+/*Configuration for Pin 34*/
 #define GPIO34_MODE      GPIO_MODE_04
 #define GPIO34_DIR       GPIO_DIR_IN
 #define GPIO34_PULLEN    GPIO_PULL_ENABLE
@@ -397,7 +397,7 @@
 #define GPIO34_IES     1
 #define GPIO34_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 35
+/*Configuration for Pin 35*/
 #define GPIO35_MODE      GPIO_MODE_04
 #define GPIO35_DIR       GPIO_DIR_IN
 #define GPIO35_PULLEN    GPIO_PULL_ENABLE
@@ -407,7 +407,7 @@
 #define GPIO35_IES     1
 #define GPIO35_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 36
+/*Configuration for Pin 36*/
 #define GPIO36_MODE      GPIO_MODE_04
 #define GPIO36_DIR       GPIO_DIR_IN
 #define GPIO36_PULLEN    GPIO_PULL_ENABLE
@@ -417,7 +417,7 @@
 #define GPIO36_IES     1
 #define GPIO36_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 37
+/*Configuration for Pin 37*/
 #define GPIO37_MODE      GPIO_MODE_04
 #define GPIO37_DIR       GPIO_DIR_IN
 #define GPIO37_PULLEN    GPIO_PULL_ENABLE
@@ -427,7 +427,7 @@
 #define GPIO37_IES     1
 #define GPIO37_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 38
+/*Configuration for Pin 38*/
 #define GPIO38_MODE      GPIO_MODE_04
 #define GPIO38_DIR       GPIO_DIR_IN
 #define GPIO38_PULLEN    GPIO_PULL_ENABLE
@@ -437,7 +437,7 @@
 #define GPIO38_IES     1
 #define GPIO38_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 39
+/*Configuration for Pin 39*/
 #define GPIO39_MODE      GPIO_MODE_04
 #define GPIO39_DIR       GPIO_DIR_IN
 #define GPIO39_PULLEN    GPIO_PULL_ENABLE
@@ -447,7 +447,7 @@
 #define GPIO39_IES     1
 #define GPIO39_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 40
+/*Configuration for Pin 40*/
 #define GPIO40_MODE      GPIO_MODE_04
 #define GPIO40_DIR       GPIO_DIR_IN
 #define GPIO40_PULLEN    GPIO_PULL_ENABLE
@@ -457,7 +457,7 @@
 #define GPIO40_IES     1
 #define GPIO40_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 41
+/*Configuration for Pin 41*/
 #define GPIO41_MODE      GPIO_MODE_04
 #define GPIO41_DIR       GPIO_DIR_IN
 #define GPIO41_PULLEN    GPIO_PULL_ENABLE
@@ -467,7 +467,7 @@
 #define GPIO41_IES     1
 #define GPIO41_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 42
+/*Configuration for Pin 42*/
 #define GPIO42_MODE      GPIO_MODE_04
 #define GPIO42_DIR       GPIO_DIR_IN
 #define GPIO42_PULLEN    GPIO_PULL_ENABLE
@@ -477,7 +477,7 @@
 #define GPIO42_IES     1
 #define GPIO42_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 43
+/*Configuration for Pin 43*/
 #define GPIO43_MODE      GPIO_MODE_04
 #define GPIO43_DIR       GPIO_DIR_IN
 #define GPIO43_PULLEN    GPIO_PULL_ENABLE
@@ -487,7 +487,7 @@
 #define GPIO43_IES     1
 #define GPIO43_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 55
+/*Configuration for Pin 55*/
 #define GPIO55_MODE      GPIO_MODE_02
 #define GPIO55_DIR       GPIO_DIR_OUT
 #define GPIO55_PULLEN    GPIO_PULL_ENABLE
@@ -497,7 +497,7 @@
 #define GPIO55_IES     1
 #define GPIO55_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 56
+/*Configuration for Pin 56*/
 #define GPIO56_MODE      GPIO_MODE_02
 #define GPIO56_DIR       GPIO_DIR_OUT
 #define GPIO56_PULLEN    GPIO_PULL_ENABLE
@@ -507,7 +507,7 @@
 #define GPIO56_IES     1
 #define GPIO56_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 57
+/*Configuration for Pin 57*/
 #define GPIO57_MODE      GPIO_MODE_02
 #define GPIO57_DIR       GPIO_DIR_OUT
 #define GPIO57_PULLEN    GPIO_PULL_ENABLE
@@ -517,7 +517,7 @@
 #define GPIO57_IES     1
 #define GPIO57_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 58
+/*Configuration for Pin 58*/
 #define GPIO58_MODE      GPIO_MODE_02
 #define GPIO58_DIR       GPIO_DIR_OUT
 #define GPIO58_PULLEN    GPIO_PULL_ENABLE
@@ -527,7 +527,7 @@
 #define GPIO58_IES     1
 #define GPIO58_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 59
+/*Configuration for Pin 59*/
 #define GPIO59_MODE      GPIO_MODE_02
 #define GPIO59_DIR       GPIO_DIR_OUT
 #define GPIO59_PULLEN    GPIO_PULL_ENABLE
@@ -537,7 +537,7 @@
 #define GPIO59_IES     1
 #define GPIO59_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 60
+/*Configuration for Pin 60*/
 #define GPIO60_MODE      GPIO_MODE_02
 #define GPIO60_DIR       GPIO_DIR_OUT
 #define GPIO60_PULLEN    GPIO_PULL_ENABLE
@@ -547,7 +547,7 @@
 #define GPIO60_IES     1
 #define GPIO60_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 61
+/*Configuration for Pin 61*/
 #define GPIO61_MODE      GPIO_MODE_00
 #define GPIO61_DIR       GPIO_DIR_IN
 #define GPIO61_PULLEN    GPIO_PULL_ENABLE
@@ -557,7 +557,7 @@
 #define GPIO61_IES     0
 #define GPIO61_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 62
+/*Configuration for Pin 62*/
 #define GPIO62_MODE      GPIO_MODE_01
 #define GPIO62_DIR       GPIO_DIR_IN
 #define GPIO62_PULLEN    GPIO_PULL_ENABLE
@@ -567,7 +567,7 @@
 #define GPIO62_IES     1
 #define GPIO62_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 63
+/*Configuration for Pin 63*/
 #define GPIO63_MODE      GPIO_MODE_00
 #define GPIO63_DIR       GPIO_DIR_IN
 #define GPIO63_PULLEN    GPIO_PULL_DISABLE
@@ -577,7 +577,7 @@
 #define GPIO63_IES     1
 #define GPIO63_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 64
+/*Configuration for Pin 64*/
 #define GPIO64_MODE      GPIO_MODE_00
 #define GPIO64_DIR       GPIO_DIR_IN
 #define GPIO64_PULLEN    GPIO_PULL_ENABLE
@@ -587,7 +587,7 @@
 #define GPIO64_IES     1
 #define GPIO64_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 65
+/*Configuration for Pin 65*/
 #define GPIO65_MODE      GPIO_MODE_00
 #define GPIO65_DIR       GPIO_DIR_OUT
 #define GPIO65_PULLEN    GPIO_PULL_DISABLE
@@ -597,7 +597,7 @@
 #define GPIO65_IES     1
 #define GPIO65_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 66
+/*Configuration for Pin 66*/
 #define GPIO66_MODE      GPIO_MODE_00
 #define GPIO66_DIR       GPIO_DIR_OUT
 #define GPIO66_PULLEN    GPIO_PULL_DISABLE
@@ -607,7 +607,7 @@
 #define GPIO66_IES     1
 #define GPIO66_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 67
+/*Configuration for Pin 67*/
 #define GPIO67_MODE      GPIO_MODE_00
 #define GPIO67_DIR       GPIO_DIR_IN
 #define GPIO67_PULLEN    GPIO_PULL_ENABLE
@@ -617,7 +617,7 @@
 #define GPIO67_IES     0
 #define GPIO67_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 68
+/*Configuration for Pin 68*/
 #define GPIO68_MODE      GPIO_MODE_00
 #define GPIO68_DIR       GPIO_DIR_IN
 #define GPIO68_PULLEN    GPIO_PULL_ENABLE
@@ -627,7 +627,7 @@
 #define GPIO68_IES     0
 #define GPIO68_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 69
+/*Configuration for Pin 69*/
 #define GPIO69_MODE      GPIO_MODE_00
 #define GPIO69_DIR       GPIO_DIR_IN
 #define GPIO69_PULLEN    GPIO_PULL_ENABLE
@@ -637,7 +637,7 @@
 #define GPIO69_IES     0
 #define GPIO69_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 70
+/*Configuration for Pin 70*/
 #define GPIO70_MODE      GPIO_MODE_00
 #define GPIO70_DIR       GPIO_DIR_IN
 #define GPIO70_PULLEN    GPIO_PULL_ENABLE
@@ -647,7 +647,7 @@
 #define GPIO70_IES     0
 #define GPIO70_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 71
+/*Configuration for Pin 71*/
 #define GPIO71_MODE      GPIO_MODE_00
 #define GPIO71_DIR       GPIO_DIR_IN
 #define GPIO71_PULLEN    GPIO_PULL_ENABLE
@@ -657,7 +657,7 @@
 #define GPIO71_IES     0
 #define GPIO71_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 72
+/*Configuration for Pin 72*/
 #define GPIO72_MODE      GPIO_MODE_00
 #define GPIO72_DIR       GPIO_DIR_IN
 #define GPIO72_PULLEN    GPIO_PULL_ENABLE
@@ -667,7 +667,7 @@
 #define GPIO72_IES     0
 #define GPIO72_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 73
+/*Configuration for Pin 73*/
 #define GPIO73_MODE      GPIO_MODE_01
 #define GPIO73_DIR       GPIO_DIR_IN
 #define GPIO73_PULLEN    GPIO_PULL_DISABLE
@@ -677,7 +677,7 @@
 #define GPIO73_IES     1
 #define GPIO73_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 74
+/*Configuration for Pin 74*/
 #define GPIO74_MODE      GPIO_MODE_01
 #define GPIO74_DIR       GPIO_DIR_IN
 #define GPIO74_PULLEN    GPIO_PULL_DISABLE
@@ -687,7 +687,7 @@
 #define GPIO74_IES     1
 #define GPIO74_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 75
+/*Configuration for Pin 75*/
 #define GPIO75_MODE      GPIO_MODE_01
 #define GPIO75_DIR       GPIO_DIR_IN
 #define GPIO75_PULLEN    GPIO_PULL_DISABLE
@@ -697,7 +697,7 @@
 #define GPIO75_IES     1
 #define GPIO75_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 76
+/*Configuration for Pin 76*/
 #define GPIO76_MODE      GPIO_MODE_01
 #define GPIO76_DIR       GPIO_DIR_IN
 #define GPIO76_PULLEN    GPIO_PULL_DISABLE
@@ -707,7 +707,7 @@
 #define GPIO76_IES     1
 #define GPIO76_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 77
+/*Configuration for Pin 77*/
 #define GPIO77_MODE      GPIO_MODE_01
 #define GPIO77_DIR       GPIO_DIR_IN
 #define GPIO77_PULLEN    GPIO_PULL_DISABLE
@@ -717,7 +717,7 @@
 #define GPIO77_IES     1
 #define GPIO77_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 78
+/*Configuration for Pin 78*/
 #define GPIO78_MODE      GPIO_MODE_01
 #define GPIO78_DIR       GPIO_DIR_IN
 #define GPIO78_PULLEN    GPIO_PULL_DISABLE
@@ -727,7 +727,7 @@
 #define GPIO78_IES     1
 #define GPIO78_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 79
+/*Configuration for Pin 79*/
 #define GPIO79_MODE      GPIO_MODE_00
 #define GPIO79_DIR       GPIO_DIR_IN
 #define GPIO79_PULLEN    GPIO_PULL_ENABLE
@@ -737,7 +737,7 @@
 #define GPIO79_IES     0
 #define GPIO79_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 80
+/*Configuration for Pin 80*/
 #define GPIO80_MODE      GPIO_MODE_00
 #define GPIO80_DIR       GPIO_DIR_IN
 #define GPIO80_PULLEN    GPIO_PULL_ENABLE
@@ -747,7 +747,7 @@
 #define GPIO80_IES     0
 #define GPIO80_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 81
+/*Configuration for Pin 81*/
 #define GPIO81_MODE      GPIO_MODE_00
 #define GPIO81_DIR       GPIO_DIR_IN
 #define GPIO81_PULLEN    GPIO_PULL_ENABLE
@@ -757,7 +757,7 @@
 #define GPIO81_IES     0
 #define GPIO81_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 82
+/*Configuration for Pin 82*/
 #define GPIO82_MODE      GPIO_MODE_00
 #define GPIO82_DIR       GPIO_DIR_IN
 #define GPIO82_PULLEN    GPIO_PULL_ENABLE
@@ -767,7 +767,7 @@
 #define GPIO82_IES     0
 #define GPIO82_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 83
+/*Configuration for Pin 83*/
 #define GPIO83_MODE      GPIO_MODE_00
 #define GPIO83_DIR       GPIO_DIR_IN
 #define GPIO83_PULLEN    GPIO_PULL_ENABLE
@@ -777,7 +777,7 @@
 #define GPIO83_IES     0
 #define GPIO83_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 84
+/*Configuration for Pin 84*/
 #define GPIO84_MODE      GPIO_MODE_00
 #define GPIO84_DIR       GPIO_DIR_IN
 #define GPIO84_PULLEN    GPIO_PULL_ENABLE
@@ -787,7 +787,7 @@
 #define GPIO84_IES     0
 #define GPIO84_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 85
+/*Configuration for Pin 85*/
 #define GPIO85_MODE      GPIO_MODE_00
 #define GPIO85_DIR       GPIO_DIR_IN
 #define GPIO85_PULLEN    GPIO_PULL_ENABLE
@@ -797,7 +797,7 @@
 #define GPIO85_IES     0
 #define GPIO85_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 86
+/*Configuration for Pin 86*/
 #define GPIO86_MODE      GPIO_MODE_00
 #define GPIO86_DIR       GPIO_DIR_IN
 #define GPIO86_PULLEN    GPIO_PULL_ENABLE
@@ -807,7 +807,7 @@
 #define GPIO86_IES     0
 #define GPIO86_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 87
+/*Configuration for Pin 87*/
 #define GPIO87_MODE      GPIO_MODE_00
 #define GPIO87_DIR       GPIO_DIR_OUT
 #define GPIO87_PULLEN    GPIO_PULL_ENABLE
@@ -817,7 +817,7 @@
 #define GPIO87_IES     1
 #define GPIO87_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 88
+/*Configuration for Pin 88*/
 #define GPIO88_MODE      GPIO_MODE_00
 #define GPIO88_DIR       GPIO_DIR_OUT
 #define GPIO88_PULLEN    GPIO_PULL_ENABLE
@@ -827,7 +827,7 @@
 #define GPIO88_IES     1
 #define GPIO88_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 89
+/*Configuration for Pin 89*/
 #define GPIO89_MODE      GPIO_MODE_00
 #define GPIO89_DIR       GPIO_DIR_IN
 #define GPIO89_PULLEN    GPIO_PULL_ENABLE
@@ -837,7 +837,7 @@
 #define GPIO89_IES     0
 #define GPIO89_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 90
+/*Configuration for Pin 90*/
 #define GPIO90_MODE      GPIO_MODE_00
 #define GPIO90_DIR       GPIO_DIR_OUT
 #define GPIO90_PULLEN    GPIO_PULL_DISABLE
@@ -847,7 +847,7 @@
 #define GPIO90_IES     1
 #define GPIO90_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 91
+/*Configuration for Pin 91*/
 #define GPIO91_MODE      GPIO_MODE_01
 #define GPIO91_DIR       GPIO_DIR_OUT
 #define GPIO91_PULLEN    GPIO_PULL_ENABLE
@@ -857,7 +857,7 @@
 #define GPIO91_IES     1
 #define GPIO91_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 92
+/*Configuration for Pin 92*/
 #define GPIO92_MODE      GPIO_MODE_01
 #define GPIO92_DIR       GPIO_DIR_IN
 #define GPIO92_PULLEN    GPIO_PULL_ENABLE
@@ -867,7 +867,7 @@
 #define GPIO92_IES     1
 #define GPIO92_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 93
+/*Configuration for Pin 93*/
 #define GPIO93_MODE      GPIO_MODE_01
 #define GPIO93_DIR       GPIO_DIR_IN
 #define GPIO93_PULLEN    GPIO_PULL_ENABLE
@@ -877,7 +877,7 @@
 #define GPIO93_IES     1
 #define GPIO93_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 94
+/*Configuration for Pin 94*/
 #define GPIO94_MODE      GPIO_MODE_01
 #define GPIO94_DIR       GPIO_DIR_IN
 #define GPIO94_PULLEN    GPIO_PULL_ENABLE
@@ -887,7 +887,7 @@
 #define GPIO94_IES     1
 #define GPIO94_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 95
+/*Configuration for Pin 95*/
 #define GPIO95_MODE      GPIO_MODE_01
 #define GPIO95_DIR       GPIO_DIR_IN
 #define GPIO95_PULLEN    GPIO_PULL_ENABLE
@@ -897,7 +897,7 @@
 #define GPIO95_IES     1
 #define GPIO95_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 96
+/*Configuration for Pin 96*/
 #define GPIO96_MODE      GPIO_MODE_01
 #define GPIO96_DIR       GPIO_DIR_IN
 #define GPIO96_PULLEN    GPIO_PULL_ENABLE
@@ -907,7 +907,7 @@
 #define GPIO96_IES     1
 #define GPIO96_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 97
+/*Configuration for Pin 97*/
 #define GPIO97_MODE      GPIO_MODE_00
 #define GPIO97_DIR       GPIO_DIR_IN
 #define GPIO97_PULLEN    GPIO_PULL_ENABLE
@@ -917,7 +917,7 @@
 #define GPIO97_IES     0
 #define GPIO97_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 98
+/*Configuration for Pin 98*/
 #define GPIO98_MODE      GPIO_MODE_00
 #define GPIO98_DIR       GPIO_DIR_IN
 #define GPIO98_PULLEN    GPIO_PULL_ENABLE
@@ -927,7 +927,7 @@
 #define GPIO98_IES     0
 #define GPIO98_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 99
+/*Configuration for Pin 99*/
 #define GPIO99_MODE      GPIO_MODE_00
 #define GPIO99_DIR       GPIO_DIR_IN
 #define GPIO99_PULLEN    GPIO_PULL_ENABLE
@@ -937,7 +937,7 @@
 #define GPIO99_IES     0
 #define GPIO99_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 100
+/*Configuration for Pin 100*/
 #define GPIO100_MODE      GPIO_MODE_00
 #define GPIO100_DIR       GPIO_DIR_IN
 #define GPIO100_PULLEN    GPIO_PULL_ENABLE
@@ -947,7 +947,7 @@
 #define GPIO100_IES     0
 #define GPIO100_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 101
+/*Configuration for Pin 101*/
 #define GPIO101_MODE      GPIO_MODE_01
 #define GPIO101_DIR       GPIO_DIR_IN
 #define GPIO101_PULLEN    GPIO_PULL_ENABLE
@@ -957,7 +957,7 @@
 #define GPIO101_IES     1
 #define GPIO101_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 102
+/*Configuration for Pin 102*/
 #define GPIO102_MODE      GPIO_MODE_01
 #define GPIO102_DIR       GPIO_DIR_OUT
 #define GPIO102_PULLEN    GPIO_PULL_DISABLE
@@ -967,7 +967,7 @@
 #define GPIO102_IES     1
 #define GPIO102_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 103
+/*Configuration for Pin 103*/
 #define GPIO103_MODE      GPIO_MODE_01
 #define GPIO103_DIR       GPIO_DIR_IN
 #define GPIO103_PULLEN    GPIO_PULL_ENABLE
@@ -977,7 +977,7 @@
 #define GPIO103_IES     1
 #define GPIO103_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 104
+/*Configuration for Pin 104*/
 #define GPIO104_MODE      GPIO_MODE_01
 #define GPIO104_DIR       GPIO_DIR_OUT
 #define GPIO104_PULLEN    GPIO_PULL_DISABLE
@@ -987,7 +987,7 @@
 #define GPIO104_IES     1
 #define GPIO104_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 105
+/*Configuration for Pin 105*/
 #define GPIO105_MODE      GPIO_MODE_01
 #define GPIO105_DIR       GPIO_DIR_OUT
 #define GPIO105_PULLEN    GPIO_PULL_DISABLE
@@ -997,7 +997,7 @@
 #define GPIO105_IES     1
 #define GPIO105_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 106
+/*Configuration for Pin 106*/
 #define GPIO106_MODE      GPIO_MODE_01
 #define GPIO106_DIR       GPIO_DIR_OUT
 #define GPIO106_PULLEN    GPIO_PULL_DISABLE
@@ -1007,7 +1007,7 @@
 #define GPIO106_IES     1
 #define GPIO106_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 107
+/*Configuration for Pin 107*/
 #define GPIO107_MODE      GPIO_MODE_01
 #define GPIO107_DIR       GPIO_DIR_IN
 #define GPIO107_PULLEN    GPIO_PULL_ENABLE
@@ -1017,7 +1017,7 @@
 #define GPIO107_IES     1
 #define GPIO107_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 108
+/*Configuration for Pin 108*/
 #define GPIO108_MODE      GPIO_MODE_00
 #define GPIO108_DIR       GPIO_DIR_IN
 #define GPIO108_PULLEN    GPIO_PULL_ENABLE
@@ -1027,7 +1027,7 @@
 #define GPIO108_IES     0
 #define GPIO108_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 109
+/*Configuration for Pin 109*/
 #define GPIO109_MODE      GPIO_MODE_04
 #define GPIO109_DIR       GPIO_DIR_IN
 #define GPIO109_PULLEN    GPIO_PULL_DISABLE
@@ -1037,7 +1037,7 @@
 #define GPIO109_IES     1
 #define GPIO109_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 110
+/*Configuration for Pin 110*/
 #define GPIO110_MODE      GPIO_MODE_01
 #define GPIO110_DIR       GPIO_DIR_OUT
 #define GPIO110_PULLEN    GPIO_PULL_DISABLE
@@ -1047,7 +1047,7 @@
 #define GPIO110_IES     1
 #define GPIO110_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 111
+/*Configuration for Pin 111*/
 #define GPIO111_MODE      GPIO_MODE_00
 #define GPIO111_DIR       GPIO_DIR_IN
 #define GPIO111_PULLEN    GPIO_PULL_ENABLE
@@ -1057,7 +1057,7 @@
 #define GPIO111_IES     0
 #define GPIO111_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 112
+/*Configuration for Pin 112*/
 #define GPIO112_MODE      GPIO_MODE_04
 #define GPIO112_DIR       GPIO_DIR_IN
 #define GPIO112_PULLEN    GPIO_PULL_DISABLE
@@ -1067,7 +1067,7 @@
 #define GPIO112_IES     1
 #define GPIO112_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 113
+/*Configuration for Pin 113*/
 #define GPIO113_MODE      GPIO_MODE_01
 #define GPIO113_DIR       GPIO_DIR_OUT
 #define GPIO113_PULLEN    GPIO_PULL_DISABLE
@@ -1077,7 +1077,7 @@
 #define GPIO113_IES     1
 #define GPIO113_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 114
+/*Configuration for Pin 114*/
 #define GPIO114_MODE      GPIO_MODE_01
 #define GPIO114_DIR       GPIO_DIR_OUT
 #define GPIO114_PULLEN    GPIO_PULL_DISABLE
@@ -1087,7 +1087,7 @@
 #define GPIO114_IES     1
 #define GPIO114_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 115
+/*Configuration for Pin 115*/
 #define GPIO115_MODE      GPIO_MODE_00
 #define GPIO115_DIR       GPIO_DIR_IN
 #define GPIO115_PULLEN    GPIO_PULL_ENABLE
@@ -1097,7 +1097,7 @@
 #define GPIO115_IES     0
 #define GPIO115_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 116
+/*Configuration for Pin 116*/
 #define GPIO116_MODE      GPIO_MODE_00
 #define GPIO116_DIR       GPIO_DIR_IN
 #define GPIO116_PULLEN    GPIO_PULL_ENABLE
@@ -1107,7 +1107,7 @@
 #define GPIO116_IES     0
 #define GPIO116_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 117
+/*Configuration for Pin 117*/
 #define GPIO117_MODE      GPIO_MODE_00
 #define GPIO117_DIR       GPIO_DIR_IN
 #define GPIO117_PULLEN    GPIO_PULL_ENABLE
@@ -1117,7 +1117,7 @@
 #define GPIO117_IES     0
 #define GPIO117_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 118
+/*Configuration for Pin 118*/
 #define GPIO118_MODE      GPIO_MODE_00
 #define GPIO118_DIR       GPIO_DIR_IN
 #define GPIO118_PULLEN    GPIO_PULL_ENABLE
@@ -1127,7 +1127,7 @@
 #define GPIO118_IES     0
 #define GPIO118_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 119
+/*Configuration for Pin 119*/
 #define GPIO119_MODE      GPIO_MODE_00
 #define GPIO119_DIR       GPIO_DIR_IN
 #define GPIO119_PULLEN    GPIO_PULL_ENABLE
@@ -1137,7 +1137,7 @@
 #define GPIO119_IES     0
 #define GPIO119_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 120
+/*Configuration for Pin 120*/
 #define GPIO120_MODE      GPIO_MODE_00
 #define GPIO120_DIR       GPIO_DIR_IN
 #define GPIO120_PULLEN    GPIO_PULL_ENABLE
@@ -1147,7 +1147,7 @@
 #define GPIO120_IES     0
 #define GPIO120_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 121
+/*Configuration for Pin 121*/
 #define GPIO121_MODE      GPIO_MODE_00
 #define GPIO121_DIR       GPIO_DIR_IN
 #define GPIO121_PULLEN    GPIO_PULL_ENABLE
@@ -1157,7 +1157,7 @@
 #define GPIO121_IES     0
 #define GPIO121_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 122
+/*Configuration for Pin 122*/
 #define GPIO122_MODE      GPIO_MODE_00
 #define GPIO122_DIR       GPIO_DIR_IN
 #define GPIO122_PULLEN    GPIO_PULL_ENABLE
@@ -1167,7 +1167,7 @@
 #define GPIO122_IES     0
 #define GPIO122_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 123
+/*Configuration for Pin 123*/
 #define GPIO123_MODE      GPIO_MODE_00
 #define GPIO123_DIR       GPIO_DIR_IN
 #define GPIO123_PULLEN    GPIO_PULL_ENABLE
@@ -1177,7 +1177,7 @@
 #define GPIO123_IES     0
 #define GPIO123_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 124
+/*Configuration for Pin 124*/
 #define GPIO124_MODE      GPIO_MODE_00
 #define GPIO124_DIR       GPIO_DIR_IN
 #define GPIO124_PULLEN    GPIO_PULL_ENABLE
@@ -1187,7 +1187,7 @@
 #define GPIO124_IES     0
 #define GPIO124_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 125
+/*Configuration for Pin 125*/
 #define GPIO125_MODE      GPIO_MODE_00
 #define GPIO125_DIR       GPIO_DIR_IN
 #define GPIO125_PULLEN    GPIO_PULL_ENABLE
@@ -1197,7 +1197,7 @@
 #define GPIO125_IES     0
 #define GPIO125_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 126
+/*Configuration for Pin 126*/
 #define GPIO126_MODE      GPIO_MODE_00
 #define GPIO126_DIR       GPIO_DIR_IN
 #define GPIO126_PULLEN    GPIO_PULL_ENABLE
@@ -1207,7 +1207,7 @@
 #define GPIO126_IES     0
 #define GPIO126_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 127
+/*Configuration for Pin 127*/
 #define GPIO127_MODE      GPIO_MODE_00
 #define GPIO127_DIR       GPIO_DIR_IN
 #define GPIO127_PULLEN    GPIO_PULL_ENABLE
@@ -1217,7 +1217,7 @@
 #define GPIO127_IES     0
 #define GPIO127_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 128
+/*Configuration for Pin 128*/
 #define GPIO128_MODE      GPIO_MODE_00
 #define GPIO128_DIR       GPIO_DIR_IN
 #define GPIO128_PULLEN    GPIO_PULL_ENABLE
@@ -1227,7 +1227,7 @@
 #define GPIO128_IES     0
 #define GPIO128_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 129
+/*Configuration for Pin 129*/
 #define GPIO129_MODE      GPIO_MODE_00
 #define GPIO129_DIR       GPIO_DIR_IN
 #define GPIO129_PULLEN    GPIO_PULL_ENABLE
@@ -1237,7 +1237,7 @@
 #define GPIO129_IES     0
 #define GPIO129_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 130
+/*Configuration for Pin 130*/
 #define GPIO130_MODE      GPIO_MODE_00
 #define GPIO130_DIR       GPIO_DIR_IN
 #define GPIO130_PULLEN    GPIO_PULL_ENABLE
@@ -1247,7 +1247,7 @@
 #define GPIO130_IES     0
 #define GPIO130_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 131
+/*Configuration for Pin 131*/
 #define GPIO131_MODE      GPIO_MODE_00
 #define GPIO131_DIR       GPIO_DIR_IN
 #define GPIO131_PULLEN    GPIO_PULL_ENABLE
@@ -1257,7 +1257,7 @@
 #define GPIO131_IES     0
 #define GPIO131_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 132
+/*Configuration for Pin 132*/
 #define GPIO132_MODE      GPIO_MODE_00
 #define GPIO132_DIR       GPIO_DIR_IN
 #define GPIO132_PULLEN    GPIO_PULL_ENABLE
@@ -1267,7 +1267,7 @@
 #define GPIO132_IES     0
 #define GPIO132_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 133
+/*Configuration for Pin 133*/
 #define GPIO133_MODE      GPIO_MODE_00
 #define GPIO133_DIR       GPIO_DIR_IN
 #define GPIO133_PULLEN    GPIO_PULL_ENABLE
@@ -1277,7 +1277,7 @@
 #define GPIO133_IES     0
 #define GPIO133_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 134
+/*Configuration for Pin 134*/
 #define GPIO134_MODE      GPIO_MODE_05
 #define GPIO134_DIR       GPIO_DIR_OUT
 #define GPIO134_PULLEN    GPIO_PULL_ENABLE
@@ -1287,7 +1287,7 @@
 #define GPIO134_IES     1
 #define GPIO134_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 135
+/*Configuration for Pin 135*/
 #define GPIO135_MODE      GPIO_MODE_05
 #define GPIO135_DIR       GPIO_DIR_OUT
 #define GPIO135_PULLEN    GPIO_PULL_ENABLE
@@ -1297,7 +1297,7 @@
 #define GPIO135_IES     1
 #define GPIO135_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 136
+/*Configuration for Pin 136*/
 #define GPIO136_MODE      GPIO_MODE_05
 #define GPIO136_DIR       GPIO_DIR_OUT
 #define GPIO136_PULLEN    GPIO_PULL_ENABLE
@@ -1307,7 +1307,7 @@
 #define GPIO136_IES     1
 #define GPIO136_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 137
+/*Configuration for Pin 137*/
 #define GPIO137_MODE      GPIO_MODE_00
 #define GPIO137_DIR       GPIO_DIR_IN
 #define GPIO137_PULLEN    GPIO_PULL_ENABLE
@@ -1317,7 +1317,7 @@
 #define GPIO137_IES     0
 #define GPIO137_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 138
+/*Configuration for Pin 138*/
 #define GPIO138_MODE      GPIO_MODE_00
 #define GPIO138_DIR       GPIO_DIR_IN
 #define GPIO138_PULLEN    GPIO_PULL_ENABLE
@@ -1327,7 +1327,7 @@
 #define GPIO138_IES     0
 #define GPIO138_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 139
+/*Configuration for Pin 139*/
 #define GPIO139_MODE      GPIO_MODE_00
 #define GPIO139_DIR       GPIO_DIR_IN
 #define GPIO139_PULLEN    GPIO_PULL_ENABLE
@@ -1337,7 +1337,7 @@
 #define GPIO139_IES     0
 #define GPIO139_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 140
+/*Configuration for Pin 140*/
 #define GPIO140_MODE      GPIO_MODE_04
 #define GPIO140_DIR       GPIO_DIR_IN
 #define GPIO140_PULLEN    GPIO_PULL_ENABLE
@@ -1347,7 +1347,7 @@
 #define GPIO140_IES     1
 #define GPIO140_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 141
+/*Configuration for Pin 141*/
 #define GPIO141_MODE      GPIO_MODE_00
 #define GPIO141_DIR       GPIO_DIR_IN
 #define GPIO141_PULLEN    GPIO_PULL_ENABLE
@@ -1357,7 +1357,7 @@
 #define GPIO141_IES     0
 #define GPIO141_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 142
+/*Configuration for Pin 142*/
 #define GPIO142_MODE      GPIO_MODE_00
 #define GPIO142_DIR       GPIO_DIR_IN
 #define GPIO142_PULLEN    GPIO_PULL_ENABLE
@@ -1367,7 +1367,7 @@
 #define GPIO142_IES     1
 #define GPIO142_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 143
+/*Configuration for Pin 143*/
 #define GPIO143_MODE      GPIO_MODE_00
 #define GPIO143_DIR       GPIO_DIR_IN
 #define GPIO143_PULLEN    GPIO_PULL_ENABLE
@@ -1377,7 +1377,7 @@
 #define GPIO143_IES     0
 #define GPIO143_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 144
+/*Configuration for Pin 144*/
 #define GPIO144_MODE      GPIO_MODE_00
 #define GPIO144_DIR       GPIO_DIR_OUT
 #define GPIO144_PULLEN    GPIO_PULL_ENABLE
@@ -1387,7 +1387,7 @@
 #define GPIO144_IES     1
 #define GPIO144_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 145
+/*Configuration for Pin 145*/
 #define GPIO145_MODE      GPIO_MODE_00
 #define GPIO145_DIR       GPIO_DIR_OUT
 #define GPIO145_PULLEN    GPIO_PULL_ENABLE
@@ -1397,7 +1397,7 @@
 #define GPIO145_IES     1
 #define GPIO145_SMT     GPIO_SMT_ENABLE
 
-//Configureation for Pin 146
+/*Configuration for Pin 146*/
 #define GPIO146_MODE      GPIO_MODE_00
 #define GPIO146_DIR       GPIO_DIR_IN
 #define GPIO146_PULLEN    GPIO_PULL_ENABLE
@@ -1407,7 +1407,7 @@
 #define GPIO146_IES     0
 #define GPIO146_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 147
+/*Configuration for Pin 147*/
 #define GPIO147_MODE      GPIO_MODE_00
 #define GPIO147_DIR       GPIO_DIR_IN
 #define GPIO147_PULLEN    GPIO_PULL_ENABLE
@@ -1417,7 +1417,7 @@
 #define GPIO147_IES     0
 #define GPIO147_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 148
+/*Configuration for Pin 148*/
 #define GPIO148_MODE      GPIO_MODE_00
 #define GPIO148_DIR       GPIO_DIR_IN
 #define GPIO148_PULLEN    GPIO_PULL_ENABLE
@@ -1427,7 +1427,7 @@
 #define GPIO148_IES     0
 #define GPIO148_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 149
+/*Configuration for Pin 149*/
 #define GPIO149_MODE      GPIO_MODE_00
 #define GPIO149_DIR       GPIO_DIR_IN
 #define GPIO149_PULLEN    GPIO_PULL_ENABLE
@@ -1437,7 +1437,7 @@
 #define GPIO149_IES     0
 #define GPIO149_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 150
+/*Configuration for Pin 150*/
 #define GPIO150_MODE      GPIO_MODE_00
 #define GPIO150_DIR       GPIO_DIR_IN
 #define GPIO150_PULLEN    GPIO_PULL_ENABLE
@@ -1447,7 +1447,7 @@
 #define GPIO150_IES     0
 #define GPIO150_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 151
+/*Configuration for Pin 151*/
 #define GPIO151_MODE      GPIO_MODE_00
 #define GPIO151_DIR       GPIO_DIR_IN
 #define GPIO151_PULLEN    GPIO_PULL_ENABLE
@@ -1457,7 +1457,7 @@
 #define GPIO151_IES     0
 #define GPIO151_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 152
+/*Configuration for Pin 152*/
 #define GPIO152_MODE      GPIO_MODE_00
 #define GPIO152_DIR       GPIO_DIR_IN
 #define GPIO152_PULLEN    GPIO_PULL_ENABLE
@@ -1467,7 +1467,7 @@
 #define GPIO152_IES     0
 #define GPIO152_SMT     GPIO_SMT_DISABLE
 
-//Configureation for Pin 153
+/*Configuration for Pin 153*/
 #define GPIO153_MODE      GPIO_MODE_00
 #define GPIO153_DIR       GPIO_DIR_IN
 #define GPIO153_PULLEN    GPIO_PULL_ENABLE

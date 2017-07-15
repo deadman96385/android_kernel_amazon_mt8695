@@ -1069,6 +1069,7 @@ static int bq27xxx_battery_i2c_read(struct bq27xxx_device_info *di, u8 reg,
 	unsigned char data[2];
 	int ret;
 
+	memset(msg, 0, sizeof(msg));
 	if (!client->adapter)
 		return -ENODEV;
 
@@ -1173,6 +1174,11 @@ static int bq27xxx_battery_i2c_remove(struct i2c_client *client)
 
 	return 0;
 }
+
+static struct i2c_board_info __initdata i2c_bq27421_boardinfo =
+{
+	I2C_BOARD_INFO("bq27421", (0x55))
+};
 
 static const struct i2c_device_id bq27xxx_id[] = {
 	{ "bq27200", BQ27000 },
@@ -1347,7 +1353,9 @@ static int __init bq27xxx_battery_init(void)
 {
 	int ret;
 
+	i2c_register_board_info(1, &i2c_bq27421_boardinfo, 1);
 	ret = bq27xxx_battery_i2c_init();
+
 	if (ret)
 		return ret;
 

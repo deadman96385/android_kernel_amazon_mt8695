@@ -6,7 +6,7 @@ include $(srctree)/drivers/misc/mediatek/Makefile.custom
 obj-$(CONFIG_MTK_KXTJ2_1009)   +=  accelerometer/KXTJ2_1009/
 obj-$(CONFIG_MTK_MPU3050C)   +=  gyroscope/mpu3050c/
 obj-$(CONFIG_MTK_AKM8963)	+=  magnetometer/akm8963/
-obj-$(CONFIG_TOUCHSCREEN_MTK_MXT144U) += touchpanel/MXT144U/
+obj-$(CONFIG_TOUCHSCREEN_ATMEL_MXT144U) += touchpanel/MXT144U/
 
 ifneq ($(CONFIG_ARCH_MTK_PROJECT),)
 obj-y	+= core/

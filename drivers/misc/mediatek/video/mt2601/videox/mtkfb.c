@@ -165,6 +165,19 @@ extern LCM_PARAMS *lcm_params;
 extern disp_session_config disp_config;
 extern unsigned int is_video_mode_running;
 extern unsigned int isAEEEnabled;
+BLOCKING_NOTIFIER_HEAD(ambient_mode_notifier);
+int ambient_mode_notifier_register(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&ambient_mode_notifier, nb);
+}
+EXPORT_SYMBOL(ambient_mode_notifier_register);
+
+int ambient_mode_notifier_unregister(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&ambient_mode_notifier, nb);
+}
+EXPORT_SYMBOL(ambient_mode_notifier_unregister);
+
 /* --------------------------------------------------------------------------- */
 /* local function declarations */
 /* --------------------------------------------------------------------------- */
@@ -1860,6 +1873,7 @@ static int mtkfb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg
 					is_lcm_always_on = alwaysOn;
 				}
 			}
+			blocking_notifier_call_chain(&ambient_mode_notifier, display_power_state, NULL);
 			DISP_LOG_PRINT("[FB]: MTKFB_SET_DISPLAY_POWER_MODE: %d %d\n", display_power_state, is_lcm_always_on);
 		}
 

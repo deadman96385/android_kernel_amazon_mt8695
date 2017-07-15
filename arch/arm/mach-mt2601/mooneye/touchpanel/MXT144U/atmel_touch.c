@@ -14,8 +14,7 @@ static struct i2c_board_info __initdata i2c_mxt_tpd[]={
 
 static int __init mxt_touch_init(void)
 {
-	i2c_register_board_info(TPD_I2C_BUS, i2c_mxt_tpd, 1);
-    return 0;
+	return i2c_register_board_info(TPD_I2C_BUS, i2c_mxt_tpd, 1);
 }
 
 device_initcall(mxt_touch_init);

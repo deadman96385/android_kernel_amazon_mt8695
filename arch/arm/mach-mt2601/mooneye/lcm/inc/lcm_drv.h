@@ -469,14 +469,18 @@ typedef struct {
 	void (*send_data) (unsigned int data);
 	unsigned int (*read_data) (void);
 
-	void (*dsi_set_cmdq_V3) (LCM_setting_table_V3 *para_list, unsigned int size, unsigned char force_update);
-	void (*dsi_set_cmdq_V2) (unsigned cmd, unsigned char count, unsigned char *para_list, unsigned char force_update);
-	void (*dsi_set_cmdq) (unsigned int *pdata, unsigned int queue_size, unsigned char force_update);
+	void (*dsi_set_cmdq_V3) (LCM_setting_table_V3 *para_list, unsigned int size,
+				unsigned char force_update);
+	void (*dsi_set_cmdq_V2) (unsigned cmd, unsigned char count, unsigned char *para_list,
+				unsigned char force_update);
+	void (*dsi_set_cmdq) (unsigned int *pdata, unsigned int queue_size,
+				unsigned char force_update);
 	void (*dsi_write_cmd) (unsigned int cmd);
 	void (*dsi_write_regs) (unsigned int addr, unsigned int *para, unsigned int nums);
 	unsigned int (*dsi_read_reg) (void);
 	unsigned int (*dsi_dcs_read_lcm_reg) (unsigned char cmd);
-	unsigned int (*dsi_dcs_read_lcm_reg_v2) (unsigned char cmd, unsigned char *buffer, unsigned char buffer_size);
+	unsigned int (*dsi_dcs_read_lcm_reg_v2) (unsigned char cmd, unsigned char *buffer,
+						unsigned char buffer_size);
 	void (*wait_transfer_done) (void);
 
 	/* FIXME: GPIO mode should not be configured in lcm driver

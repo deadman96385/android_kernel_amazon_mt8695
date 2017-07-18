@@ -39,7 +39,7 @@ obj-y += sbchk_base.o
 obj-$(CONFIG_MTK_CIRQ) += mt_cirq.o
 obj-$(CONFIG_MTK_MCI) += mt_mci.o
 obj-y += mtk_ccci_helper.o
-obj-y += cache-mtk-v7.0
+obj-y += cache-mtk-v7.o
 
 # Hibernation
 AFLAGS_swsusp.o	:= -DTEXT_OFFSET=$(TEXT_OFFSET)

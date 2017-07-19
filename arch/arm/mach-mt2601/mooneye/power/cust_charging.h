@@ -131,4 +131,9 @@
 #define CHARGING_FULL_CURRENT    120	/*mA*/
 #endif
 
+/* Off mode charging to auto-boot support */
+#if !defined(CONFIG_MTK_KERNEL_POWER_OFF_CHARGING) && defined(CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT)
+#define MTK_CHARGING_AUTO_BOOT_LEVEL    15
+#endif
+
 #endif				/* _CUST_BAT_H_ */

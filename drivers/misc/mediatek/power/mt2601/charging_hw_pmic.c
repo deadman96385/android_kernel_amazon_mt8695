@@ -851,7 +851,7 @@ kal_bool charging_type_detection_done(void)
 
      battery_xlog_printk(BAT_LOG_CRTI, "charging_set_platform_reset\n");
 
-     arch_reset(0, NULL);
+     arch_reset(0, (char*)data);
 
      return status;
  }

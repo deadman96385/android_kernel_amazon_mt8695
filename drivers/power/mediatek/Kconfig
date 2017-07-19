@@ -12,6 +12,11 @@ config MTK_SMART_BATTERY
 	  It maintais both charger and battery status.
 	  It also includes Mediatek gas gauge.
 
+config MTK_CHARGING_AUTO_BOOT_SUPPORT
+	tristate "MediaTek off-mode charging and aut-boot feature"
+	depends on MTK_SMART_BATTERY
+	default n
+
 config MTK_GAUGE_VERSION
 	int "MediaTek Fuel Gauge version"
 	default 20

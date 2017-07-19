@@ -228,6 +228,33 @@ int set_rtc_spare_fg_value(int val)
 	return 0;
 }
 
+#ifdef CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT
+int get_rtc_spare_kpoc_value(void)
+{
+	/* RTC_PDN1 bit14 */
+	u16 temp;
+	unsigned long flags;
+
+	spin_lock_irqsave(&rtc_lock, flags);
+	temp = hal_rtc_get_spare_register(RTC_KPOC);
+	spin_unlock_irqrestore(&rtc_lock, flags);
+
+	return temp;
+}
+
+int set_rtc_spare_kpoc_value(int val)
+{
+	/* RTC_PDN1 bit14 */
+	unsigned long flags;
+
+	spin_lock_irqsave(&rtc_lock, flags);
+	hal_rtc_set_spare_register(RTC_KPOC, val);
+	spin_unlock_irqrestore(&rtc_lock, flags);
+
+	return 0;
+}
+#endif
+
 bool crystal_exist_status(void)
 {
 	unsigned long flags;

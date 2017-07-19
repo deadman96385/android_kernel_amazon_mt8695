@@ -147,8 +147,7 @@ extern int mtk_wcn_cmb_stub_aif_ctrl(CMB_STUB_AIF_X state, CMB_STUB_AIF_CTRL ctr
 
 static inline int mtk_wcn_cmb_stub_audio_ctrl(CMB_STUB_AIF_X state)
 {
-/* return mtk_wcn_cmb_stub_aif_ctrl(state, 1); */
-	return 0;
+    return mtk_wcn_cmb_stub_aif_ctrl(state, 1);
 }
 
 extern int mt_combo_plt_enter_deep_idle(COMBO_IF src);

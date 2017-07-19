@@ -71,6 +71,7 @@ static const WMT_IC_PIN_STATE cmb_aif2pin_stat[] = {
 	[CMB_STUB_AIF_1] = WMT_IC_AIF_1,
 	[CMB_STUB_AIF_2] = WMT_IC_AIF_2,
 	[CMB_STUB_AIF_3] = WMT_IC_AIF_3,
+	[CMB_STUB_AIF_4] = WMT_IC_AIF_4,
 };
 
 #if CFG_WMT_PS_SUPPORT
@@ -288,6 +289,8 @@ INT32 wmt_lib_init(VOID)
 		WMT_ERR_FUNC("wmt_plat_init() fail(%d)\n", iRet);
 		return -3;
 	}
+
+	wmt_plat_stub_init();
 
 #if CFG_WMT_PS_SUPPORT
 	iRet = wmt_lib_ps_init();

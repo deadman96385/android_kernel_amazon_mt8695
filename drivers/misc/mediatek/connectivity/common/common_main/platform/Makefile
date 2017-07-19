@@ -24,7 +24,7 @@ ifneq ($(filter "CONSYS_%",$(CONFIG_MTK_COMBO_CHIP)),)
 obj-y	+= $(MTK_PLATFORM).o
 endif
 obj-y	+= wmt_plat_$(PLAT).o
-#obj-y	+= wmt_plat_stub.o
+obj-y	+= wmt_plat_stub.o
 obj-y	+= mtk_wcn_cmb_hw.o
 obj-y	+= mtk_wcn_consys_hw.o
 

@@ -216,6 +216,10 @@ kal_int32 gFG_min_temperature = 100;
 
 #endif				/* battery info */
 
+#ifdef CONFIG_BATTERY_BQ27XXX
+extern int bq27xxx_get_battery_percentage(void);
+#endif
+
 int fgauge_get_saddles(void);
 BATTERY_PROFILE_STRUC_P fgauge_get_profile(kal_uint32 temperature);
 
@@ -2433,6 +2437,9 @@ kal_int32 battery_meter_get_battery_percentage(void)
 	return 50;
 #endif
 
+#ifdef CONFIG_BATTERY_BQ27XXX
+       return bq27xxx_get_battery_percentage();
+#else
 	if (bat_is_charger_exist() == KAL_FALSE)
 		fg_qmax_update_for_aging_flag = 1;
 
@@ -2447,13 +2454,14 @@ kal_int32 battery_meter_get_battery_percentage(void)
 		}
 	} else if (fg_soc_method == SOC_BY_SW_FG) {
 		oam_run();
-		if (oam_d5 == 1) 
+		if (oam_d5 == 1)
 			return (100 - oam_d_5);
 		else
 			return (100 - oam_d_2);
 	}
 
 	return -1;
+#endif
 }
 
 kal_int32 battery_meter_initial(void)

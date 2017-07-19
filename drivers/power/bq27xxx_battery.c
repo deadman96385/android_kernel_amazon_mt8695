@@ -52,6 +52,7 @@
 #include <asm/unaligned.h>
 
 #include <linux/power/bq27xxx_battery.h>
+#include <mach/battery_common.h>
 
 #define DRIVER_VERSION		"1.2.0"
 
@@ -444,6 +445,8 @@ static struct {
 	BQ27XXX_PROP(BQ27421, bq27421_battery_props),
 };
 
+extern PMU_ChargerStruct BMT_status;
+static int mCapacity = 0;
 static unsigned int poll_interval = 360;
 module_param(poll_interval, uint, 0644);
 MODULE_PARM_DESC(poll_interval,
@@ -710,6 +713,26 @@ static int bq27xxx_battery_read_health(struct bq27xxx_device_info *di)
 	return POWER_SUPPLY_HEALTH_GOOD;
 }
 
+static void dump_bq27xxx_regs(struct bq27xxx_device_info *di)
+{
+	u16 control = bq27xxx_read(di, BQ27XXX_REG_CTRL, false);
+	u16 temp = bq27xxx_read(di, BQ27XXX_REG_TEMP, false);
+	u16 volt = bq27xxx_read(di, BQ27XXX_REG_VOLT, false);
+	u16 flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
+	u16 fcc = bq27xxx_read(di, BQ27XXX_REG_FCC, false);
+	u16 ai = bq27xxx_read(di, BQ27XXX_REG_AI, false);
+	u16 soc = bq27xxx_read(di, BQ27XXX_REG_SOC, false);
+
+	dev_warn(di->dev, "Control:0x%04x\n", control);
+	dev_warn(di->dev, "Temperature:%d", temp);
+	dev_warn(di->dev, "Voltage:%d\n", volt);
+	dev_warn(di->dev, "Flags:0x%04x\n", flags);
+	dev_warn(di->dev, "FullChargeCapacity:%d\n", fcc);
+	dev_warn(di->dev, "AverageCurrent:%d\n", (int)((s16)ai));
+	dev_warn(di->dev, "StateOfCharge:%d\n", soc);
+}
+
+
 static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 {
 	struct bq27xxx_reg_cache cache = {0, };
@@ -753,6 +776,12 @@ static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 			di->charge_design_full = bq27xxx_battery_read_dcap(di);
 	}
 
+	dev_warn(di->dev, "cache.capacity:%d, cache.temperature:%d, cache.flags:%08x,"
+		              "BMT_status.bat_in_recharging_state:%d, BMT_status.bat_full:%d\n",
+                      cache.capacity, cache.temperature, cache.flags, BMT_status.bat_in_recharging_state, BMT_status.bat_full);
+	dump_bq27xxx_regs(di);
+
+	mCapacity = cache.capacity;
 	if (di->cache.capacity != cache.capacity)
 		power_supply_changed(di->bat);
 
@@ -899,6 +928,12 @@ static int bq27xxx_simple_value(int value,
 	return 0;
 }
 
+int bq27xxx_get_battery_percentage(void)
+{
+    return mCapacity;
+}
+EXPORT_SYMBOL(bq27xxx_get_battery_percentage);
+
 static int bq27xxx_battery_get_property(struct power_supply *psy,
 					enum power_supply_property psp,
 					union power_supply_propval *val)
@@ -930,7 +965,10 @@ static int bq27xxx_battery_get_property(struct power_supply *psy,
 		ret = bq27xxx_battery_current(di, val);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		ret = bq27xxx_simple_value(di->cache.capacity, val);
+		if(BMT_status.bat_in_recharging_state || BMT_status.bat_full)
+			val->intval = 100;
+		else
+			ret = bq27xxx_simple_value(di->cache.capacity, val);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
 		ret = bq27xxx_battery_capacity_level(di, val);

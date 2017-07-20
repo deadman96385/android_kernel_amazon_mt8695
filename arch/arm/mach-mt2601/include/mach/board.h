@@ -20,6 +20,7 @@ typedef void (*pm_callback_t) (pm_message_t state, void *data);
 #define MSDC_UHS1           (1 << 8)	/* uhs-1 mode support            */
 #define MSDC_DDR            (1 << 9)	/* ddr mode support              */
 #define MSDC_INTERNAL_CLK   (1 << 11)	/* Force Internal clock */
+#define MSDC_PM_KEEP_POWER  (1 << 12)	/* PM : keep power */
 
 #define MSDC_SMPL_RISING    (0)
 #define MSDC_SMPL_FALLING   (1)

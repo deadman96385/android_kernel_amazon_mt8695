@@ -145,6 +145,12 @@ struct mmc_host_ops {
 	 */
 	int	(*multi_io_quirk)(struct mmc_card *card,
 				  unsigned int direction, int blk_size);
+	//BEGIN MTK legacy patch for kernel-3.10
+	void	(*tuning)(struct mmc_host *host, struct mmc_request *req);
+	void	(*send_stop)(struct mmc_host *host, struct mmc_request *req);
+	void	(*dma_error_reset)(struct mmc_host *host);
+	bool	(*check_written_data)(struct mmc_host *host, struct mmc_request *req);
+	//END MTK legacy patch for kernel-3.10
 };
 
 struct mmc_card;

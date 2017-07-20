@@ -618,6 +618,14 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 			 * nothing to return
 			 */
 			return NULL;
+		} else {
+			//BEGIN MTK legacy patch from kernel-3.10
+			host->ops->send_stop(host,host->areq->mrq);
+			do {
+				host->ops->tuning(host, host->areq->mrq);
+			} while (host->ops->check_written_data(host, host->areq->mrq));
+			err = host->areq->err_check(host->card, host->areq);
+			//END MTK legacy patch from kernel-3.10
 		}
 		/*
 		 * Check BKOPS urgency for each R1 response

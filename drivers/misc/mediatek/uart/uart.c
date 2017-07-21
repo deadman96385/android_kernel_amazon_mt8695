@@ -2705,7 +2705,7 @@ static int mtk_uart_init_ports(void)
 	*   is defined, resume will fail. Since the root cause is not clear, only disable the console-related
 	*   function.
 	*/
-	/*printk("HW_MISC: 0x%08X\n", UART_READ32(HW_MISC)); */ /* mtk does NOT has this register */
+	/*pr_debug("HW_MISC: 0x%08X\n", UART_READ32(HW_MISC)); */ /* mtk does NOT has this register */
 #endif
 	return 0;
 }
@@ -2855,7 +2855,7 @@ int request_uart_to_sleep(void)
 				udelay(10);
 			}
 		} else {
-			/* printk("[UART%d] clock is off\n", uart->nport); */
+			/* pr_debug("[UART%d] clock is off\n", uart->nport); */
 		}
 	}
 
@@ -2891,7 +2891,7 @@ int request_uart_to_wakeup(void)
 				udelay(10);
 			}
 		} else {
-			/* printk("[UART%d] clock is off\n", uart->nport); */
+			/* pr_debug("[UART%d] clock is off\n", uart->nport); */
 		}
 	}
 

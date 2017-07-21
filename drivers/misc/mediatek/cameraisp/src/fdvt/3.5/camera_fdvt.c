@@ -70,7 +70,7 @@
 *#endif
 *#define MT6573FDVT_PARM
 *#ifdef MT6573FDVT_PARM
-*#define LOG_DBG(fmt,arg...) printk("[CAMERAFDVT]" "%s() - "  fmt, __FUNCTION__  ,##arg)
+*#define LOG_DBG(fmt,arg...) pr_debug("[CAMERAFDVT]" "%s() - "  fmt, __FUNCTION__  ,##arg)
 *#else
 *#define LOG_DBG(fmt,arg...)
 *#endif

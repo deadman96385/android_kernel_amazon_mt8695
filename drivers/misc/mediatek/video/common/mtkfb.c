@@ -1871,7 +1871,7 @@ char *mtkfb_find_lcm_driver(void)
 		mtkfb_lcm_name[q - p + 1] = '\0';
 	}
 #endif
-	/* printk("%s, %s\n", __func__, mtkfb_lcm_name); */
+	/* pr_debug("%s, %s\n", __func__, mtkfb_lcm_name); */
 	return mtkfb_lcm_name;
 }
 
@@ -2228,9 +2228,9 @@ static int mtkfb_probe(struct device *dev)
 	{
 #ifndef MTK_NO_DISP_IN_LK
 #ifdef CONFIG_OF
-		/* printk("mtkfb_probe:get FB MEM REG\n"); */
+		/* pr_debug("mtkfb_probe:get FB MEM REG\n"); */
 		_parse_tag_videolfb();
-		/* printk("mtkfb_probe: fb_pa = %p\n",(void *)fb_base); */
+		/* pr_debug("mtkfb_probe: fb_pa = %p\n",(void *)fb_base); */
 
 		disp_hal_allocate_framebuffer(fb_base, (fb_base + vramsize - 1),
 					      (unsigned long *)&fbdev->fb_va_base, &fb_pa);
@@ -2381,7 +2381,7 @@ static int mtkfb_probe(struct device *dev)
 cleanup:
 	mtkfb_free_resources(fbdev, init_state);
 
-	/* printk("mtkfb_probe end\n"); */
+	/* pr_debug("mtkfb_probe end\n"); */
 	return r;
 }
 

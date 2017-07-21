@@ -125,118 +125,118 @@ void bq27541_parameter_dump(void)
     int data = 0;
     /* BQ27541_CMD_AtRate */
     ret = bq27541_set_cmd_read(BQ27541_CMD_AtRate, &data);
-	printk("[BQ27541]AtRate = %X\n", data);
+	pr_debug("[BQ27541]AtRate = %X\n", data);
 	data = 0x2BC; /* 700mA */
     ret = bq27541_set_cmd_write(BQ27541_CMD_AtRate, data);
     ret = bq27541_set_cmd_read(BQ27541_CMD_AtRate, &data);
-	printk("[BQ27541]AtRate-Wrote = %X\n", data);
+	pr_debug("[BQ27541]AtRate-Wrote = %X\n", data);
 
     /* BQ27541_CMD_AtRateTimeToEmpty */
     ret = bq27541_set_cmd_read(BQ27541_CMD_AtRateTimeToEmpty, &data);
-	printk("[BQ27541]AtRateTimeToEmpty = %X\n", data);
+	pr_debug("[BQ27541]AtRateTimeToEmpty = %X\n", data);
 
     /* BQ27541_CMD_Temperature */
     ret = bq27541_set_cmd_read(BQ27541_CMD_Temperature, &data);
 	data -= 2731;
 	data = data/10;
-	printk("[BQ27541]Temperature = %d C\n", data);
+	pr_debug("[BQ27541]Temperature = %d C\n", data);
 
     /* BQ27541_CMD_Voltage */
     ret = bq27541_set_cmd_read(BQ27541_CMD_Voltage, &data);
-	printk("[BQ27541]Voltage = %d\n", data);
+	pr_debug("[BQ27541]Voltage = %d\n", data);
 
     /* BQ27541_CMD_Flags */
     ret = bq27541_set_cmd_read(BQ27541_CMD_Flags, &data);
-	printk("[BQ27541]Flags = %X\n", data);
+	pr_debug("[BQ27541]Flags = %X\n", data);
 
     /* BQ27541_CMD_NominalAvailableCapacity */
     ret = bq27541_set_cmd_read(BQ27541_CMD_NominalAvailableCapacity, &data);
-	printk("[BQ27541]NominalAvailableCapacity = %X\n", data);
+	pr_debug("[BQ27541]NominalAvailableCapacity = %X\n", data);
 
     /* BQ27541_CMD_FullAvailableCapacity */
     ret = bq27541_set_cmd_read(BQ27541_CMD_FullAvailableCapacity, &data);
-	printk("[BQ27541]FullAvailableCapacity = %X\n", data);
+	pr_debug("[BQ27541]FullAvailableCapacity = %X\n", data);
 
     /* BQ27541_CMD_RemainingCapacity */
     ret = bq27541_set_cmd_read(BQ27541_CMD_RemainingCapacity, &data);
-	printk("[BQ27541]RemainingCapacity = %X\n", data);
+	pr_debug("[BQ27541]RemainingCapacity = %X\n", data);
 
     /* BQ27541_CMD_FullChargeCapacity */
     ret = bq27541_set_cmd_read(BQ27541_CMD_FullChargeCapacity, &data);
-	printk("[BQ27541]FullChargeCapacity = %X\n", data);
+	pr_debug("[BQ27541]FullChargeCapacity = %X\n", data);
 
     /* BQ27541_CMD_AverageCurrent */
     ret = bq27541_set_cmd_read(BQ27541_CMD_AverageCurrent, &data);
-	printk("[BQ27541]AverageCurrent = %X\n", data);
+	pr_debug("[BQ27541]AverageCurrent = %X\n", data);
 
     /* BQ27541_CMD_TimeToEmpty */
     ret = bq27541_set_cmd_read(BQ27541_CMD_TimeToEmpty, &data);
-	printk("[BQ27541]TimeToEmpty = %X\n", data);
+	pr_debug("[BQ27541]TimeToEmpty = %X\n", data);
 
     /* BQ27541_CMD_TimeToFull */
     ret = bq27541_set_cmd_read(BQ27541_CMD_TimeToFull, &data);
-	printk("[BQ27541]TimeToFull = %X\n", data);
+	pr_debug("[BQ27541]TimeToFull = %X\n", data);
 
     /* BQ27541_CMD_StandbyCurrent */
     ret = bq27541_set_cmd_read(BQ27541_CMD_StandbyCurrent, &data);
-	printk("[BQ27541]StandbyCurrent = %X\n", data);
+	pr_debug("[BQ27541]StandbyCurrent = %X\n", data);
 
     /* BQ27541_CMD_StandbyTimeToEmpty */
     ret = bq27541_set_cmd_read(BQ27541_CMD_StandbyTimeToEmpty, &data);
-	printk("[BQ27541]StandbyTimeToEmpty = %X\n", data);
+	pr_debug("[BQ27541]StandbyTimeToEmpty = %X\n", data);
 
     /* BQ27541_CMD_MaxLoadCurrent */
     ret = bq27541_set_cmd_read(BQ27541_CMD_MaxLoadCurrent, &data);
-	printk("[BQ27541]MaxLoadCurrent = %X\n", data);
+	pr_debug("[BQ27541]MaxLoadCurrent = %X\n", data);
 
     /* BQ27541_CMD_MaxLoadTimeToEmpty */
     ret = bq27541_set_cmd_read(BQ27541_CMD_MaxLoadTimeToEmpty, &data);
-	printk("[BQ27541]MaxLoadTimeToEmpty = %X\n", data);
+	pr_debug("[BQ27541]MaxLoadTimeToEmpty = %X\n", data);
 
     /* BQ27541_CMD_AvailableEnergy */
     ret = bq27541_set_cmd_read(BQ27541_CMD_AvailableEnergy, &data);
-	printk("[BQ27541]AvailableEnergy = %X\n", data);
+	pr_debug("[BQ27541]AvailableEnergy = %X\n", data);
 
     /* BQ27541_CMD_AveragePower */
     ret = bq27541_set_cmd_read(BQ27541_CMD_AveragePower, &data);
-	printk("[BQ27541]AveragePower = %X\n", data);
+	pr_debug("[BQ27541]AveragePower = %X\n", data);
 
     /* BQ27541_CMD_TimeToEmptyAtConstantPower */
     ret = bq27541_set_cmd_read(BQ27541_CMD_TimeToEmptyAtConstantPower, &data);
-	printk("[BQ27541]TimeToEmptyAtConstantPower = %X\n", data);
+	pr_debug("[BQ27541]TimeToEmptyAtConstantPower = %X\n", data);
 
     /* BQ27541_CMD_Internal_Temp */
     ret = bq27541_set_cmd_read(BQ27541_CMD_Internal_Temp, &data);
 	data -= 2731;
 	data = data/10;
-	printk("[BQ27541]Internal_Temp = %d C\n", data);
+	pr_debug("[BQ27541]Internal_Temp = %d C\n", data);
 
     /* BQ27541_CMD_CycleCount */
     ret = bq27541_set_cmd_read(BQ27541_CMD_CycleCount, &data);
-	printk("[BQ27541]CycleCount = %X\n", data);
+	pr_debug("[BQ27541]CycleCount = %X\n", data);
 
     /* BQ27541_CMD_StateOfCharge */
     ret = bq27541_set_cmd_read(BQ27541_CMD_StateOfCharge, &data);
-	printk("[BQ27541]StateOfCharge = %X\n", data);
+	pr_debug("[BQ27541]StateOfCharge = %X\n", data);
 
     /* BQ27541_CMD_StateOfHealth */
     ret = bq27541_set_cmd_read(BQ27541_CMD_StateOfHealth, &data);
-	printk("[BQ27541]StateOfHealth = %X\n", data);
+	pr_debug("[BQ27541]StateOfHealth = %X\n", data);
 
     /* BQ27541_CMD_PassedCharge */
     ret = bq27541_set_cmd_read(BQ27541_CMD_PassedCharge, &data);
-	printk("[BQ27541]PassedCharge = %X\n", data);
+	pr_debug("[BQ27541]PassedCharge = %X\n", data);
 
     /* BQ27541_CMD_DOD0 */
     ret = bq27541_set_cmd_read(BQ27541_CMD_DOD0, &data);
-	printk("[BQ27541]DOD0 = %X\n", data);
+	pr_debug("[BQ27541]DOD0 = %X\n", data);
 }
 
 static int bq27541_driver_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
     int err = 0;
 
-    printk("[bq27541_driver_probe]\n");
+    pr_debug("[bq27541_driver_probe]\n");
 
     if (!(new_client = kmalloc(sizeof(struct i2c_client), GFP_KERNEL))) {
 	err = -ENOMEM;
@@ -265,17 +265,17 @@ static struct i2c_board_info i2c_bq27541 __initdata = { I2C_BOARD_INFO("bq27541"
 
 static int __init bq27541_init(void)
 {
-    printk("[bq27541_init] init start\n");
+    pr_debug("[bq27541_init] init start\n");
 
     i2c_register_board_info(BQ24196_BUSNUM, &i2c_bq27541, 1);
 
     if (i2c_add_driver(&bq27541_driver) != 0)
     {
-	printk("[bq27541_init] failed to register bq27541 i2c driver.\n");
+	pr_debug("[bq27541_init] failed to register bq27541 i2c driver.\n");
     }
     else
     {
-	printk("[bq27541_init] Success to register bq27541 i2c driver.\n");
+	pr_debug("[bq27541_init] Success to register bq27541 i2c driver.\n");
     }
 
     return 0;

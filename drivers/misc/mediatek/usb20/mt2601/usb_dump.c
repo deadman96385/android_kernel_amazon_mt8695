@@ -713,9 +713,9 @@ static void process_standard_request(struct usb_ctrlrequest *pudr)
 			u8 device_status[2] = {0, 0};
 			send_data(0, device_status, 2);
 		} else if (pudr->bRequestType == 0xC0) {
-			/* printk("serial::USB_REQUEST_GET_STATUS_DEVICE 0xc0\r\n"); */
+			/* pr_debug("serial::USB_REQUEST_GET_STATUS_DEVICE 0xc0\r\n"); */
 		} else if (pudr->bRequestType == 0x00) {
-			/* printk("serial::USB_REQUEST_GET_STATUS_DEVICE 0x00\r\n"); */
+			/* pr_debug("serial::USB_REQUEST_GET_STATUS_DEVICE 0x00\r\n"); */
 		}
 
 		break;
@@ -853,7 +853,7 @@ static void usb_reset(void)
 	}
 
 	/* DBG(0,"usb is hight speed  %d %x\n",is_high_speed,usb_readb(MUSB_POWER)); */
-	printk("usb is hight speed  %d %x\n", is_high_speed, usb_readb(MUSB_POWER));
+	pr_debug("usb is hight speed  %d %x\n", is_high_speed, usb_readb(MUSB_POWER));
 }
 
 static void config_usb_acm(void)

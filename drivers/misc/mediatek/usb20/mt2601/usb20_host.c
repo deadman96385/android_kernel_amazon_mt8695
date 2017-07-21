@@ -104,7 +104,7 @@ int mt_usb_get_vbus_status(struct musb *musb)
 	} else {
 		DBG(0, "VBUS error, devctl=%x, power=%d\n", musb_readb(musb->mregs, MUSB_DEVCTL), musb->power);
 	}
-    printk("vbus ready = %d\n", ret);
+    pr_debug("vbus ready = %d\n", ret);
 	return ret;
 #endif
 }
@@ -381,9 +381,9 @@ void mt_usb_otg_init(struct musb *musb)
 	otg_state.state = 0;
 
 	if (switch_dev_register(&otg_state))
-		printk("switch_dev_register fail\n");
+		pr_debug("switch_dev_register fail\n");
 	else
-	printk("switch_dev register success\n");
+	pr_debug("switch_dev register success\n");
 
     INIT_DELAYED_WORK(&musb->id_pin_work, musb_id_pin_work);
 }

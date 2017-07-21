@@ -156,7 +156,7 @@ int IMM_auxadc_GetOneChannelValue(int dwChannel, int data[4], int *rawdata)
    {
 	   if (enable_clock(MT_PDN_PERI_AUXADC, "AUXADC"))
 	   {
-		printk("hwEnableClock AUXADC failed.");
+		pr_debug("hwEnableClock AUXADC failed.");
 	   }
    }
 
@@ -164,13 +164,13 @@ int IMM_auxadc_GetOneChannelValue(int dwChannel, int data[4], int *rawdata)
    /* step1 check con2 if auxadc is busy */
    while ((*(volatile u16 *)AUXADC_CON2) & 0x01)
    {
-       printk("[adc_api]: wait for module idle\n");
+       pr_debug("[adc_api]: wait for module idle\n");
        msleep(100);
 	   idle_count++;
 	   if (idle_count > 30)
 	   {
 	      /* wait for idle time out */
-	      printk("[adc_api]: wait for auxadc idle time out\n");
+	      pr_debug("[adc_api]: wait for auxadc idle time out\n");
 		mutex_unlock(&mutex_get_cali_value);
 	      return -1;
 	   }
@@ -186,13 +186,13 @@ int IMM_auxadc_GetOneChannelValue(int dwChannel, int data[4], int *rawdata)
    /* step3  read channle and make sure old ready bit ==0 */
    while ((*(volatile u16 *)(AUXADC_DAT0 + dwChannel * 0x04)) & (1<<12))
    {
-       printk("[adc_api]: wait for channel[%d] ready bit clear\n", dwChannel);
+       pr_debug("[adc_api]: wait for channel[%d] ready bit clear\n", dwChannel);
        msleep(10);
 	   data_ready_count++;
 	   if (data_ready_count > 30)
 	   {
 	      /* wait for idle time out */
-	      printk("[adc_api]: wait for channel[%d] ready bit clear time out\n", dwChannel);
+	      pr_debug("[adc_api]: wait for channel[%d] ready bit clear time out\n", dwChannel);
 		mutex_unlock(&mutex_get_cali_value);
 	      return -2;
 	   }
@@ -207,14 +207,14 @@ int IMM_auxadc_GetOneChannelValue(int dwChannel, int data[4], int *rawdata)
    udelay(25);/* we must dealay here for hw sample cahnnel data */
    while (0 == ((*(volatile u16 *)(AUXADC_DAT0 + dwChannel * 0x04)) & (1<<12)))
    {
-       printk("[adc_api]: wait for channel[%d] ready bit ==1\n", dwChannel);
+       pr_debug("[adc_api]: wait for channel[%d] ready bit ==1\n", dwChannel);
        msleep(10);
 	 data_ready_count++;
 
 	 if (data_ready_count > 30)
 	 {
 	      /* wait for idle time out */
-	      printk("[adc_api]: wait for channel[%d] data ready time out\n", dwChannel);
+	      pr_debug("[adc_api]: wait for channel[%d] data ready time out\n", dwChannel);
 		mutex_unlock(&mutex_get_cali_value);
 	      return -3;
 	 }
@@ -226,8 +226,6 @@ int IMM_auxadc_GetOneChannelValue(int dwChannel, int data[4], int *rawdata)
    {
       *rawdata = channel[dwChannel];
    }
-   /* printk("[adc_api: imm mode raw data => channel[%d] = %d\n",dwChannel, channel[dwChannel]); */
-   /* printk("[adc_api]: imm mode => channel[%d] = %d.%02d\n", dwChannel, (channel[dwChannel] * 150 / AUXADC_PRECISE / 100), ((channel[dwChannel] * 150 / AUXADC_PRECISE) % 100)); */
    data[0] = (channel[dwChannel] * 150 / AUXADC_PRECISE / 100);
    data[1] = ((channel[dwChannel] * 150 / AUXADC_PRECISE) % 100);
 
@@ -235,7 +233,7 @@ int IMM_auxadc_GetOneChannelValue(int dwChannel, int data[4], int *rawdata)
    {
 	   if (disable_clock(MT_PDN_PERI_AUXADC, "AUXADC"))
 	   {
-		printk("hwEnableClock AUXADC failed.");
+		pr_debug("hwEnableClock AUXADC failed.");
 	   }
    }
 
@@ -254,11 +252,10 @@ int IMM_auxadc_GetOneChannelValue_Cali(int Channel, int *voltage)
      ret = IMM_auxadc_GetOneChannelValue(Channel,  data, &rawvalue);
      if (ret)
      {
-	        printk("[adc_api]:IMM_auxadc_GetOneChannelValue_Cali  get raw value error %d \n", ret);
+	        pr_debug("[adc_api]:IMM_auxadc_GetOneChannelValue_Cali  get raw value error %d \n", ret);
 		return -1;
      }
      *voltage = rawvalue*1500000 / AUXADC_PRECISE;
-      /* printk("[adc_api]:IMM_auxadc_GetOneChannelValue_Cali  voltage= %d uv\n",*voltage); */
       return 0;
 
 }
@@ -273,7 +270,6 @@ static int IMM_auxadc_get_evrage_data(int times, int Channel)
 	{
 		ret_value = IMM_auxadc_GetOneChannelValue(Channel, data, &ret_temp);
 		ret += ret_temp;
-		printk("[auxadc_get_data(channel%d)]: ret_temp=%d\n", Channel, ret_temp);
 	}
 
 	ret = ret / times;
@@ -295,7 +291,7 @@ void mt_auxadc_hal_init(void)
    if (clock_is_on(MT_PDN_PERI_AUXADC) == PWR_ON)
    {
 	   if (disable_clock(MT_PDN_PERI_AUXADC, "AUXADC"))
-		printk("hwEnableClock AUXADC failed.");
+		pr_debug("hwEnableClock AUXADC failed.");
    }
 
 }

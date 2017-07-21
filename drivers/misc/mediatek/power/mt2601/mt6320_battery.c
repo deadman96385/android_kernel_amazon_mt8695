@@ -122,7 +122,7 @@ EXPORT_SYMBOL(get_charger_detect_status);
 extern void mt_power_off(void);
 /* void mt_power_off(void) */
 /* { */
-/* printk("mt_power_off is empty\n"); */
+/* pr_debug("mt_power_off is empty\n"); */
 /* } */
 extern kal_int32 FGADC_Get_BatteryCapacity_CoulombMothod(void);
 extern kal_int32 FGADC_Get_BatteryCapacity_VoltageMothod(void);
@@ -1736,13 +1736,13 @@ void pchr_turn_on_charging(void)
     if (BMT_status.bat_charging_state == CHR_ERROR)
     {
 	if (Enable_BATDRV_LOG == 1) {
-	    printk("[BATTERY] Charger Error, turn OFF charging !\n");
+	    pr_debug("[BATTERY] Charger Error, turn OFF charging !\n");
 	}
 	pchr_turn_off_charging();
     }
     else if ((get_boot_mode() == META_BOOT) || (get_boot_mode() == ADVMETA_BOOT))
     {
-	printk("[BATTERY] In meta or advanced meta mode, disable charging.\n");
+	pr_debug("[BATTERY] In meta or advanced meta mode, disable charging.\n");
 	pchr_turn_off_charging();
     }
     else
@@ -1758,14 +1758,14 @@ void pchr_turn_on_charging(void)
 	{
 	    select_charging_curret_bcct();
 	    if (Enable_BATDRV_LOG == 1) {
-		printk("[BATTERY] select_charging_curret_bcct !\n");
+		pr_debug("[BATTERY] select_charging_curret_bcct !\n");
 	    }
 	}
 	else
 	{
 	    select_charging_curret();
 	    if (Enable_BATDRV_LOG == 1) {
-		printk("[BATTERY] select_charging_curret !\n");
+		pr_debug("[BATTERY] select_charging_curret !\n");
 	    }
 	}
 
@@ -2481,7 +2481,7 @@ int BAT_CheckBatteryStatus(void)
 
     if (do_jeita_state_machine() == PMU_STATUS_FAIL)
     {
-	printk("[BATTERY] JEITA : fail\n");
+	pr_debug("[BATTERY] JEITA : fail\n");
 	BMT_status.bat_charging_state = CHR_ERROR;
 	return PMU_STATUS_FAIL;
     }
@@ -2818,7 +2818,7 @@ void mt_battery_notify_check(void)
 #if defined(BATTERY_NOTIFY_CASE_0005)
         if ((g_battery_thermal_throttling_flag == 2) || (g_battery_thermal_throttling_flag == 3))
 	{
-	    printk("[TestMode] Disable Safty Timer : no UI display\n");
+	    pr_debug("[TestMode] Disable Safty Timer : no UI display\n");
 	}
 	else
 	{
@@ -3091,7 +3091,7 @@ void BAT_thread(void)
         if ((g_battery_thermal_throttling_flag == 2) || (g_battery_thermal_throttling_flag == 3))
 	{
 			if (Enable_BATDRV_LOG == 1) {
-	    printk("[TestMode] Disable Safty Timer. bat_tt_enable=%d, bat_thr_test_mode=%d, bat_thr_test_value=%d\n",
+	    pr_debug("[TestMode] Disable Safty Timer. bat_tt_enable=%d, bat_thr_test_mode=%d, bat_thr_test_value=%d\n",
 	    g_battery_thermal_throttling_flag, battery_cmd_thermal_test_mode, battery_cmd_thermal_test_mode_value);
 	}
 	}

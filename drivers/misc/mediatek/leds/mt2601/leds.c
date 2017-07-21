@@ -491,7 +491,7 @@ int mt_backlight_set_pwm(int pwm_num, u32 level, u32 div, struct PWM_config *con
 		/* mt_pwm_power_off(pwm_setting.pwm_no); */
 		mt_pwm_disable(pwm_setting.pwm_no, config_data->pmic_pad);
 	}
-		/* printk("[LED]PWM con register is %x\n", INREG32(PWM_BASE + 0x0150)); */
+		/* pr_debug("[LED]PWM con register is %x\n", INREG32(PWM_BASE + 0x0150)); */
 	return 0;
 }
 
@@ -999,14 +999,14 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 			if (LED_RESERVEBIT_PATTERN != (level >> LED_RESERVEBIT_SHIFT))
 			{
 				/* sanity check for hidden code */
-				printk("incorrect input : %d,%d\n" , level , (level >> LED_RESERVEBIT_SHIFT));
+				pr_debug("incorrect input : %d,%d\n" , level , (level >> LED_RESERVEBIT_SHIFT));
 				return;
 			}
 
 			if (MT65XX_LED_MODE_CUST_BLS_PWM != led_data->cust.mode)
 			{
 				/* only BLS PWM support expand bit */
-				printk("Not BLS PWM %d\n" , led_data->cust.mode);
+				pr_debug("Not BLS PWM %d\n" , led_data->cust.mode);
 				return;
 			}
 

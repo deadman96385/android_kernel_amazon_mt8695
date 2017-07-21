@@ -336,7 +336,7 @@ void get_hw_chip_diff_trim_value(void)
     switch (chip_diff_trim_value_4_0) {
 	case 0:
 	    chip_diff_trim_value = 1000;
-	    printk("chip_diff_trim_value = 1000;\n");
+	    pr_debug("chip_diff_trim_value = 1000;\n");
 	    break;
 	case 1:    chip_diff_trim_value = 1005; break;
 	case 2:    chip_diff_trim_value = 1010; break;

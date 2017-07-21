@@ -44,14 +44,14 @@
 #define SENSOR_HUB_TAG                  "CWM:"
 #define DEBUG                           1
 #if defined(DEBUG)
-#define SH_FUN(f)                       printk(KERN_INFO SENSOR_HUB_TAG"%s\n", __FUNCTION__)
-#define SH_ERR(fmt, args...)            printk(KERN_ERR  SENSOR_HUB_TAG"%s %d ERROR: "fmt, __FUNCTION__, __LINE__, ##args)
-#define SH_LOG(fmt, args...)            printk(KERN_ERR  SENSOR_HUB_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
-#define SH_DBG(fmt, args...)            printk(KERN_INFO SENSOR_HUB_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
+#define SH_FUN(f)                       pr_debug(KERN_INFO SENSOR_HUB_TAG"%s\n", __FUNCTION__)
+#define SH_ERR(fmt, args...)            pr_debug(KERN_ERR  SENSOR_HUB_TAG"%s %d ERROR: "fmt, __FUNCTION__, __LINE__, ##args)
+#define SH_LOG(fmt, args...)            pr_debug(KERN_ERR  SENSOR_HUB_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
+#define SH_DBG(fmt, args...)            pr_debug(KERN_INFO SENSOR_HUB_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
 #else
-#define SH_FUN(f)                       printk(KERN_INFO SENSOR_HUB_TAG"%s\n", __FUNCTION__)
-#define SH_ERR(fmt, args...)            printk(KERN_ERR  SENSOR_HUB_TAG"%s %d ERROR: "fmt, __FUNCTION__, __LINE__, ##args)
-#define SH_LOG(fmt, args...)            printk(KERN_ERR  SENSOR_HUB_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
+#define SH_FUN(f)                       pr_debug(KERN_INFO SENSOR_HUB_TAG"%s\n", __FUNCTION__)
+#define SH_ERR(fmt, args...)            pr_debug(KERN_ERR  SENSOR_HUB_TAG"%s %d ERROR: "fmt, __FUNCTION__, __LINE__, ##args)
+#define SH_LOG(fmt, args...)            pr_debug(KERN_ERR  SENSOR_HUB_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
 #define SH_DBG(fmt, args...)
 #endif
 
@@ -716,7 +716,7 @@ static void parser_hr_log(char *data)
 		hr_log_idx++;
 
 		if (data[i] == '\0') {
-			printk("%s", hr_log_buf);
+			pr_debug("%s", hr_log_buf);
 
 			memset(hr_log_buf, 0, 2048);
 			hr_log_idx = 0;
@@ -739,7 +739,7 @@ static void read_hr_log(struct CWMCU_T *sensor)
 
 	if (CWMCU_I2C_R(sensor, RegMapR_hrLog_Count, data, 1) >= 0) {
 		count = (uint16_t) data[0];
-		//printk("%s:HR LOG Count: %d\n", "HRL", count);
+		//pr_debug("%s:HR LOG Count: %d\n", "HRL", count);
 	} else {
 		//SH_LOG("Read read_hr_log Fail [I2C], func: %s , li: %d\n",__func__,__LINE__);
 		return;
@@ -1278,7 +1278,7 @@ static int exec_change_orientation(struct device *dev, int leftRight)
 	if (sensor->meg_status[1] == 0) {
 		get_mcu_sensors_info(sensor, emMAGNETIC_FIELD_SENSOR,
 				     sensor->meg_status);
-		printk("[CHECK] MEG chip address = 0x%02x\n",
+		pr_debug("[CHECK] MEG chip address = 0x%02x\n",
 		       sensor->meg_status[1]);
 	}
 	SH_LOG
@@ -1448,7 +1448,7 @@ static ssize_t set_firmware_update_cmd(struct device *dev,
 	case CHECK_FIRMWAVE_VERSION:
 		if (CWMCU_I2C_R(sensor, RegMapR_GetFWVersion, data, 4) >=
 		    0) {
-			printk
+			pr_debug
 			    ("%s:%s:(CHECK_FIRMWAVE_VERSION:%u,%u,%u,%u)\n",
 			     LOG_TAG_KERNEL, __FUNCTION__, data[0],
 			     data[1], data[2], data[3]);
@@ -1458,7 +1458,7 @@ static ssize_t set_firmware_update_cmd(struct device *dev,
 	case GET_FWPROJECT_ID:
 		if (CWMCU_reg_read(sensor, RegMapR_GetProjectID, data) >=
 		    0) {
-			printk("%s:%s:(PROJECT ID:%s) \n", LOG_TAG_KERNEL,
+			pr_debug("%s:%s:(PROJECT ID:%s) \n", LOG_TAG_KERNEL,
 			       __FUNCTION__, data);
 		}
 		break;
@@ -1467,7 +1467,7 @@ static ssize_t set_firmware_update_cmd(struct device *dev,
 			sensor->debug_log |= (1 << sensor->addr);
 		else
 			sensor->debug_log &= ~(1 << sensor->addr);
-		printk("%s:%s:(SET_DEBUG_LOG%u)\n", LOG_TAG_KERNEL,
+		pr_debug("%s:%s:(SET_DEBUG_LOG%u)\n", LOG_TAG_KERNEL,
 		       __FUNCTION__, sensor->debug_log);
 		break;
 	case SET_SYSTEM_COMMAND:
@@ -1479,7 +1479,7 @@ static ssize_t set_firmware_update_cmd(struct device *dev,
 			    (" Write SetSystemCommand Fail [I2C], func: %s ,li: %d\n",
 			     __func__, __LINE__);
 		} else {
-			printk("%s:%s:(SET_SYSTEM_COMMAND)\n",
+			pr_debug("%s:%s:(SET_SYSTEM_COMMAND)\n",
 			       LOG_TAG_KERNEL, __FUNCTION__);
 		}
 		break;
@@ -1489,10 +1489,10 @@ static ssize_t set_firmware_update_cmd(struct device *dev,
 			get_mcu_sensors_info(sensor,
 					     emMAGNETIC_FIELD_SENSOR,
 					     sensor->meg_status);
-			printk("[CHECK] MEG address = 0x%02x\n",
+			pr_debug("[CHECK] MEG address = 0x%02x\n",
 			       sensor->meg_status[1]);
 		}
-		printk
+		pr_debug
 		    ("CWM: is_mercury = %d, has_nfc = %d, MEG address = 0x%02x\n",
 		     (int) is_mercury, (int) has_nfc,
 		     sensor->meg_status[1]);
@@ -1931,7 +1931,7 @@ static ssize_t sensorhub_info_show(struct device *dev,
 		version =
 		    (int16_t) (((uint16_t) fw_data[1]) << 8 | (uint16_t)
 			       fw_data[0]);
-		printk
+		pr_debug
 		    ("%s:%s:(CHECK_FIRMWAVE_VERSION : M:%u,D:%u,V:%u,SV:%u)\n",
 		     LOG_TAG_HAL, __FUNCTION__, fw_data[3], fw_data[2],
 		     fw_data[1], fw_data[0]);
@@ -3790,17 +3790,17 @@ int CWMCU_probe(struct i2c_client *client)
 	/*IIO Init */
 	error = cw_probe_buffer(indio_dev);
 	if (error) {
-		printk("%s: iio yas_probe_buffer failed\n", __func__);
+		pr_debug("%s: iio yas_probe_buffer failed\n", __func__);
 		goto error_free_dev;
 	}
 	error = cw_probe_trigger(indio_dev);
 	if (error) {
-		printk("%s: iio yas_probe_trigger failed\n", __func__);
+		pr_debug("%s: iio yas_probe_trigger failed\n", __func__);
 		goto error_remove_buffer;
 	}
 	error = iio_device_register(indio_dev);
 	if (error) {
-		printk("%s: iio iio_device_register failed\n", __func__);
+		pr_debug("%s: iio iio_device_register failed\n", __func__);
 		goto error_remove_trigger;
 	}
 

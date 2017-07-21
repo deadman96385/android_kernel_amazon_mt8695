@@ -134,7 +134,7 @@ EXPORT_SYMBOL(upmu_is_chr_det);
 extern void mt_power_off(void);
 /* void mt_power_off(void) */
 /* { */
-/* printk("mt_power_off is empty\n"); */
+/* pr_debug("mt_power_off is empty\n"); */
 /* } */
 extern kal_int32 FGADC_Get_BatteryCapacity_CoulombMothod(void);
 extern kal_int32 FGADC_Get_BatteryCapacity_VoltageMothod(void);
@@ -533,12 +533,12 @@ int bat_thread_control(int start) /* for psensor firmware download in factory mo
     if (start == 1)
     {
 /* start_gpt(gpt_num); */
-	printk("Resume bat_thread_kthread after psensor firmware download\n");
+	pr_debug("Resume bat_thread_kthread after psensor firmware download\n");
     }
     else
     {
 /* stop_gpt(gpt_num); */
-	printk("Stop bat_thread_kthread before psensor firmware download\n");
+	pr_debug("Stop bat_thread_kthread before psensor firmware download\n");
 /* while(bat_thread_timeout == 1) */
 /* msleep(500); */
 	bq24196_set_chg_config(0);
@@ -1735,7 +1735,7 @@ int get_bat_charging_current_level(void)
 
 int set_bat_charging_current_limit(int current_limit)
 {
-    printk("[BATTERY:fan5405] set_bat_charging_current_limit (%d)\r\n", current_limit);
+    pr_debug("[BATTERY:fan5405] set_bat_charging_current_limit (%d)\r\n", current_limit);
 
     if (current_limit != -1)
     {
@@ -1933,7 +1933,7 @@ void pchr_turn_on_charging_bq24196(void)
 	}
     else if ((get_boot_mode() == META_BOOT) || (get_boot_mode() == ADVMETA_BOOT))
     {
-	printk("[BATTERY:bq24196] In meta or advanced meta mode, disable charging.\r\n");
+	pr_debug("[BATTERY:bq24196] In meta or advanced meta mode, disable charging.\r\n");
 	pchr_turn_off_charging_bq24196();
     }
 	else
@@ -1948,14 +1948,14 @@ void pchr_turn_on_charging_bq24196(void)
     {
 	select_charging_curret_bcct();
 	if (Enable_BATDRV_LOG == 1) {
-	    printk("[BATTERY:bq24196] select_charging_curret_bcct !\n");
+	    pr_debug("[BATTERY:bq24196] select_charging_curret_bcct !\n");
 	}
     }
     else
     {
 		    select_charging_curret_bq24196();
 	if (Enable_BATDRV_LOG == 1) {
-	    printk("[BATTERY:bq24196] select_charging_curret_bq24196 !\n");
+	    pr_debug("[BATTERY:bq24196] select_charging_curret_bq24196 !\n");
 	}
     }
 
@@ -1973,7 +1973,7 @@ void pchr_turn_on_charging_bq24196(void)
 		   xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[BATTERY:bq24196] charger enable !\r\n");
 		}
 		if (Enable_BATDRV_LOG == 1) {
-		   printk("[BATTERY:bq24196] charger enable !\r\n");
+		   pr_debug("[BATTERY:bq24196] charger enable !\r\n");
 		}
 	    }
 	    else
@@ -2590,7 +2590,7 @@ int BAT_CheckBatteryStatus_bq24196(void)
     {
 	boot_soc_temp = BMT_status.SOC;
 	boot_soc_temp_count = 1;
-	printk("[Boot SOC workaround 1] boot_soc_temp=%d, BMT_status.SOC=%d, boot_soc_temp_count=%d\n",
+	pr_debug("[Boot SOC workaround 1] boot_soc_temp=%d, BMT_status.SOC=%d, boot_soc_temp_count=%d\n",
 	    boot_soc_temp, BMT_status.SOC, boot_soc_temp_count);
     }
     else
@@ -2607,7 +2607,7 @@ int BAT_CheckBatteryStatus_bq24196(void)
 		gFG_DOD0 = 100-boot_soc_temp;
 		gFG_DOD1 = gFG_DOD0;
 
-		printk("[Boot SOC workaround 2] boot_soc_temp=%d, BMT_status.SOC=%d, boot_soc_temp_count=%d, gFG_DOD0=%d, gFG_DOD1=%d\n",
+		pr_debug("[Boot SOC workaround 2] boot_soc_temp=%d, BMT_status.SOC=%d, boot_soc_temp_count=%d, gFG_DOD0=%d, gFG_DOD1=%d\n",
 		    boot_soc_temp, BMT_status.SOC, boot_soc_temp_count, gFG_DOD0, gFG_DOD1);
 	    }
 	}
@@ -2636,7 +2636,7 @@ int BAT_CheckBatteryStatus_bq24196(void)
 
     if (Enable_BATDRV_LOG == 1)
     {
-	printk("[BATTERY:bq24196] Battery Protection Check !!\n");
+	pr_debug("[BATTERY:bq24196] Battery Protection Check !!\n");
     }
 
     if (battery_cmd_thermal_test_mode == 1) {
@@ -2650,7 +2650,7 @@ int BAT_CheckBatteryStatus_bq24196(void)
     }
     if (do_jeita_state_machine() == PMU_STATUS_FAIL)
     {
-	printk("[BATTERY:bq24196] JEITA : fail\n");
+	pr_debug("[BATTERY:bq24196] JEITA : fail\n");
 	BMT_status.bat_charging_state = CHR_ERROR;
 	return PMU_STATUS_FAIL;
     }
@@ -2659,14 +2659,14 @@ int BAT_CheckBatteryStatus_bq24196(void)
     if ((BMT_status.temperature < MIN_CHARGE_TEMPERATURE) ||
 	(BMT_status.temperature == ERR_CHARGE_TEMPERATURE))
     {
-	printk("[BATTERY:bq24196] Battery Under Temperature or NTC fail !!\n\r");
+	pr_debug("[BATTERY:bq24196] Battery Under Temperature or NTC fail !!\n\r");
 	BMT_status.bat_charging_state = CHR_ERROR;
 	return PMU_STATUS_FAIL;
     }
     #endif
     if (BMT_status.temperature >= MAX_CHARGE_TEMPERATURE)
     {
-	printk("[BATTERY:bq24196] Battery Over Temperature !!\n\r");
+	pr_debug("[BATTERY:bq24196] Battery Over Temperature !!\n\r");
 	BMT_status.bat_charging_state = CHR_ERROR;
 	return PMU_STATUS_FAIL;
     }
@@ -2677,14 +2677,14 @@ int BAT_CheckBatteryStatus_bq24196(void)
 	#if (V_CHARGER_ENABLE == 1)
 	if (BMT_status.charger_vol <= V_CHARGER_MIN)
 	{
-	    printk("[BATTERY:bq24196]Charger under voltage!!\r\n");
+	    pr_debug("[BATTERY:bq24196]Charger under voltage!!\r\n");
 	    BMT_status.bat_charging_state = CHR_ERROR;
 	    return PMU_STATUS_FAIL;
 	}
 	#endif
 	if (BMT_status.charger_vol >= V_CHARGER_MAX)
 	{
-	    printk("[BATTERY:bq24196]Charger over voltage!!\r\n");
+	    pr_debug("[BATTERY:bq24196]Charger over voltage!!\r\n");
 	    BMT_status.charger_protect_status = charger_OVER_VOL;
 	    BMT_status.bat_charging_state = CHR_ERROR;
 	    return PMU_STATUS_FAIL;
@@ -2820,7 +2820,7 @@ PMU_STATUS BAT_BatteryFullAction(void)
 	else
 	{
 	    if (Enable_BATDRV_LOG >= 1) {
-		printk("[BATTERY:bq24196] double check Battery Re-charging !!\n");
+		pr_debug("[BATTERY:bq24196] double check Battery Re-charging !!\n");
 	    }
 	    BMT_status.bat_full = KAL_FALSE;
 	    g_bat_full_user_view = KAL_TRUE;
@@ -2930,7 +2930,7 @@ void mt_battery_notify_check(void)
 #if defined(BATTERY_NOTIFY_CASE_0005)
         if ((g_battery_thermal_throttling_flag == 2) || (g_battery_thermal_throttling_flag == 3))
 	{
-	    printk("[TestMode] Disable Safty Timer : no UI display\n");
+	    pr_debug("[TestMode] Disable Safty Timer : no UI display\n");
 	}
 	else
 	{
@@ -2997,17 +2997,17 @@ void check_battery_exist(void)
     {
         if ((g_boot_mode == META_BOOT) || (g_boot_mode == ATE_FACTORY_BOOT))
 	{
-	    printk("[BATTERY] boot mode = %d, bypass battery check\n", g_boot_mode);
+	    pr_debug("[BATTERY] boot mode = %d, bypass battery check\n", g_boot_mode);
 	}
 	else
 	{
-	    printk("[BATTERY] Battery is not exist, power off FAN5405 and system (%d)\n", baton_count);
+	    pr_debug("[BATTERY] Battery is not exist, power off FAN5405 and system (%d)\n", baton_count);
 	    pchr_turn_off_charging_fan5405();
             arch_reset(0, NULL);
 	}
     }
 #else
-    printk("[BATTERY:bq24196] Disable check battery exist for SMT\n");
+    pr_debug("[BATTERY:bq24196] Disable check battery exist for SMT\n");
 #endif
 }
 
@@ -3080,7 +3080,7 @@ void BAT_thread_bq24196(void)
 	    {
 		g_bat_full_user_view = KAL_TRUE;
 	    }
-	    printk("[BATTERY:bq24196] ret_val=%d, g_bat_full_user_view=%d\n", ret_val, g_bat_full_user_view);
+	    pr_debug("[BATTERY:bq24196] ret_val=%d, g_bat_full_user_view=%d\n", ret_val, g_bat_full_user_view);
 	}
         boot_check_once = 0;
     }

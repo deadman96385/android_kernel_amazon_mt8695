@@ -238,10 +238,10 @@ static int sysrst_set_cur_state(struct thermal_cooling_device *cdev,
 	cl_dev_sysrst_state = state;
 	if (cl_dev_sysrst_state == 1)
 	{
-		printk("Power/battery_Thermal: reset, reset, reset!!!");
-/* printk("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
-/* printk("*****************************************"); */
-/* printk("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
+		pr_debug("Power/battery_Thermal: reset, reset, reset!!!");
+/* pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
+/* pr_debug("*****************************************"); */
+/* pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
 
 		BUG();
 		/* arch_reset(0,NULL); */

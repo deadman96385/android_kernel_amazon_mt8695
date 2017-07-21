@@ -350,13 +350,13 @@ void CheckWriteWaitEvent(void)
     unsigned int DL1_Interrupt_Interval_ns = DL1_Interrupt_Interval_Limit * 1000000;
     for (i = 0; i < WriteArrayMax; i++)
     {
-	/* printk("WriteRecordArray[%d] = %d ",i ,WriteRrecordArray[i]); */
+	/* pr_debug("WriteRecordArray[%d] = %d ",i ,WriteRrecordArray[i]); */
 	if (WriteRecordArray[i] > DL1_Interrupt_Interval_ns)
 	{
 	    OverTimeCounter++;
 	}
     }
-    /* printk("DL1_Interrupt_Interval_Limit = %d DL1_Interrupt_Interval_ns = %d\n",DL1_Interrupt_Interval_Limit,DL1_Interrupt_Interval_ns); */
+    /* pr_debug("DL1_Interrupt_Interval_Limit = %d DL1_Interrupt_Interval_ns = %d\n",DL1_Interrupt_Interval_Limit,DL1_Interrupt_Interval_ns); */
 
     if (OverTimeCounter >= WriteWarningTrigger)
     {
@@ -1287,7 +1287,7 @@ void CheckPowerState(void)
 	Reg_clksq_en = (Reg_clksq_en>>4)&0x1;
 	if(Reg_clksq_en ==0)
 	{
-	    printk("CheckPowerState Reg_clksq_en = 0x%x\n",Ana_Get_Reg (TOP_CKCON1));
+	    pr_debug("CheckPowerState Reg_clksq_en = 0x%x\n",Ana_Get_Reg (TOP_CKCON1));
 	} */
 }
 
@@ -2897,7 +2897,7 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 		  mutex_lock(&gamp_mutex);
 		  if (copy_from_user((void *)(&AMPParam), (const void __user *)(arg), sizeof(AMPParam))) {
 				mutex_unlock(&gamp_mutex);
-				printk("Failed to copy from user");
+				pr_debug("Failed to copy from user");
 				return -EFAULT;
 		  }
 		  pr_debug("command=%lu,param1=%lu,param2=%lu\n", AMPParam.command, AMPParam.param1, AMPParam.param2);
@@ -2941,7 +2941,7 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 		  mutex_lock(&gamp_mutex);
 		  if (copy_from_user((void *)(&AMPParam), (const void __user *)(arg), sizeof(AMPParam))) {
 				mutex_unlock(&gamp_mutex);
-				printk("Failed to copy from user");
+				pr_debug("Failed to copy from user");
 				return -EFAULT;
 		  }
 		  pr_debug("command=%lu,param1=%lu,param2=%lu\n", AMPParam.command, AMPParam.param1, AMPParam.param2);

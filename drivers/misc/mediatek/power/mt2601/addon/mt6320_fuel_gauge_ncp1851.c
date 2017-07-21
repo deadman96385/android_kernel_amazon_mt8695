@@ -203,9 +203,9 @@ void fgauge_get_profile_id(void)
 
 	ret = IMM_GetOneChannelValue_Cali(4, &id_volt);
 	if (ret != 0)
-	    printk("[fgauge_get_profile_id]id_volt read fail\n");
+	    pr_debug("[fgauge_get_profile_id]id_volt read fail\n");
 	else
-	    printk("[fgauge_get_profile_id]id_volt = %d\n", id_volt);
+	    pr_debug("[fgauge_get_profile_id]id_volt = %d\n", id_volt);
 
   if (id_volt < 500000) /* < 0.5V */
       fg_battery_id = 1;
@@ -215,9 +215,9 @@ void fgauge_get_profile_id(void)
 	    fg_battery_id = 3;
 
 	if ((fg_battery_id != 1) && (fg_battery_id != 2) && (fg_battery_id != 3))
-	    printk("[fgauge_get_profile_id]Cannot get a valid battery id (%d)!\n", fg_battery_id);
+	    pr_debug("[fgauge_get_profile_id]Cannot get a valid battery id (%d)!\n", fg_battery_id);
 	else
-	    printk("[fgauge_get_profile_id]Battery id (%d)\n", fg_battery_id);
+	    pr_debug("[fgauge_get_profile_id]Battery id (%d)\n", fg_battery_id);
 }
 
 int fgauge_get_saddles(void)
@@ -493,7 +493,7 @@ void get_hw_chip_diff_trim_value(void)
     switch (chip_diff_trim_value_4_0) {
 	case 0:
 	    chip_diff_trim_value = 1000;
-	    printk("chip_diff_trim_value = 1000;\n");
+	    pr_debug("chip_diff_trim_value = 1000;\n");
 	    break;
 	case 1:    chip_diff_trim_value = 1005; break;
 	case 2:    chip_diff_trim_value = 1010; break;

@@ -173,7 +173,7 @@ kal_uint32 fan5405_config_interface(kal_uint8 RegNum, kal_uint8 val, kal_uint8 M
 
     /* Check */
     /* fan5405_read_byte(RegNum, &fan5405_reg); */
-    /* printk("[fan5405_config_interface] Check Reg[%x]=0x%x\n", RegNum, fan5405_reg); */
+    /* pr_debug("[fan5405_config_interface] Check Reg[%x]=0x%x\n", RegNum, fan5405_reg); */
 
     return ret;
 }
@@ -541,13 +541,13 @@ void fan5405_set_v_safe(kal_uint32 val)
 void fan5405_dump_register(void)
 {
     int i = 0;
-    printk("[fan5405] ");
+    pr_debug("[fan5405] ");
     for (i = 0; i < fan5405_REG_NUM; i++)
     {
 	fan5405_read_byte(i, &fan5405_reg[i]);
-	printk("[0x%x]=0x%x ", i, fan5405_reg[i]);
+	pr_debug("[0x%x]=0x%x ", i, fan5405_reg[i]);
     }
-    printk("\n");
+    pr_debug("\n");
 }
 
 #if 0
@@ -560,18 +560,18 @@ void fan5405_hw_init(void)
     {
 	if (g_pmic_cid == 0x1020)
 	{
-	    printk("[fan5405_hw_init] (0x06,0x70) because 0x1020\n");
+	    pr_debug("[fan5405_hw_init] (0x06,0x70) because 0x1020\n");
             fan5405_config_interface_liao(0x06, 0x70);
 	}
 	else
 	{
-	    printk("[fan5405_hw_init] (0x06,0x77)\n");
+	    pr_debug("[fan5405_hw_init] (0x06,0x77)\n");
             fan5405_config_interface_liao(0x06, 0x77);
 	}
     }
     else
     {
-	printk("[fan5405_hw_init] (0x06,0x70)\n");
+	pr_debug("[fan5405_hw_init] (0x06,0x70)\n");
         fan5405_config_interface_liao(0x06, 0x70);
     }
 }

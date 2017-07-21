@@ -394,7 +394,7 @@ void gpio_dump_regs(void)
     int idx = 0;
 	GPIOMSG("PIN: [MODE] [PULL_SEL] [DIN] [DOUT] [PULL EN] [DIR] [INV] [IES]\n");
     for (idx = 0; idx < MT_GPIO_MAX_PIN; idx++) {
-		printk("idx = %3d: %d %d %d %d %d %d %d %d\n",
+		pr_debug("idx = %3d: %d %d %d %d %d %d %d %d\n",
 		   idx, mt_get_gpio_mode(idx), mt_get_gpio_pull_select(idx), mt_get_gpio_in(idx), mt_get_gpio_out(idx),
 		   mt_get_gpio_pull_enable(idx), mt_get_gpio_dir(idx), mt_get_gpio_inversion(idx), mt_get_gpio_ies(idx));
     }
@@ -617,7 +617,7 @@ static ssize_t mt_gpio_dump_regs(char *buf, ssize_t bufLen)
 		len += snprintf(buf+len, bufLen-len, "%3d:%d%d%d%d%d%d%d%d\n",
 		   idx, mt_get_gpio_mode_base(idx), mt_get_gpio_pull_select_base(idx), mt_get_gpio_in_base(idx), mt_get_gpio_out_base(idx),
 		   mt_get_gpio_pull_enable_base(idx), mt_get_gpio_dir_base(idx), mt_get_gpio_inversion_base(idx), mt_get_gpio_ies_base(idx));
-		/* printk("%3d:%d%d%d%d%d%d%d%d\n",idx, */
+		/* pr_debug("%3d:%d%d%d%d%d%d%d%d\n",idx, */
 		/* mt_get_gpio_mode_base(idx), mt_get_gpio_pull_select_base(idx), mt_get_gpio_in_base(idx),mt_get_gpio_out_base(idx), */
 		/* mt_get_gpio_pull_enable_base(idx),mt_get_gpio_dir_base(idx),mt_get_gpio_inversion_base(idx),mt_get_gpio_ies_base(idx)); */
 

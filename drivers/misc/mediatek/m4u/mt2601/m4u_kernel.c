@@ -115,7 +115,7 @@ void init_mlock_cnt(void)
 		M4UMSG("allocate for pMlock_cnt error! size=%d.\n", mlock_cnt_size);
 		return;
 	}
-	/* printk("max_pfn=%d, offset=%d\n", max_pfn, PHYS_PFN_OFFSET ); */
+	/* pr_debug("max_pfn=%d, offset=%d\n", max_pfn, PHYS_PFN_OFFSET ); */
 
 	memset(pMlock_cnt, 0, mlock_cnt_size);
 	M4UMSG("allocate for pMlock_cnt done: size=%d\n", mlock_cnt_size);

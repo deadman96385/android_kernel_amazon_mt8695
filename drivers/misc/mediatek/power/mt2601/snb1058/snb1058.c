@@ -66,16 +66,16 @@ static void SNB1058_CheckDevID(struct i2c_client *client)
     int tempvalue;
 
     if ((!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))) {
-	printk("[SNB1058] I2C check ERROR!!\n");
+	pr_debug("[SNB1058] I2C check ERROR!!\n");
     }
 
     tempvalue = 0;
     tempvalue = i2c_smbus_read_word_data(client, 0x00);
     if (tempvalue < 0) {
-	printk("[SNB1058] Check ID error!!\n");
+	pr_debug("[SNB1058] Check ID error!!\n");
     }
     else {
-        printk("[SNB1058]Device ID = [%02x]\n", tempvalue);
+        pr_debug("[SNB1058]Device ID = [%02x]\n", tempvalue);
     }
 }
 
@@ -88,7 +88,7 @@ static void SNB1058_SetGpio(void)
     /* snb1058_int pin setting */
     mt_set_gpio_mode(GPIO_MINIABB_INT, GPIO_MINIABB_INT_M_EINT);
 
-    printk("[SNB1058]GPIO_SCL[137] Mode:%d\nGPIO_SDA[138] Mode:%d\n"
+    pr_debug("[SNB1058]GPIO_SCL[137] Mode:%d\nGPIO_SDA[138] Mode:%d\n"
             , mt_get_gpio_mode(137), mt_get_gpio_mode(138));
 
 }
@@ -102,7 +102,7 @@ void main_cam_dvdd_power(int on_off)
     u8 data;
 
     if (client == NULL) {
-    printk("main_cam_dvdd_power client NULL\n");
+    pr_debug("main_cam_dvdd_power client NULL\n");
 	return;
     }
 
@@ -132,7 +132,7 @@ void cam_avdd_power(int on_off)
     u8 data;
 
     if (client == NULL) {
-    printk("cam_avdd_power client NULL\n");
+    pr_debug("cam_avdd_power client NULL\n");
 	return;
     }
 
@@ -162,7 +162,7 @@ void cam_iovdd_power(int on_off)
     u8 data;
 
     if (client == NULL) {
-    printk("cam_iovdd_power client NULL\n");
+    pr_debug("cam_iovdd_power client NULL\n");
 	return;
     }
 
@@ -192,7 +192,7 @@ void mtk_sensor_power(int on_off)
     u8 data;
 
     if (client == NULL) {
-    printk("mtk_sensor_power client NULL\n");
+    pr_debug("mtk_sensor_power client NULL\n");
 	return;
     }
 
@@ -327,9 +327,9 @@ void check_snb1058_status(void) {
 	int data;
 
 	data = i2c_smbus_read_word_data(client, 0x08);
-	printk("[SNB1058] %s : 0x08(%d) \n", __func__, data);
+	pr_debug("[SNB1058] %s : 0x08(%d) \n", __func__, data);
 	data = i2c_smbus_read_word_data(client, 0x09);
-	printk("[SNB1058] %s : 0x09(%d) \n", __func__, data);
+	pr_debug("[SNB1058] %s : 0x09(%d) \n", __func__, data);
 
 }
 
@@ -341,7 +341,7 @@ int check_EOC_status(void)
     /* EOC check */
     data = i2c_smbus_read_word_data(client, 0x06);
 
-    printk("[SNB1058] %s : %d \n", __func__, data);
+    pr_debug("[SNB1058] %s : %d \n", __func__, data);
 
     if (data == 48) {
 	return TRUE;
@@ -389,7 +389,7 @@ int is_charging_enable(void)
     /* CHGEN check */
     data = i2c_smbus_read_word_data(client, CHG_CTRL1);
 
-    printk("[SNB1058] %s : %x \n", __func__, data);
+    pr_debug("[SNB1058] %s : %x \n", __func__, data);
 
     if ((data & CHGEN) == CHGEN) {
 	return TRUE;
@@ -435,7 +435,7 @@ void set_charger_start_mode(CHG_TYPE chg_type)
 
 	charger_enable();
     }
-    printk("[SNB1058] Charging Current %dmA\n", chg_type);
+    pr_debug("[SNB1058] Charging Current %dmA\n", chg_type);
 
 }
 #else
@@ -456,7 +456,7 @@ void set_charger_start_mode(int value)
 
 	charger_enable();
     }
-    printk("[SNB1058] Charging Current %dmA\n", value);
+    pr_debug("[SNB1058] Charging Current %dmA\n", value);
 }
 #endif
 EXPORT_SYMBOL(set_charger_start_mode);
@@ -476,7 +476,7 @@ void set_charger_factory_mode(void)
     charger_enable();
 #endif
 
-    printk("[SNB1058] FACTORY charging :  0x%02x \n", data);
+    pr_debug("[SNB1058] FACTORY charging :  0x%02x \n", data);
 }
 EXPORT_SYMBOL(set_charger_factory_mode);
 
@@ -491,7 +491,7 @@ void set_charger_stop_mode(void)
         i2c_smbus_write_byte_data(client, CHG_CTRL1, 0x40);
     }
 
-    printk("[SNB1058]charging off!\n");
+    pr_debug("[SNB1058]charging off!\n");
 
 }
 EXPORT_SYMBOL(set_charger_stop_mode);
@@ -596,10 +596,10 @@ static ssize_t store_main_cam_dvdd_value(struct device_driver *ddri, char *buf, 
 
     if (onoff) {
 	main_cam_dvdd_power(ON);
-	printk("main_cam_dvdd power on!\n");
+	pr_debug("main_cam_dvdd power on!\n");
     } else {
 	main_cam_dvdd_power(OFF);
-	printk("main_cam_dvdd power off!\n");
+	pr_debug("main_cam_dvdd power off!\n");
     }
     i2c_data->cam_avdd = onoff;
 
@@ -619,10 +619,10 @@ static ssize_t store_cam_avdd_value(struct device_driver *ddri, char *buf, size_
 
     if (onoff) {
 	cam_avdd_power(ON);
-	printk("cam_avdd power on!\n");
+	pr_debug("cam_avdd power on!\n");
     } else {
 	cam_avdd_power(OFF);
-	printk("cam_avdd power off!\n");
+	pr_debug("cam_avdd power off!\n");
     }
     i2c_data->cam_avdd = onoff;
 
@@ -643,10 +643,10 @@ static ssize_t store_cam_iovdd_value(struct device_driver *ddri, char *buf, size
 
     if (onoff) {
 	cam_iovdd_power(ON);
-	printk("cam_iovdd power on!\n");
+	pr_debug("cam_iovdd power on!\n");
     } else {
 	cam_iovdd_power(OFF);
-	printk("cam_iovdd power off!\n");
+	pr_debug("cam_iovdd power off!\n");
     }
     i2c_data->cam_iovdd = onoff;
 
@@ -667,10 +667,10 @@ static ssize_t store_mtk_sensor_value(struct device_driver *ddri, char *buf, siz
 
     if (onoff) {
 	mtk_sensor_power(ON);
-	printk("mtk_sensor power on!\n");
+	pr_debug("mtk_sensor power on!\n");
     } else {
 	mtk_sensor_power(OFF);
-	printk("mtk_sensor power off!\n");
+	pr_debug("mtk_sensor power off!\n");
     }
     i2c_data->mtk_sensor = onoff;
 
@@ -764,7 +764,7 @@ static int snb1058_create_attr(struct device_driver *driver)
     {
 	if (err = driver_create_file(driver, snb1058_attr_list[idx]))
 	{
-	    printk("driver_create_file (%s) = %d\n", snb1058_attr_list[idx]->attr.name, err);
+	    pr_debug("driver_create_file (%s) = %d\n", snb1058_attr_list[idx]->attr.name, err);
 	    break;
 	}
     }
@@ -795,7 +795,7 @@ static int snb1058_delete_attr(struct device_driver *driver)
 /***********************************************************************************/
 static int snb1058_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id) {
 
-    printk("[SNB1058] :: snb1058 i2c probe\n");
+    pr_debug("[SNB1058] :: snb1058 i2c probe\n");
 
     struct i2c_client *new_client;
     struct snb1058_i2c_data *obj;
@@ -819,13 +819,13 @@ static int snb1058_i2c_probe(struct i2c_client *client, const struct i2c_device_
 
     snb1058_i2c_client = client;
 
-    /* printk("snb1058_i2c_client number = 0x%x.\n", snb1058_i2c_client); */
+    /* pr_debug("snb1058_i2c_client number = 0x%x.\n", snb1058_i2c_client); */
 
     SNB1058_CheckDevID(client);
 
     if (err = snb1058_create_attr(&snb1058_driver.driver))
     {
-	printk("SNB1058 create attribute err = %d\n", err);
+	pr_debug("SNB1058 create attribute err = %d\n", err);
     }
 	snb1058_is_PTM = SNB1058_NORMAL_MODE;
 
@@ -856,7 +856,7 @@ static int snb1058_i2c_remove(struct i2c_client *client)
 
     if (err = snb1058_delete_attr(&snb1058_driver.driver))
     {
-	printk("SNB1058 delete attribute err = %d\n", err);
+	pr_debug("SNB1058 delete attribute err = %d\n", err);
     }
 
     return 0;
@@ -865,7 +865,7 @@ static int snb1058_i2c_remove(struct i2c_client *client)
 
 static int snb1058_i2c_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
-    printk("[SNB1058] ::  snb1058_i2c_detect\n");
+    pr_debug("[SNB1058] ::  snb1058_i2c_detect\n");
     strcpy(info->type, SNB1058_DEV_NAME);
     return 0;
 }
@@ -884,12 +884,12 @@ struct i2c_driver snb1058_i2c_driver = {
 static int snb1058_probe(struct platform_device *dev)
 {
 
-    printk("[SNB1058] :: charging IC Initialization is done\n");
+    pr_debug("[SNB1058] :: charging IC Initialization is done\n");
 
 #if 0
     if (i2c_add_driver(&snb1058_i2c_driver))
     {
-	printk("[SNB1058] :: add snb1058 i2c driver error !\n");
+	pr_debug("[SNB1058] :: add snb1058 i2c driver error !\n");
 	return -1;
     }
 #endif
@@ -930,27 +930,27 @@ static struct platform_driver snb1058_driver = {
 static int __init snb1058_driver_init(void) {
     int ret;
 
-    printk("SNB1058 driver init!!\n");
+    pr_debug("SNB1058 driver init!!\n");
 
     ret = i2c_register_board_info(1, &i2c_snb1058, 1);
     if (ret)
     {
-        printk("failed to i2c register driver. (%d) \n", ret);
+        pr_debug("failed to i2c register driver. (%d) \n", ret);
 	return ret;
     } else {
-        printk("success to i2c register driver. (%d) \n", ret);
+        pr_debug("success to i2c register driver. (%d) \n", ret);
     }
     ret = platform_driver_register(&snb1058_driver);
     if (ret)
     {
-        printk("failed to register driver. (%d) \n", ret);
+        pr_debug("failed to register driver. (%d) \n", ret);
 	return ret;
     } else {
-        printk("success to register driver. (%d) \n", ret);
+        pr_debug("success to register driver. (%d) \n", ret);
     }
    if (i2c_add_driver(&snb1058_i2c_driver))
     {
-	printk("[SNB1058] :: add snb1058 i2c driver error !\n");
+	pr_debug("[SNB1058] :: add snb1058 i2c driver error !\n");
 	return -1;
     }
 
@@ -964,7 +964,7 @@ static int __init snb1058_driver_init(void) {
 }
 
 static void __exit snb1058_driver_exit(void) {
-    printk("SNB1058 driver exit!!\n");
+    pr_debug("SNB1058 driver exit!!\n");
     platform_driver_unregister(&snb1058_driver);
 }
 module_init(snb1058_driver_init);

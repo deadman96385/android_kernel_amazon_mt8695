@@ -620,7 +620,7 @@ DRIVER_ATTR(cirq_dvt, 0664, cirq_dvt_show, cirq_dvt_store);
  */
 static irqreturn_t cirq_irq_handler(int irq, void *dev_id)
 {
-    printk("CIRQ_Handler\n");
+    pr_debug("CIRQ_Handler\n");
 
     mt_cirq_ack_all();
 
@@ -635,7 +635,7 @@ int mt_cirq_init(void)
 {
     int ret;
 
-    printk("CIRQ init...\n");
+    pr_debug("CIRQ init...\n");
 
 #if 1
     if(request_irq(MT_CIRQ_IRQ_ID, cirq_irq_handler, IRQF_TRIGGER_LOW, "CIRQ",  NULL))
@@ -644,18 +644,18 @@ int mt_cirq_init(void)
     }
     else
     {
-         printk("CIRQ handler init success.\n");
+         pr_debug("CIRQ handler init success.\n");
     }
 #endif
 
     ret = driver_register(&mt_cirq_drv.driver);
     if(ret == 0)
-        printk("CIRQ init done...\n");
+        pr_debug("CIRQ init done...\n");
 
 #ifdef LDVT
 	ret = driver_create_file(&mt_cirq_drv.driver, &driver_attr_cirq_dvt);
     if(ret == 0)
-        printk("CIRQ create sysfs file done...\n");
+        pr_debug("CIRQ create sysfs file done...\n");
 #endif
 
 	return 0;

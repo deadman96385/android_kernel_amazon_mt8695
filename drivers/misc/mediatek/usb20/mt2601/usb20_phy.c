@@ -78,38 +78,38 @@ void usb_phy_switch_to_uart(void)
 #if 0
 	/* SW disconnect */
 	var = USB_PHY_Read_Register8(0x68);
-	printk("[MUSB]addr: 0x68, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x68, value: %x\n", var);
 	USB_PHY_Write_Register8(0x15, 0x68);
-	printk("[MUSB]addr: 0x68, value after: %x\n", USB_PHY_Read_Register8(0x68));
+	pr_debug("[MUSB]addr: 0x68, value after: %x\n", USB_PHY_Read_Register8(0x68));
 
 	var = USB_PHY_Read_Register8(0x6A);
-	printk("[MUSB]addr: 0x6A, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x6A, value: %x\n", var);
 	USB_PHY_Write_Register8(0x0, 0x6A);
-	printk("[MUSB]addr: 0x6A, value after: %x\n", USB_PHY_Read_Register8(0x6A));
+	pr_debug("[MUSB]addr: 0x6A, value after: %x\n", USB_PHY_Read_Register8(0x6A));
 	/* SW disconnect */
 #endif
 	/* Set ru_uart_mode to 2'b01 */
 	var = USB_PHY_Read_Register8(0x6B);
-	printk("[MUSB]addr: 0x6B, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x6B, value: %x\n", var);
 	USB_PHY_Write_Register8(var | 0x7C, 0x6B);
-	printk("[MUSB]addr: 0x6B, value after: %x\n", USB_PHY_Read_Register8(0x6B));
+	pr_debug("[MUSB]addr: 0x6B, value after: %x\n", USB_PHY_Read_Register8(0x6B));
 
 	/* Set RG_UART_EN to 1 */
 	var = USB_PHY_Read_Register8(0x6E);
-	printk("[MUSB]addr: 0x6E, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x6E, value: %x\n", var);
 	USB_PHY_Write_Register8(var | 0x07, 0x6E);
-	printk("[MUSB]addr: 0x6E, value after: %x\n", USB_PHY_Read_Register8(0x6E));
+	pr_debug("[MUSB]addr: 0x6E, value after: %x\n", USB_PHY_Read_Register8(0x6E));
 
 	/* Set RG_USB20_DM_100K_EN to 1 */
 	var = USB_PHY_Read_Register8(0x22);
-	printk("[MUSB]addr: 0x22, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x22, value: %x\n", var);
 	USB_PHY_Write_Register8(var | 0x02, 0x22);
-	printk("[MUSB]addr: 0x22, value after: %x\n", USB_PHY_Read_Register8(0x22));
+	pr_debug("[MUSB]addr: 0x22, value after: %x\n", USB_PHY_Read_Register8(0x22));
 
 	var = DRV_Reg8(UART1_BASE + 0x90);
-	printk("[MUSB]addr: 0x11002090 (UART1), value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x11002090 (UART1), value: %x\n", var);
 	DRV_WriteReg8(UART1_BASE + 0x90, var | 0x01);
-	printk("[MUSB]addr: 0x11002090 (UART1), value after: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
+	pr_debug("[MUSB]addr: 0x11002090 (UART1), value after: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
 
 	/* SW disconnect */
 	mt_usb_disconnect();
@@ -119,31 +119,31 @@ void usb_phy_switch_to_usb(void)
 {
 	/* Set RG_UART_EN to 0 */
 	var = USB_PHY_Read_Register8(0x6E);
-	printk("[MUSB]addr: 0x6E, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x6E, value: %x\n", var);
 	USB_PHY_Write_Register8(var & ~0x01, 0x6E);
-	printk("[MUSB]addr: 0x6E, value after: %x\n", USB_PHY_Read_Register8(0x6E));
+	pr_debug("[MUSB]addr: 0x6E, value after: %x\n", USB_PHY_Read_Register8(0x6E));
 
 	/* Set RG_USB20_DM_100K_EN to 0 */
 	var = USB_PHY_Read_Register8(0x22);
-	printk("[MUSB]addr: 0x22, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x22, value: %x\n", var);
 	USB_PHY_Write_Register8(var & ~0x02, 0x22);
-	printk("[MUSB]addr: 0x22, value after: %x\n", USB_PHY_Read_Register8(0x22));
+	pr_debug("[MUSB]addr: 0x22, value after: %x\n", USB_PHY_Read_Register8(0x22));
 
 	var = DRV_Reg8(UART1_BASE + 0x90);
-	printk("[MUSB]addr: 0x11002090 (UART1), value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x11002090 (UART1), value: %x\n", var);
 	DRV_WriteReg8(UART1_BASE + 0x90, var & ~0x01);
-	printk("[MUSB]addr: 0x11002090 (UART1), value after: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
+	pr_debug("[MUSB]addr: 0x11002090 (UART1), value after: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
 #if 0
 	/* SW connect */
 	var = USB_PHY_Read_Register8(0x68);
-	printk("[MUSB]addr: 0x68, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x68, value: %x\n", var);
 	USB_PHY_Write_Register8(0x0, 0x68);
-	printk("[MUSB]addr: 0x68, value after: %x\n", USB_PHY_Read_Register8(0x68));
+	pr_debug("[MUSB]addr: 0x68, value after: %x\n", USB_PHY_Read_Register8(0x68));
 
 	var = USB_PHY_Read_Register8(0x6A);
-	printk("[MUSB]addr: 0x6A, value: %x\n", var);
+	pr_debug("[MUSB]addr: 0x6A, value: %x\n", var);
 	USB_PHY_Write_Register8(0x0, 0x6A);
-	printk("[MUSB]addr: 0x6A, value after: %x\n", USB_PHY_Read_Register8(0x6A));
+	pr_debug("[MUSB]addr: 0x6A, value after: %x\n", USB_PHY_Read_Register8(0x6A));
 	/* SW connect */
 #endif
 	/* SW connect */
@@ -232,7 +232,7 @@ static void hs_slew_rate_cal(void){
 
   /* 4 s7: read result. */
   if (timeout_flag) {
-    printk("[USBPHY] Slew Rate Calibration: Timeout\n");
+    pr_debug("[USBPHY] Slew Rate Calibration: Timeout\n");
     value = 0x4;
     }
   else{
@@ -241,7 +241,7 @@ static void hs_slew_rate_cal(void){
       value = (unsigned char)(x/1000);
       if ((x-value*1000)/100 >= 5)
 	value += 1;
-        printk("[USBPHY]slew calibration:FM_OUT =%lu,x=%lu,value=%d\n", data, x, value);
+        pr_debug("[USBPHY]slew calibration:FM_OUT =%lu,x=%lu,value=%d\n", data, x, value);
     }
 
   /* 4 s8: disable Frequency and run clock. */
@@ -266,7 +266,7 @@ bool usb_phy_check_in_uart_mode(void)
     usb_enable_clock(false);
 
 	/* ALPS00775710 */
-	printk("%s, line %d: usb_port_mode=0x%x\n", __func__, __LINE__, usb_port_mode);
+	pr_debug("%s, line %d: usb_port_mode=0x%x\n", __func__, __LINE__, usb_port_mode);
 #ifdef CONFIG_USB_MTK_OTG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
 	if (mt_get_gpio_in(GPIO_OTG_IDDIG_EINT_PIN) == false)
@@ -275,7 +275,7 @@ extern bool usb_iddig_state(void);
 	if (usb_iddig_state() == false)
 #endif
 	{
-		printk("%s, line %d: otg cable is exist\n", __func__, __LINE__);
+		pr_debug("%s, line %d: otg cable is exist\n", __func__, __LINE__);
 
 		return false;
 	}
@@ -295,7 +295,7 @@ void usb_phy_switch_to_uart(void)
 		return;
 	}
 	/* ALPS00775710 */
-	printk("%s, line %d: force to uart mode!!\n", __func__, __LINE__);
+	pr_debug("%s, line %d: force to uart mode!!\n", __func__, __LINE__);
 	/* ALPS00775710 */
 
     usb_enable_clock(true);
@@ -375,7 +375,7 @@ void usb_phy_poweron(void){
     USBPHY_SET8(0x6c, 0x2E);
     USBPHY_SET8(0x6d, 0x3E);
 
-    printk("usb power on success\n");
+    pr_debug("usb power on success\n");
 }
 
 #ifdef CONFIG_MTK_UART_USB_SWITCH
@@ -436,8 +436,8 @@ static void usb_phy_savecurrent_internal(void){
     USBPHY_SET8(0x63, 0x02);
 
 /* ALPS00427972, implement the analog register formula */
-    printk("%s: USBPHY_READ8(0x05) = 0x%x\n", __func__, USBPHY_READ8(0x05));
-    printk("%s: USBPHY_READ8(0x07) = 0x%x\n", __func__, USBPHY_READ8(0x07));
+    pr_debug("%s: USBPHY_READ8(0x05) = 0x%x\n", __func__, USBPHY_READ8(0x05));
+    pr_debug("%s: USBPHY_READ8(0x07) = 0x%x\n", __func__, USBPHY_READ8(0x07));
 /* ALPS00427972, implement the analog register formula */
 
     udelay(1);
@@ -457,7 +457,7 @@ void usb_phy_savecurrent(void){
     usb_phy_savecurrent_internal();
     /* 4 14. turn off internal 48Mhz PLL. */
     usb_enable_clock(false);
-    printk("usb save current success\n");
+    pr_debug("usb save current success\n");
 }
 
 void usb_phy_recover(void){
@@ -540,18 +540,18 @@ void usb_phy_recover(void){
     /* clr bit 5:To Disable VRT internal R architecture, apply external R */
     USBPHY_CLR8(0x0, 0x20);
 
-    printk("USB HW reg: overwrite RG_USB20_VRT_VREF_SEL 0x%x\n", USBPHY_READ8(0x05));
+    pr_debug("USB HW reg: overwrite RG_USB20_VRT_VREF_SEL 0x%x\n", USBPHY_READ8(0x05));
     /* RG_USB20_VRT_VREF_SEL[2:0]=5 (ori:4) (0x11110804[14:12]) */
     /* USBPHY_SET8(0x05, 0x10); */
     /* RG_USB20_TERM_VREF_SEL[2:0]=5 (ori:4) (0x11110804[10:8]) */
     /* USBPHY_SET8(0x05, 0x01); */
     USBPHY_SET8(0x05, 0x55);
 
-    printk("USB HW reg: index18=0x%x, index7=0x%x\n", get_devinfo_with_index(18), get_devinfo_with_index(7));
+    pr_debug("USB HW reg: index18=0x%x, index7=0x%x\n", get_devinfo_with_index(18), get_devinfo_with_index(7));
     if (get_devinfo_with_index(18) & (0x01<<14))
     {
 	USBPHY_CLR8(0x00, 0x20);
-	printk("USB HW reg: write RG_USB20_INTR_EN 0x%x\n", USBPHY_READ8(0x00));
+	pr_debug("USB HW reg: write RG_USB20_INTR_EN 0x%x\n", USBPHY_READ8(0x00));
     }
 
     if (get_devinfo_with_index(7) & (0x07<<8))
@@ -559,10 +559,10 @@ void usb_phy_recover(void){
 	/* RG_USB20_VRT_VREF_SEL[2:0]=5 (ori:4) (0x11110804[14:12]) */
 	USBPHY_CLR8(0x05, 0x70);
 	USBPHY_SET8(0x05, ((get_devinfo_with_index(7)>>8)<<4)&0x70);
-	printk("USB HW reg: overwrite RG_USB20_VRT_VREF_SEL 0x%x\n", USBPHY_READ8(0x05));
+	pr_debug("USB HW reg: overwrite RG_USB20_VRT_VREF_SEL 0x%x\n", USBPHY_READ8(0x05));
     }
 
-    printk("usb recovery success\n");
+    pr_debug("usb recovery success\n");
     return;
 }
 
@@ -575,7 +575,7 @@ void Charger_Detect_Init(void)
     udelay(50);
     /* RG_USB20_BC11_SW_EN = 1'b1 */
     USBPHY_SET8(0x1a, 0x80);
-    printk("Charger_Detect_Init\n");
+    pr_debug("Charger_Detect_Init\n");
 }
 
 void Charger_Detect_Release(void)
@@ -585,7 +585,7 @@ void Charger_Detect_Release(void)
     udelay(1);
     /* 4 14. turn off internal 48Mhz PLL. */
     usb_enable_clock(false);
-    printk("Charger_Detect_Release\n");
+    pr_debug("Charger_Detect_Release\n");
 }
 
 void usb_phy_context_save(void)

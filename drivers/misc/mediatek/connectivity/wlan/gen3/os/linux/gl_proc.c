@@ -457,7 +457,7 @@ static ssize_t procMCRWrite(struct file *file, const char __user *buffer,
 
 			u4McrOffset = rMcrInfo.u4McrOffset;
 
-			/* printk("Write 0x%lx to MCR 0x%04lx\n", */
+			/* pr_debug("Write 0x%lx to MCR 0x%04lx\n", */
 			/* rMcrInfo.u4McrOffset, rMcrInfo.u4McrData); */
 
 			rStatus = kalIoctl(prGlueInfo,

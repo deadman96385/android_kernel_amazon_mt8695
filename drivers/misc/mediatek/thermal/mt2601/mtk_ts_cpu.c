@@ -187,7 +187,7 @@ extern	void mtktsabb_unregister_thermal(void);
 void set_taklking_flag(bool flag)
 {
 	talking_flag = flag;
-	printk("Power/CPU_Thermal: talking_flag=%d", talking_flag);
+	pr_debug("Power/CPU_Thermal: talking_flag=%d", talking_flag);
 	return;
 }
 
@@ -201,7 +201,7 @@ void get_thermal_slope_intercept(struct TS_PTPOD *ts_info)
 	/* ts_info = &ts_ptpod; */
 	ts_info->ts_MTS = oMTS;
 	ts_info->ts_BTS = oBTS;
-	printk("ts_MTS=%d, ts_BTS=%d\n", oMTS, oBTS);
+	pr_debug("ts_MTS=%d, ts_BTS=%d\n", oMTS, oBTS);
 }
 EXPORT_SYMBOL(get_thermal_slope_intercept);
 
@@ -370,9 +370,9 @@ static void thermal_cal_prepare(void)
 		g_o_vtsmcu1 = 260;
 		g_o_vtsabb = 260;
 	}
-	printk("[Power/CPU_Thermal] [Thermal calibration] g_adc_ge = 0x%x, g_adc_oe = 0x%x, g_degc_cali = 0x%x, g_adc_cali_en = 0x%x, g_o_slope = 0x%x, g_o_slope_sign = 0x%x, g_id = 0x%x\n",
+	pr_debug("[Power/CPU_Thermal] [Thermal calibration] g_adc_ge = 0x%x, g_adc_oe = 0x%x, g_degc_cali = 0x%x, g_adc_cali_en = 0x%x, g_o_slope = 0x%x, g_o_slope_sign = 0x%x, g_id = 0x%x\n",
 		g_adc_ge, g_adc_oe, g_degc_cali, g_adc_cali_en, g_o_slope, g_o_slope_sign, g_id);
-	printk("[Power/CPU_Thermal] [Thermal calibration] g_o_vtsmcu1 = 0x%x, g_o_vtsabb = 0x%x g_ther_ver = 0x%x\n",
+	pr_debug("[Power/CPU_Thermal] [Thermal calibration] g_o_vtsmcu1 = 0x%x, g_o_vtsabb = 0x%x g_ther_ver = 0x%x\n",
 		g_o_vtsmcu1, g_o_vtsabb, g_ther_ver);
 }
 
@@ -417,7 +417,7 @@ static void thermal_cal_prepare_2(void)
 	}
 	g_intercept_mcu = g_intercept_mcu + (g_degc_cali*(1000/2)); /* 1000 is for 0.1 degree */
 
-	printk("[Power/CPU_Thermal] [Thermal cali] SLOPE1=%d SLOPE2=%d INTERCEPT1=%d INTERCEPT2=%d=\n",
+	pr_debug("[Power/CPU_Thermal] [Thermal cali] SLOPE1=%d SLOPE2=%d INTERCEPT1=%d INTERCEPT2=%d=\n",
 		g_slope1, g_slope2, g_intercept_mcu, g_intercept_abb);
 }
 
@@ -517,7 +517,7 @@ static int mtktscpu_get_temp(struct thermal_zone_device *thermal,
 	curr_temp = get_immediate_temp(); /* mtktscpu_get_TC_temp(); */
 /* if((curr_temp>100000) || (curr_temp<-30000)) */
 	if ((curr_temp > (trip_temp[0] - 15000)) || (curr_temp <  -30000))
-		printk("[Power/CPU_Thermal] CPU T=%d\n", curr_temp);
+		pr_debug("[Power/CPU_Thermal] CPU T=%d\n", curr_temp);
 
 	/* curr_temp = mtktscpu_get_hw_temp(); */
 	*t = (unsigned long) curr_temp;
@@ -547,7 +547,7 @@ static int mtktscpu_get_temp(struct thermal_zone_device *thermal,
   curr_temp = get_immediate_temp(); /* mtktscpu_get_TC_temp(); */
 	/* if((curr_temp>100000) || (curr_temp<-30000)) */
   if ((curr_temp > (trip_temp[0] - 15000)) || (curr_temp <  -30000))
-	printk("[Power/CPU_Thermal] CPU T=%d\n", curr_temp);
+	pr_debug("[Power/CPU_Thermal] CPU T=%d\n", curr_temp);
 
 
 	temp_temp = curr_temp;
@@ -555,7 +555,7 @@ static int mtktscpu_get_temp(struct thermal_zone_device *thermal,
 	{
 		if ((curr_temp > 150000) || (curr_temp < -20000))
 		{
-			printk("[Power/CPU_Thermal] CPU temp invalid = %d\n", curr_temp);
+			pr_debug("[Power/CPU_Thermal] CPU temp invalid = %d\n", curr_temp);
 			temp_temp = 50000;
 			ret = -1;
 		}
@@ -563,7 +563,7 @@ static int mtktscpu_get_temp(struct thermal_zone_device *thermal,
 		{
 			if ((curr_temp - last_cpu_temp > 20000) || (last_cpu_temp - curr_temp > 20000))
 			{
-				printk("[Power/CPU_Thermal] CPU temp float hugely temp=%d, lasttemp =%d\n", curr_temp, last_cpu_temp);
+				pr_debug("[Power/CPU_Thermal] CPU temp float hugely temp=%d, lasttemp =%d\n", curr_temp, last_cpu_temp);
 				temp_temp = 50000;
 				ret = -1;
 			}
@@ -732,7 +732,7 @@ static int mtktscpu_set_power_consumption_state(void)
 /* if((min_limit != cl_dvfs_thermal_limit) || (min_limit !=0)) */
   if (min_limit != cl_dvfs_thermal_limit)
   {
-	printk("[mtktscpu] set_power limit =  %d\n", min_limit);
+	pr_debug("[mtktscpu] set_power limit =  %d\n", min_limit);
 	set_dvfs_thermal_limit(min_limit);
   }
 
@@ -795,10 +795,10 @@ static int mtktscpu_sysrst_set_cur_state(struct thermal_cooling_device *cdev,
 	cl_dev_sysrst_state = state;
 	if (cl_dev_sysrst_state == 1)
 	{
-		printk("Power/CPU_Thermal: reset, reset, reset!!!\n");
-/* printk("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
-/* printk("*****************************************"); */
-/* printk("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
+		pr_debug("Power/CPU_Thermal: reset, reset, reset!!!\n");
+/* pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
+/* pr_debug("*****************************************"); */
+/* pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
 
 		BUG();
 		/* arch_reset(0,NULL); */
@@ -1400,7 +1400,7 @@ static int __init thermal_late_init(void)
 	}
 
 /* get_thermal_slope_intercept(&ts); */
-/* printk("INIT: ts_MTS=%d, ts_BTS=%d\n", ts.ts_MTS, ts.ts_BTS); */
+/* pr_debug("INIT: ts_MTS=%d, ts_BTS=%d\n", ts.ts_MTS, ts.ts_BTS); */
 
 	return 0;
 
@@ -1553,7 +1553,7 @@ static int mtktsabb_get_temp(struct thermal_zone_device *thermal,
 	curr_temp = get_immediate_temp_abb();
 
 	if ((curr_temp > 100000) || (curr_temp <  -30000))
-		printk("[Power/CPU_Thermal] CPU T=%d\n", curr_temp);
+		pr_debug("[Power/CPU_Thermal] CPU T=%d\n", curr_temp);
 	*t = (unsigned long) curr_temp;
 	/* for low power */
 	if ((int) *t >= polling_abb_trip_temp1)
@@ -1573,7 +1573,7 @@ static int mtktsabb_get_temp(struct thermal_zone_device *thermal,
   curr_temp = get_immediate_temp(); /* mtktscpu_get_TC_temp(); */
 	/* if((curr_temp>100000) || (curr_temp<-30000)) */
   if ((curr_temp > (trip_temp[0] - 15000)) || (curr_temp <  -30000))
-	printk("[Power/CPU_Thermal] ABB T=%d\n", curr_temp);
+	pr_debug("[Power/CPU_Thermal] ABB T=%d\n", curr_temp);
 
 
 	temp_temp = curr_temp;
@@ -1581,7 +1581,7 @@ static int mtktsabb_get_temp(struct thermal_zone_device *thermal,
 	{
 		if ((curr_temp > 150000) || (curr_temp < -20000))
 		{
-			printk("[Power/CPU_Thermal] ABB temp invalid = %d\n", curr_temp);
+			pr_debug("[Power/CPU_Thermal] ABB temp invalid = %d\n", curr_temp);
 			temp_temp = 50000;
 			ret = -1;
 		}
@@ -1589,7 +1589,7 @@ static int mtktsabb_get_temp(struct thermal_zone_device *thermal,
 		{
 			if ((curr_temp - last_cpu_temp > 20000) || (last_cpu_temp - curr_temp > 20000))
 			{
-				printk("[Power/CPU_Thermal] ABB temp float hugely temp=%d, lasttemp =%d\n", curr_temp, last_cpu_temp);
+				pr_debug("[Power/CPU_Thermal] ABB temp float hugely temp=%d, lasttemp =%d\n", curr_temp, last_cpu_temp);
 				temp_temp = 50000;
 				ret = -1;
 			}
@@ -1729,7 +1729,7 @@ static int mtktsabb_sysrst_set_cur_state(struct thermal_cooling_device *cdev,
 	cl_dev_abbsysrst_state = state;
 	if (cl_dev_abbsysrst_state == 1)
 	{
-		printk("Power/CPU_Thermal: ABB reset, reset, reset!!!\n");
+		pr_debug("Power/CPU_Thermal: ABB reset, reset, reset!!!\n");
 		BUG();
 	}
 	return 0;

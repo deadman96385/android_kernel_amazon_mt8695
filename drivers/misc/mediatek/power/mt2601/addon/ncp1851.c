@@ -126,14 +126,14 @@ kal_uint32 ncp1851_read_interface(kal_uint8 RegNum, kal_uint8 *val, kal_uint8 MA
     kal_uint8 ncp1851_reg = 0;
     int ret = 0;
 
-    printk("--------------------------------------------------\n");
+    pr_debug("--------------------------------------------------\n");
 
     ret = ncp1851_read_byte(RegNum, &ncp1851_reg);
-    printk("[ncp1851_read_interface] Reg[%x]=0x%x\n", RegNum, ncp1851_reg);
+    pr_debug("[ncp1851_read_interface] Reg[%x]=0x%x\n", RegNum, ncp1851_reg);
 
     ncp1851_reg &= (MASK << SHIFT);
     *val = (ncp1851_reg >> SHIFT);
-    printk("[ncp1851_read_interface] Val=0x%x\n", *val);
+    pr_debug("[ncp1851_read_interface] Val=0x%x\n", *val);
 
     return ret;
 }
@@ -143,20 +143,20 @@ kal_uint32 ncp1851_config_interface(kal_uint8 RegNum, kal_uint8 val, kal_uint8 M
     kal_uint8 ncp1851_reg = 0;
     int ret = 0;
 
-    printk("--------------------------------------------------\n");
+    pr_debug("--------------------------------------------------\n");
 
     ret = ncp1851_read_byte(RegNum, &ncp1851_reg);
-    /* printk("[ncp1851_config_interface] Reg[%x]=0x%x\n", RegNum, ncp1851_reg); */
+    /* pr_debug("[ncp1851_config_interface] Reg[%x]=0x%x\n", RegNum, ncp1851_reg); */
 
     ncp1851_reg &= ~(MASK << SHIFT);
     ncp1851_reg |= (val << SHIFT);
 
     ret = ncp1851_write_byte(RegNum, ncp1851_reg);
-    /* printk("[ncp18516_config_interface] Write Reg[%x]=0x%x\n", RegNum, ncp1851_reg); */
+    /* pr_debug("[ncp18516_config_interface] Write Reg[%x]=0x%x\n", RegNum, ncp1851_reg); */
 
     /* Check */
     /* ncp1851_read_byte(RegNum, &ncp1851_reg); */
-    /* printk("[ncp1851_config_interface] Check Reg[%x]=0x%x\n", RegNum, ncp1851_reg); */
+    /* pr_debug("[ncp1851_config_interface] Check Reg[%x]=0x%x\n", RegNum, ncp1851_reg); */
 
     return ret;
 }
@@ -590,14 +590,14 @@ void ncp1851_dump_register(void)
 	if ((i == 10) || (i == 11) || (i == 12) || (i == 13)) /* do not dump interrupt mask bit register */
 	    continue;
 	ncp1851_read_byte(i, &ncp1851_reg[i]);
-	printk("[ncp1851_dump_register] Reg[0x%X]=0x%X\n", i, ncp1851_reg[i]);
+	pr_debug("[ncp1851_dump_register] Reg[0x%X]=0x%X\n", i, ncp1851_reg[i]);
     }
 }
 
 void ncp1851_read_register(int i)
 {
     ncp1851_read_byte(i, &ncp1851_reg[i]);
-    printk("[ncp1851_read_register] Reg[0x%X]=0x%X\n", i, ncp1851_reg[i]);
+    pr_debug("[ncp1851_read_register] Reg[0x%X]=0x%X\n", i, ncp1851_reg[i]);
 }
 
 extern int g_pmic_init_for_ncp1851;
@@ -606,7 +606,7 @@ static int ncp1851_driver_probe(struct i2c_client *client, const struct i2c_devi
 {
     int err = 0;
 
-    printk("[ncp1851_driver_probe]\n");
+    pr_debug("[ncp1851_driver_probe]\n");
 
     if (!(new_client = kmalloc(sizeof(struct i2c_client), GFP_KERNEL))) {
 	 err = -ENOMEM;
@@ -635,7 +635,7 @@ exit:
 kal_uint8 g_reg_value_ncp1851 = 0;
 static ssize_t show_ncp1851_access(struct device *dev, struct device_attribute *attr, char *buf)
 {
-    printk("[show_ncp1851_access] 0x%x\n", g_reg_value_ncp1851);
+    pr_debug("[show_ncp1851_access] 0x%x\n", g_reg_value_ncp1851);
     return sprintf(buf, "%u\n", g_reg_value_ncp1851);
 }
 static ssize_t store_ncp1851_access(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
@@ -645,24 +645,24 @@ static ssize_t store_ncp1851_access(struct device *dev, struct device_attribute 
     unsigned int reg_value = 0;
     unsigned int reg_address = 0;
 
-    printk("[store_ncp1851_access]\n");
+    pr_debug("[store_ncp1851_access]\n");
 
     if (buf != NULL && size != 0)
     {
-        printk("[store_ncp1851_access] buf is %s and size is %d \n", buf, size);
+        pr_debug("[store_ncp1851_access] buf is %s and size is %d \n", buf, size);
         reg_address = simple_strtoul(buf, &pvalue, 16);
 
 	if (size > 3)
 	{
             reg_value = simple_strtoul((pvalue+1), NULL, 16);
-            printk("[store_ncp1851_access] write ncp1851 reg 0x%x with value 0x%x !\n", reg_address, reg_value);
+            pr_debug("[store_ncp1851_access] write ncp1851 reg 0x%x with value 0x%x !\n", reg_address, reg_value);
             ret = ncp1851_config_interface(reg_address, reg_value, 0xFF, 0x0);
 	}
 	else
 	{
             ret = ncp1851_read_interface(reg_address, &g_reg_value_ncp1851, 0xFF, 0x0);
-            printk("[store_ncp1851_access] read ncp1851 reg 0x%x with value 0x%x !\n", reg_address, g_reg_value_ncp1851);
-	    printk("[store_ncp1851_access] Please use \"cat ncp1851_access\" to get value\r\n");
+            pr_debug("[store_ncp1851_access] read ncp1851 reg 0x%x with value 0x%x !\n", reg_address, g_reg_value_ncp1851);
+	    pr_debug("[store_ncp1851_access] Please use \"cat ncp1851_access\" to get value\r\n");
 	}
     }
     return size;
@@ -673,7 +673,7 @@ static int ncp1851_user_space_probe(struct platform_device *dev)
 {
     int ret_device_file = 0;
 
-    printk("******** ncp1851_user_space_probe!! ********\n");
+    pr_debug("******** ncp1851_user_space_probe!! ********\n");
 
     ret_device_file = device_create_file(&(dev->dev), &dev_attr_ncp1851_access);
 
@@ -699,28 +699,28 @@ static int __init ncp1851_init(void)
 {
     int ret = 0;
 
-    printk("[ncp1851_init] init start\n");
+    pr_debug("[ncp1851_init] init start\n");
 
     i2c_register_board_info(NCP1851_BUSNUM, &i2c_ncp1851, 1);
 
     if (i2c_add_driver(&ncp1851_driver) != 0)
     {
-	printk("[ncp1851_init] failed to register ncp1851 i2c driver.\n");
+	pr_debug("[ncp1851_init] failed to register ncp1851 i2c driver.\n");
     }
     else
     {
-	printk("[ncp1851_init] Success to register ncp1851 i2c driver.\n");
+	pr_debug("[ncp1851_init] Success to register ncp1851 i2c driver.\n");
     }
 
     /* ncp1851 user space access interface */
     ret = platform_device_register(&ncp1851_user_space_device);
     if (ret) {
-	printk("****[ncp1851_init] Unable to device register(%d)\n", ret);
+	pr_debug("****[ncp1851_init] Unable to device register(%d)\n", ret);
 	return ret;
     }
     ret = platform_driver_register(&ncp1851_user_space_driver);
     if (ret) {
-	printk("****[ncp1851_init] Unable to register driver (%d)\n", ret);
+	pr_debug("****[ncp1851_init] Unable to register driver (%d)\n", ret);
 	return ret;
     }
 

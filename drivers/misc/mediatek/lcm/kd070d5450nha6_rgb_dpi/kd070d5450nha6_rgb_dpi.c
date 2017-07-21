@@ -56,7 +56,7 @@ static int lcm_get_vgp_supply(struct device *dev)
 	int ret;
 	struct regulator *lcm_vgp_ldo;
 
-	/* printk("LCM: lcm_get_vgp_supply is going\n"); */
+	/* pr_debug("LCM: lcm_get_vgp_supply is going\n"); */
 
 	lcm_vgp_ldo = devm_regulator_get(dev, "reg-lcm");
 	if (IS_ERR(lcm_vgp_ldo)) {
@@ -81,12 +81,12 @@ int lcm_vgp_supply_enable(void)
 	int ret;
 	unsigned int volt;
 
-	/* printk("LCM: lcm_vgp_supply_enable\n"); */
+	/* pr_debug("LCM: lcm_vgp_supply_enable\n"); */
 
 	if (lcm_vgp == NULL)
 		return 0;
 
-	/* printk("LCM: set regulator voltage lcm_vgp voltage to 3.3V\n"); */
+	/* pr_debug("LCM: set regulator voltage lcm_vgp voltage to 3.3V\n"); */
 	/* set voltage to 1.8V */
 	ret = regulator_set_voltage(lcm_vgp, 3300000, 3300000);
 	if (ret != 0) {
@@ -98,9 +98,9 @@ int lcm_vgp_supply_enable(void)
 	volt = regulator_get_voltage(lcm_vgp);
 	/*
 	if (volt == 3300000)
-		printk("LCM: check regulator voltage=3300000 pass!\n");
+		pr_debug("LCM: check regulator voltage=3300000 pass!\n");
 	else
-		printk("LCM: check regulator voltage=3300000 fail! (voltage: %d)\n", volt);
+		pr_debug("LCM: check regulator voltage=3300000 fail! (voltage: %d)\n", volt);
 	*/
 	ret = regulator_enable(lcm_vgp);
 	if (ret != 0) {
@@ -122,7 +122,7 @@ int lcm_vgp_supply_disable(void)
 	/* disable regulator */
 	isenable = regulator_is_enabled(lcm_vgp);
 
-	/* printk("LCM: lcm query regulator enable status[%d]\n", isenable); */
+	/* pr_debug("LCM: lcm query regulator enable status[%d]\n", isenable); */
 
 	if (isenable) {
 		ret = regulator_disable(lcm_vgp);
@@ -150,7 +150,7 @@ void lcm_request_gpio_control(struct device *dev)
 
 static int lcm_driver_probe(struct device *dev, void const *data)
 {
-	/* printk("LCM: lcm_driver_probe\n"); */
+	/* pr_debug("LCM: lcm_driver_probe\n"); */
 
 	lcm_request_gpio_control(dev);
 	lcm_get_vgp_supply(dev);

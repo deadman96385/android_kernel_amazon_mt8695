@@ -111,7 +111,7 @@ static void pmic_cali_prepare(void)
 	temp0 = pmic_read(0x63A);
 	temp1 = pmic_read(0x63C);
 
-	printk("Power/PMIC_Thermal: Reg(0x63a)=0x%x, Reg(0x63c)=0x%x\n", temp0, temp1);
+	pr_debug("Power/PMIC_Thermal: Reg(0x63a)=0x%x, Reg(0x63c)=0x%x\n", temp0, temp1);
 
 	g_o_vts = ((temp1&0x001F) << 8) + ((temp0>>8) & 0x00FF);
 	g_degc_cali = (temp0>>2) & 0x003f;
@@ -140,7 +140,7 @@ static void pmic_cali_prepare(void)
 		g_o_slope = 0;
 		g_o_slope_sign = 0;
 	}
-	printk("Power/PMIC_Thermal: g_ver= 0x%x, g_o_vts = 0x%x, g_degc_cali = 0x%x, g_adc_cali_en = 0x%x, g_o_slope = 0x%x, g_o_slope_sign = 0x%x, g_id = 0x%x\n",
+	pr_debug("Power/PMIC_Thermal: g_ver= 0x%x, g_o_vts = 0x%x, g_degc_cali = 0x%x, g_adc_cali_en = 0x%x, g_o_slope = 0x%x, g_o_slope_sign = 0x%x, g_id = 0x%x\n",
 		 upmu_get_cid(), g_o_vts, g_degc_cali, g_adc_cali_en, g_o_slope, g_o_slope_sign, g_id);
 
 
@@ -168,7 +168,7 @@ static void pmic_cali_prepare2(void)
 		g_intercept = (vbe_t * 100) / (-(171-g_o_slope));  /* 0.001 degree */
 	}
 	g_intercept = g_intercept + (g_degc_cali*(1000/2)); /* 1000 is for 0.1 degree */
-	printk("[Power/PMIC_Thermal] [Thermal calibration] SLOPE1=%d SLOPE2=%d INTERCEPT=%d, Vbe = %d\n",
+	pr_debug("[Power/PMIC_Thermal] [Thermal calibration] SLOPE1=%d SLOPE2=%d INTERCEPT=%d, Vbe = %d\n",
 		g_slope1, g_slope2, g_intercept, vbe_t);
 
 }
@@ -198,18 +198,18 @@ static int mtktspmic_get_hw_temp(void)
 
 	if ((temp1 > 100000) || (temp1 <  -30000))
 	{
-		printk("[Power/PMIC_Thermal] raw=%d, PMIC T=%d", temp, temp1);
+		pr_debug("[Power/PMIC_Thermal] raw=%d, PMIC T=%d", temp, temp1);
 /* pmic_thermal_dump_reg(); */
 	}
 
 	if ((temp1 > 150000) || (temp1 <  -50000))
 	{
-		printk("[Power/PMIC_Thermal] drop this data\n");
+		pr_debug("[Power/PMIC_Thermal] drop this data\n");
 		temp1 = pre_temp1;
 	}
 	else if ((PMIC_counter != 0) && (((pre_temp1-temp1) > 30000) || ((temp1-pre_temp1) > 30000)))
 	{
-		printk("[Power/PMIC_Thermal] drop this data 2\n");
+		pr_debug("[Power/PMIC_Thermal] drop this data 2\n");
 		temp1 = pre_temp1;
 	}
 	else
@@ -364,10 +364,10 @@ static int sysrst_set_cur_state(struct thermal_cooling_device *cdev,
 	cl_dev_sysrst_state = state;
 	if (cl_dev_sysrst_state == 1)
 	{
-		printk("Power/PMIC_Thermal: reset, reset, reset!!!");
-/* printk("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
-/* printk("*****************************************"); */
-/* printk("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
+		pr_debug("Power/PMIC_Thermal: reset, reset, reset!!!");
+/* pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
+/* pr_debug("*****************************************"); */
+/* pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); */
 		BUG();
 		/* arch_reset(0,NULL); */
 	}

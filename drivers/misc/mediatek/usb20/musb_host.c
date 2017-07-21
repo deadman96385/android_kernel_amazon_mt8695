@@ -1216,7 +1216,7 @@ finish:
 				  *csr |= MUSB_RXCSR_AUTOCLEAR;
 				  */
 
-				/* printk("%s, line %d: csr = 0x%x, qh->hb_mult = %d,
+				/* pr_debug("%s, line %d: csr = 0x%x, qh->hb_mult = %d,
 				  * MUSB_RXCSR,MUSB_RXCSR_H_WZC_BITS | csr = 0x%x\n",
 				  * __func__, __LINE__, csr, qh->hb_mult, (MUSB_RXCSR,MUSB_RXCSR_H_WZC_BITS | csr));
 				  */

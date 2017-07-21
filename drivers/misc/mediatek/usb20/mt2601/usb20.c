@@ -208,7 +208,7 @@ static void mt_usb_enable(struct musb *musb)
 
 static void mt_usb_disable(struct musb *musb)
 {
-    printk("%s, %d, %d\n", __func__, mtk_usb_power, musb->power);
+    pr_debug("%s, %d, %d\n", __func__, mtk_usb_power, musb->power);
 
     if (musb->power == false)
 	return;
@@ -258,7 +258,7 @@ bool mt_usb_is_device(void)
 
 void mt_usb_connect(void)
 {
-	printk("[MUSB] USB is ready for connect\n");
+	pr_debug("[MUSB] USB is ready for connect\n");
     DBG(3, "is ready %d is_host %d power %d\n", mtk_musb->is_ready, mtk_musb->is_host , mtk_musb->power);
     if (!mtk_musb || !mtk_musb->is_ready || mtk_musb->is_host || mtk_musb->power)
 	return;
@@ -277,12 +277,12 @@ void mt_usb_connect(void)
 		wake_lock(&mtk_musb->usb_lock);
 
     musb_start(mtk_musb);
-	printk("[MUSB] USB connect\n");
+	pr_debug("[MUSB] USB connect\n");
 }
 
 void mt_usb_disconnect(void)
 {
-	printk("[MUSB] USB is ready for disconnect\n");
+	pr_debug("[MUSB] USB is ready for disconnect\n");
 
 	if (!mtk_musb || !mtk_musb->is_ready || mtk_musb->is_host || !mtk_musb->power)
 		return;
@@ -300,7 +300,7 @@ void mt_usb_disconnect(void)
 		mtk_musb->power = false;
 	}
 
-	printk("[MUSB] USB disconnect\n");
+	pr_debug("[MUSB] USB disconnect\n");
 }
 
 /* ALPS00775710 */
@@ -572,28 +572,28 @@ static void uart_usb_switch_dump_register(void)
 {
 usb_enable_clock(true);
 #ifdef FPGA_PLATFORM
-	printk("[MUSB]addr: 0x6B, value: %x\n", USB_PHY_Read_Register8(0x6B));
-	printk("[MUSB]addr: 0x6E, value: %x\n", USB_PHY_Read_Register8(0x6E));
-	printk("[MUSB]addr: 0x22, value: %x\n", USB_PHY_Read_Register8(0x22));
-	printk("[MUSB]addr: 0x68, value: %x\n", USB_PHY_Read_Register8(0x68));
-	printk("[MUSB]addr: 0x6A, value: %x\n", USB_PHY_Read_Register8(0x6A));
-	printk("[MUSB]addr: 0x1A, value: %x\n", USB_PHY_Read_Register8(0x1A));
+	pr_debug("[MUSB]addr: 0x6B, value: %x\n", USB_PHY_Read_Register8(0x6B));
+	pr_debug("[MUSB]addr: 0x6E, value: %x\n", USB_PHY_Read_Register8(0x6E));
+	pr_debug("[MUSB]addr: 0x22, value: %x\n", USB_PHY_Read_Register8(0x22));
+	pr_debug("[MUSB]addr: 0x68, value: %x\n", USB_PHY_Read_Register8(0x68));
+	pr_debug("[MUSB]addr: 0x6A, value: %x\n", USB_PHY_Read_Register8(0x6A));
+	pr_debug("[MUSB]addr: 0x1A, value: %x\n", USB_PHY_Read_Register8(0x1A));
 #else
-	printk("[MUSB]addr: 0x6B, value: %x\n", USBPHY_READ8(0x6B));
-	printk("[MUSB]addr: 0x6E, value: %x\n", USBPHY_READ8(0x6E));
-	printk("[MUSB]addr: 0x22, value: %x\n", USBPHY_READ8(0x22));
-	printk("[MUSB]addr: 0x68, value: %x\n", USBPHY_READ8(0x68));
-	printk("[MUSB]addr: 0x6A, value: %x\n", USBPHY_READ8(0x6A));
-	printk("[MUSB]addr: 0x1A, value: %x\n", USBPHY_READ8(0x1A));
+	pr_debug("[MUSB]addr: 0x6B, value: %x\n", USBPHY_READ8(0x6B));
+	pr_debug("[MUSB]addr: 0x6E, value: %x\n", USBPHY_READ8(0x6E));
+	pr_debug("[MUSB]addr: 0x22, value: %x\n", USBPHY_READ8(0x22));
+	pr_debug("[MUSB]addr: 0x68, value: %x\n", USBPHY_READ8(0x68));
+	pr_debug("[MUSB]addr: 0x6A, value: %x\n", USBPHY_READ8(0x6A));
+	pr_debug("[MUSB]addr: 0x1A, value: %x\n", USBPHY_READ8(0x1A));
 #endif
 usb_enable_clock(false);
-	printk("[MUSB]addr: 0x11002090 (UART1), value: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
+	pr_debug("[MUSB]addr: 0x11002090 (UART1), value: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
 }
 
 static ssize_t mt_usb_show_portmode(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	if (!dev) {
-		printk("dev is null!!\n");
+		pr_debug("dev is null!!\n");
 		return 0;
 	}
 
@@ -603,9 +603,9 @@ static ssize_t mt_usb_show_portmode(struct device *dev, struct device_attribute 
 		port_mode = PORT_MODE_USB;
 
 	if (port_mode == PORT_MODE_USB) {
-		printk("\nUSB Port mode -> USB\n");
+		pr_debug("\nUSB Port mode -> USB\n");
 	} else if (port_mode == PORT_MODE_UART) {
-		printk("\nUSB Port mode -> UART\n");
+		pr_debug("\nUSB Port mode -> UART\n");
 	}
 	uart_usb_switch_dump_register();
 
@@ -618,19 +618,19 @@ static ssize_t mt_usb_store_portmode(struct device *dev, struct device_attribute
 	unsigned int portmode;
 
 	if (!dev) {
-		printk("dev is null!!\n");
+		pr_debug("dev is null!!\n");
 		return count;
 	} else if (1 == sscanf(buf, "%d", &portmode)) {
-		printk("\nUSB Port mode: current => %d (port_mode), change to => %d (portmode)\n", port_mode, portmode);
+		pr_debug("\nUSB Port mode: current => %d (port_mode), change to => %d (portmode)\n", port_mode, portmode);
 		if (portmode >= PORT_MODE_MAX)
 			portmode = PORT_MODE_USB;
 
 		if (port_mode != portmode) {
 			if (portmode == PORT_MODE_USB) { /* Changing to USB Mode */
-				printk("USB Port mode -> USB\n");
+				pr_debug("USB Port mode -> USB\n");
 				usb_phy_switch_to_usb();
 			} else if (portmode == PORT_MODE_UART) { /* Changing to UART Mode */
-				printk("USB Port mode -> UART\n");
+				pr_debug("USB Port mode -> UART\n");
 				usb_phy_switch_to_uart();
 			}
 			uart_usb_switch_dump_register();
@@ -649,7 +649,7 @@ static ssize_t mt_usb_show_tx(struct device *dev, struct device_attribute *attr,
 	UINT8 var2;
 
 	if (!dev) {
-		printk("dev is null!!\n");
+		pr_debug("dev is null!!\n");
 		return 0;
 	}
 
@@ -659,7 +659,7 @@ static ssize_t mt_usb_show_tx(struct device *dev, struct device_attribute *attr,
 	var = USBPHY_READ8(0x6E);
 #endif
 	var2 = (var >> 3) & ~0xFE;
-	printk("[MUSB]addr: 0x6E (TX), value: %x - %x\n", var, var2);
+	pr_debug("[MUSB]addr: 0x6E (TX), value: %x - %x\n", var, var2);
 
 	sw_tx = var;
 
@@ -674,10 +674,10 @@ static ssize_t mt_usb_store_tx(struct device *dev, struct device_attribute *attr
 	UINT8 var2;
 
 	if (!dev) {
-		printk("dev is null!!\n");
+		pr_debug("dev is null!!\n");
 		return count;
 	} else if (1 == sscanf(buf, "%d", &val)) {
-		printk("\n Write TX : %d\n", val);
+		pr_debug("\n Write TX : %d\n", val);
 
 #ifdef FPGA_PLATFORM
 		var = USB_PHY_Read_Register8(0x6E);
@@ -701,7 +701,7 @@ static ssize_t mt_usb_store_tx(struct device *dev, struct device_attribute *attr
 
 		var2 = (var >> 3) & ~0xFE;
 
-		printk("[MUSB]addr: 0x6E TX [AFTER WRITE], value after: %x - %x\n", var, var2);
+		pr_debug("[MUSB]addr: 0x6E TX [AFTER WRITE], value after: %x - %x\n", var, var2);
 		sw_tx = var;
 	}
 	return count;
@@ -714,7 +714,7 @@ static ssize_t mt_usb_show_rx(struct device *dev, struct device_attribute *attr,
 	UINT8 var2;
 
 	if (!dev) {
-		printk("dev is null!!\n");
+		pr_debug("dev is null!!\n");
 		return 0;
 	}
 
@@ -724,7 +724,7 @@ static ssize_t mt_usb_show_rx(struct device *dev, struct device_attribute *attr,
 	var = USBPHY_READ8(0x77);
 #endif
 	var2 = (var >> 7) & ~0xFE;
-	printk("[MUSB]addr: 0x77 (RX), value: %x - %x\n", var, var2);
+	pr_debug("[MUSB]addr: 0x77 (RX), value: %x - %x\n", var, var2);
 	sw_rx = var;
 
 	return scnprintf(buf, PAGE_SIZE, "%x\n", var2);
@@ -737,12 +737,12 @@ static ssize_t mt_usb_show_uart_path(struct device *dev, struct device_attribute
 	UINT8 var;
 
 	if (!dev) {
-		printk("dev is null!!\n");
+		pr_debug("dev is null!!\n");
 		return 0;
 	}
 
 	var = DRV_Reg8(UART1_BASE + 0x90);
-	printk("[MUSB]addr: 0x11002090 (UART1), value: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
+	pr_debug("[MUSB]addr: 0x11002090 (UART1), value: %x\n\n", DRV_Reg8(UART1_BASE + 0x90));
 	sw_uart_path = var;
 
 	return scnprintf(buf, PAGE_SIZE, "%x\n", var);
@@ -777,7 +777,7 @@ UINT8 USB_PHY_Read_Register8(UINT8 addr)
 static int usb_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 
-	printk("[MUSB]usb_i2c_probe, start\n");
+	pr_debug("[MUSB]usb_i2c_probe, start\n");
 
 	usb_i2c_client = client;
 
@@ -796,18 +796,18 @@ static int usb_i2c_probe(struct i2c_client *client, const struct i2c_device_id *
 	USB_PHY_Write_Register8(0x68, 0x1a);
 
 
-	printk("[MUSB]addr: 0xFF, value: %x\n", USB_PHY_Read_Register8(0xFF));
-	printk("[MUSB]addr: 0x61, value: %x\n", USB_PHY_Read_Register8(0x61));
-	printk("[MUSB]addr: 0x68, value: %x\n", USB_PHY_Read_Register8(0x68));
-	printk("[MUSB]addr: 0x6a, value: %x\n", USB_PHY_Read_Register8(0x6a));
-	printk("[MUSB]addr: 0x00, value: %x\n", USB_PHY_Read_Register8(0x00));
-	printk("[MUSB]addr: 0x1b, value: %x\n", USB_PHY_Read_Register8(0x1b));
-	printk("[MUSB]addr: 0x08, value: %x\n", USB_PHY_Read_Register8(0x08));
-	printk("[MUSB]addr: 0x11, value: %x\n", USB_PHY_Read_Register8(0x11));
-	printk("[MUSB]addr: 0x1a, value: %x\n", USB_PHY_Read_Register8(0x1a));
+	pr_debug("[MUSB]addr: 0xFF, value: %x\n", USB_PHY_Read_Register8(0xFF));
+	pr_debug("[MUSB]addr: 0x61, value: %x\n", USB_PHY_Read_Register8(0x61));
+	pr_debug("[MUSB]addr: 0x68, value: %x\n", USB_PHY_Read_Register8(0x68));
+	pr_debug("[MUSB]addr: 0x6a, value: %x\n", USB_PHY_Read_Register8(0x6a));
+	pr_debug("[MUSB]addr: 0x00, value: %x\n", USB_PHY_Read_Register8(0x00));
+	pr_debug("[MUSB]addr: 0x1b, value: %x\n", USB_PHY_Read_Register8(0x1b));
+	pr_debug("[MUSB]addr: 0x08, value: %x\n", USB_PHY_Read_Register8(0x08));
+	pr_debug("[MUSB]addr: 0x11, value: %x\n", USB_PHY_Read_Register8(0x11));
+	pr_debug("[MUSB]addr: 0x1a, value: %x\n", USB_PHY_Read_Register8(0x1a));
 
 
-	printk("[MUSB]usb_i2c_probe, end\n");
+	pr_debug("[MUSB]usb_i2c_probe, end\n");
     return 0;
 
 }
@@ -834,10 +834,10 @@ int add_usb_i2c_driver(void)
 {
 	i2c_register_board_info(2, &usb_i2c_dev, 1);
 	if (i2c_add_driver(&usb_i2c_driver) != 0) {
-		printk("[MUSB]usb_i2c_driver initialization failed!!\n");
+		pr_debug("[MUSB]usb_i2c_driver initialization failed!!\n");
 		return -1;
 	} else {
-		printk("[MUSB]usb_i2c_driver initialization succeed!!\n");
+		pr_debug("[MUSB]usb_i2c_driver initialization succeed!!\n");
 	}
 	return 0;
 }
@@ -867,7 +867,7 @@ static int mt_usb_init(struct musb *musb)
 
 #ifndef FPGA_PLATFORM
     hwPowerOn(MT6323_POWER_LDO_VUSB, VOL_3300, "VUSB_LDO");
-    printk("%s, enable VBUS_LDO\n", __func__);
+    pr_debug("%s, enable VBUS_LDO\n", __func__);
 #endif
 
     mt_usb_enable(musb);

@@ -157,7 +157,7 @@ unsigned int Offset)
 	unsigned int val;
 	val = ioread32((void *)M4uBase + Offset);
 
-	/* printk("read base=0x%x, reg=0x%x, val=0x%x\n",M4uBase,Offset,val ); */
+	/* pr_debug("read base=0x%x, reg=0x%x, val=0x%x\n",M4uBase,Offset,val ); */
 	return val;
 }
 static inline void M4U_WriteReg32(unsigned int M4uBase, unsigned int Offset,
@@ -170,11 +170,11 @@ unsigned int Val)
 	 read = M4U_ReadReg32(M4uBase, Offset);
 	 if(read != Val)
 	 {
-	 printk("error to write base=0x%x, reg=0x%x, val=0x%x, read=0x%x\n",M4uBase,Offset, Val, read );
+	 pr_debug("error to write base=0x%x, reg=0x%x, val=0x%x, read=0x%x\n",M4uBase,Offset, Val, read );
 	 }
 	 else
 	 {
-	 printk("write base=0x%x, reg=0x%x, val=0x%x, read=0x%x\n",M4uBase,Offset, Val, read );
+	 pr_debug("write base=0x%x, reg=0x%x, val=0x%x, read=0x%x\n",M4uBase,Offset, Val, read );
 	 }
 	 */
 
@@ -191,11 +191,11 @@ static inline void COM_WriteReg32(unsigned int addr, unsigned int Val)
 	/*
 	 if(COM_ReadReg32(addr) != Val)
 	 {
-	 printk("error to write add=0x%x, val=0x%x, read=0x%x\n",addr, Val, COM_ReadReg32(addr) );
+	 pr_debug("error to write add=0x%x, val=0x%x, read=0x%x\n",addr, Val, COM_ReadReg32(addr) );
 	 }
 	 else
 	 {
-	 printk("write success add=0x%x, val=0x%x, read=0x%x\n",addr, Val, COM_ReadReg32(addr) );
+	 pr_debug("write success add=0x%x, val=0x%x, read=0x%x\n",addr, Val, COM_ReadReg32(addr) );
 	 }
 	 */
 }

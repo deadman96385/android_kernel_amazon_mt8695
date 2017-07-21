@@ -1753,29 +1753,29 @@ static void mt_accdet_pm_disable(unsigned long a)
 	if (cable_type == NO_DEVICE && eint_accdet_sync_flag == 0) {
 		/* disable accdet */
 		pre_state_swctrl = pmic_pwrap_read(ACCDET_STATE_SWCTRL);
-	pmic_pwrap_write(ACCDET_CTRL, ACCDET_DISABLE);
+		pmic_pwrap_write(ACCDET_CTRL, ACCDET_DISABLE);
 		pmic_pwrap_write(ACCDET_STATE_SWCTRL, 0);
 		/* disable clock */
-	pmic_pwrap_write(TOP_CKPDN_SET, RG_ACCDET_CLK_SET);
-		printk("[Accdet]daccdet_pm_disable: disable!\n");
+		pmic_pwrap_write(TOP_CKPDN_SET, RG_ACCDET_CLK_SET);
+		pr_debug("[Accdet]daccdet_pm_disable: disable!\n");
 	}
 	else
 	{
-		printk("[Accdet]daccdet_pm_disable: enable!\n");
+		pr_debug("[Accdet]daccdet_pm_disable: enable!\n");
 	}
 }
 #endif
 void mt_accdet_pm_restore_noirq(void)
 {
 	int current_status_restore = 0;
-    printk("[Accdet]accdet_pm_restore_noirq start!\n");
+	pr_debug("[Accdet]accdet_pm_restore_noirq start!\n");
 	/* enable accdet */
 	pmic_pwrap_write(ACCDET_STATE_SWCTRL, (pmic_pwrap_read(ACCDET_STATE_SWCTRL)|ACCDET_SWCTRL_IDLE_EN));
 	/* enable ACCDET unit */
-    ACCDET_DEBUG("accdet: enable_accdet\n");
-    /* enable clock */
-    pmic_pwrap_write(TOP_CKPDN_CLR, RG_ACCDET_CLK_CLR);
-    enable_accdet(ACCDET_SWCTRL_EN);
+	ACCDET_DEBUG("accdet: enable_accdet\n");
+	/* enable clock */
+	pmic_pwrap_write(TOP_CKPDN_CLR, RG_ACCDET_CLK_CLR);
+	enable_accdet(ACCDET_SWCTRL_EN);
 	eint_accdet_sync_flag = 1;
 	current_status_restore = ((pmic_pwrap_read(ACCDET_STATE_RG) & 0xc0)>>6); /* AB */
 
@@ -1793,28 +1793,28 @@ void mt_accdet_pm_restore_noirq(void)
 			accdet_status = PLUG_OUT;
 			break;
 		default:
-			printk("[Accdet]accdet_pm_restore_noirq: accdet current status error!\n");
+			pr_debug("[Accdet]accdet_pm_restore_noirq: accdet current status error!\n");
 			break;
 	}
 	switch_set_state((struct switch_dev *)&accdet_data, cable_type);
 	if (cable_type == NO_DEVICE) {
-	#ifdef ACCDET_PIN_RECOGNIZATION
+#ifdef ACCDET_PIN_RECOGNIZATION
 		init_timer(&accdet_disable_ipoh_timer);
 		accdet_disable_ipoh_timer.expires = jiffies + 3*HZ;
 		accdet_disable_ipoh_timer.function = &mt_accdet_pm_disable;
 		accdet_disable_ipoh_timer.data = ((unsigned long) 0);
 		add_timer(&accdet_disable_ipoh_timer);
-		printk("[Accdet]enable! pm timer\n");
+		pr_debug("[Accdet]enable! pm timer\n");
 
-    #else
+#else
 		/* eint_accdet_sync_flag = 0; */
 		/* disable accdet */
 		pre_state_swctrl = pmic_pwrap_read(ACCDET_STATE_SWCTRL);
-	pmic_pwrap_write(ACCDET_CTRL, ACCDET_DISABLE);
+		pmic_pwrap_write(ACCDET_CTRL, ACCDET_DISABLE);
 		pmic_pwrap_write(ACCDET_STATE_SWCTRL, 0);
 		/* disable clock */
-	pmic_pwrap_write(TOP_CKPDN_SET, RG_ACCDET_CLK_SET);
-	#endif
+		pmic_pwrap_write(TOP_CKPDN_SET, RG_ACCDET_CLK_SET);
+#endif
 	}
 
 }

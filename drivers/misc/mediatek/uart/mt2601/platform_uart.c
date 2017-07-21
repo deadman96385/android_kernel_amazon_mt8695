@@ -239,9 +239,9 @@ void dump_uart_reg(void)
 	{
 	    lsr = UART_READ32(UART_LSR);
 	    escape_en = UART_READ32(UART_ESCAPE_EN);
-	    printk("[UART%d] LSR=0x%x   ESCAPE_EN=0x%x\n", uart->nport, lsr, escape_en);
+	    pr_debug("[UART%d] LSR=0x%x   ESCAPE_EN=0x%x\n", uart->nport, lsr, escape_en);
 	} else
-	    printk("[UART%d] clock is off\n", uart->nport);
+	    pr_debug("[UART%d] clock is off\n", uart->nport);
     }
 
 }
@@ -472,7 +472,7 @@ static void mtk_uart_dma_vfifo_tx_tasklet_byte(unsigned long arg)
 	    end = ktime_get();
 	    b = ktime_to_timespec(end);
 	    if ((b.tv_sec - a.tv_sec) > 1 || ((b.tv_sec - a.tv_sec) == 1 && b.tv_nsec > a.tv_nsec)) {
-		printk("[UART%d] Polling flush timeout\n", port->line);
+		pr_debug("[UART%d] Polling flush timeout\n", port->line);
 		return;
 	    }
 	}
@@ -508,13 +508,13 @@ static void mtk_uart_dma_vfifo_tx_tasklet_byte(unsigned long arg)
 #if defined(ENABLE_VFIFO_DEBUG)
     if (UART_DEBUG_EVT(DBG_EVT_DAT) && UART_DEBUG_EVT(DBG_EVT_BUF)) {
 	int i;
-	printk("[UART%d_TX] %4d bytes:", uart->nport, vfifo->cur->idx);
+	pr_debug("[UART%d_TX] %4d bytes:", uart->nport, vfifo->cur->idx);
 	for (i = 0; i < vfifo->cur->idx; i++) {
 	    if (i % 16 == 0)
-		printk("\n");
-	    printk("%.2x ", (unsigned char)vfifo->cur->dat[i]);
+		pr_debug("\n");
+	    pr_debug("%.2x ", (unsigned char)vfifo->cur->dat[i]);
 	}
-	printk("\n");
+	pr_debug("\n");
     }
 #endif
 
@@ -599,13 +599,13 @@ static void mtk_uart_dma_vfifo_tx_tasklet_byte(unsigned long arg)
 #if defined(ENABLE_VFIFO_DEBUG)
     if (UART_DEBUG_EVT(DBG_EVT_DAT) && UART_DEBUG_EVT(DBG_EVT_BUF)) {
 	int i;
-	printk("[UART%d_TX] %4d bytes:", uart->nport, vfifo->cur->idx);
+	pr_debug("[UART%d_TX] %4d bytes:", uart->nport, vfifo->cur->idx);
 	for (i = 0; i < vfifo->cur->idx; i++) {
 	    if (i % 16 == 0)
-		printk("\n");
-	    printk("%.2x ", (unsigned char)vfifo->cur->dat[i]);
+		pr_debug("\n");
+	    pr_debug("%.2x ", (unsigned char)vfifo->cur->dat[i]);
 	}
-	printk("\n");
+	pr_debug("\n");
     }
 #endif
 
@@ -738,14 +738,14 @@ void mtk_uart_dma_vfifo_tx_tasklet(unsigned long arg)
 #if defined(ENABLE_VFIFO_DEBUG)
     if (UART_DEBUG_EVT(DBG_EVT_DAT) && UART_DEBUG_EVT(DBG_EVT_BUF)) {
 	int i;
-	printk("[UART%d_RX] %4d bytes:", uart->nport, vfifo->cur->idx);
+	pr_debug("[UART%d_RX] %4d bytes:", uart->nport, vfifo->cur->idx);
 
 	for (i = 0; i < vfifo->cur->idx; i++) {
 	    if (i % 16 == 0)
-		printk("\n");
-	    printk("%.2x ", (unsigned char)vfifo->cur->dat[i]);
+		pr_debug("\n");
+	    pr_debug("%.2x ", (unsigned char)vfifo->cur->dat[i]);
 	}
-	printk("\n");
+	pr_debug("\n");
 
     }
 #endif
@@ -875,14 +875,14 @@ static void mtk_uart_dma_vfifo_rx_tasklet_str(unsigned long arg)
 #if defined(ENABLE_VFIFO_DEBUG)
     if (UART_DEBUG_EVT(DBG_EVT_DAT) && UART_DEBUG_EVT(DBG_EVT_BUF)) {
 	int i;
-	printk("[UART%d_RX] %4d bytes:", uart->nport, vfifo->cur->idx);
+	pr_debug("[UART%d_RX] %4d bytes:", uart->nport, vfifo->cur->idx);
 
 	for (i = 0; i < vfifo->cur->idx; i++) {
 	    if (i % 16 == 0)
-		printk("\n");
-	    printk("%.2x ", (unsigned char)vfifo->cur->dat[i]);
+		pr_debug("\n");
+	    pr_debug("%.2x ", (unsigned char)vfifo->cur->dat[i]);
 	}
-	printk("\n");
+	pr_debug("\n");
 
     }
 #endif
@@ -982,7 +982,7 @@ void mtk_uart_stop_dma(struct mtk_uart_dma *dma)
 	{
 	    polling_cnt++;
 	    if (polling_cnt > 10000) {
-		printk("mtk_uart_stop_dma: polling VFF_FLUSH fail VFF_DEBUG_STATUS=0x%x\n", UART_READ32(VFF_DEBUG_STATUS(base)));
+		pr_debug("mtk_uart_stop_dma: polling VFF_FLUSH fail VFF_DEBUG_STATUS=0x%x\n", UART_READ32(VFF_DEBUG_STATUS(base)));
 		break;
 	    }
 	}
@@ -994,7 +994,7 @@ void mtk_uart_stop_dma(struct mtk_uart_dma *dma)
 	{
 	    polling_cnt++;
 	    if (polling_cnt > 10000) {
-		printk("mtk_uart_stop_dma: polling VFF_EN fail VFF_DEBUG_STATUS=0x%x\n", UART_READ32(VFF_DEBUG_STATUS(base)));
+		pr_debug("mtk_uart_stop_dma: polling VFF_EN fail VFF_DEBUG_STATUS=0x%x\n", UART_READ32(VFF_DEBUG_STATUS(base)));
 		break;
 	    }
 	}
@@ -1733,7 +1733,7 @@ void mtk_uart_enable_sleep(struct mtk_uart *uart)
 {
     u32 base = uart->base;
     mt_reg_sync_writel(0x1, UART_SLEEP_EN);
-    printk("SLEEP_EN = 0x%x\n", UART_READ32(UART_SLEEP_EN));
+    pr_debug("SLEEP_EN = 0x%x\n", UART_READ32(UART_SLEEP_EN));
 }
 /*---------------------------------------------------------------------------*/
 void mtk_uart_init_debug_spinlock(void)
@@ -1837,11 +1837,11 @@ void dump_uart_history(void)
 		rx_curr = 0;
 
 	for (i = 0; i < RECORD_NUMBER; i++) {
-		printk("\nTX rec%03d:", i);
+		pr_debug("\nTX rec%03d:", i);
 		for (j = 0; j < uart_history_cnt[curr]; j++) {
 			if ((j%0xF) == 0)
-				printk("\n");
-			printk("%02x ", uart_history[curr][j]);
+				pr_debug("\n");
+			pr_debug("%02x ", uart_history[curr][j]);
 		}
 		msleep(20);
 		curr++;
@@ -1849,11 +1849,11 @@ void dump_uart_history(void)
 		curr = 0;
 	}
 	for (i = 0; i < RECORD_NUMBER; i++) {
-		printk("\nRX rec%03d:", i);
+		pr_debug("\nRX rec%03d:", i);
 		for (j = 0; j < uart_rx_history_cnt[rx_curr]; j++) {
 			if ((j%0xF) == 0)
-				printk("\n");
-			printk("%02x ", uart_rx_history[rx_curr][j]);
+				pr_debug("\n");
+			pr_debug("%02x ", uart_rx_history[rx_curr][j]);
 		}
 		msleep(20);
 		rx_curr++;

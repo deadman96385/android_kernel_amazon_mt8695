@@ -47,15 +47,15 @@ static int mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	struct mmap_info *info;
 	/* is the address valid? */			//--changed
 	/*if (address > vma->vm_end) {
-	  printk("invalid address\n");
+	  pr_debug("invalid address\n");
 	//return NOPAGE_SIGBUS;
 	return VM_FAULT_SIGBUS;
 	}
 	/* the data is in vma->vm_private_data */
 	info = (struct mmap_info *)vma->vm_private_data;
 	if (!info) {
-		printk("no data\n");
-		return NULL;	
+		pr_debug("no data\n");
+		return NULL;
 	}
 
 	/* get the page */

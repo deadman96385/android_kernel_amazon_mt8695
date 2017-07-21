@@ -102,12 +102,12 @@ struct timeval prevFrameExecTime;
 
 spinlock_t gCmdqMgrLock;
 
-#define CMDQ_WRN(string, args...) if (dbg_log) printk("[CMDQ]"string, ##args)
+#define CMDQ_WRN(string, args...) if (dbg_log) pr_debug("[CMDQ]"string, ##args)
 /* #define CMDQ_MSG(string, args...) printk(string,##args) */
-#define CMDQ_ERR(string, args...) if (1) printk("\n\n\n~~~~~~~~~Oops ![CMDQ] ERROR: "string, ##args)
+#define CMDQ_ERR(string, args...) if (1) pr_debug("\n\n\n~~~~~~~~~Oops ![CMDQ] ERROR: "string, ##args)
 #define CMDQ_MSG(string, args...) if (dbg_log) printk(string, ##args)
 /* #define CMDQ_ERR(string, args...) if(dbg_log) printk(string,##args) */
-#define CMDQ_IRQ(string, args...) if (dbg_log) printk("[CMDQ]"string, ##args)
+#define CMDQ_IRQ(string, args...) if (dbg_log) pr_debug("[CMDQ]"string, ##args)
 
 void cmdqForceFreeAll(int cmdqThread);
 void cmdqForceFree_SW(int taskID);
@@ -587,10 +587,10 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
     totalTimeoutCnt++;
 
     /* dump MMSYS clock setting */
-    printk("[CMDQ]engineFlag = %x, MMSYS_CG_CON0 = 0x%08x\n", engineFlag, DISP_REG_GET(0xF4000100));
+    pr_debug("[CMDQ]engineFlag = %x, MMSYS_CG_CON0 = 0x%08x\n", engineFlag, DISP_REG_GET(0xF4000100));
 
     /* dump mutex status */
-    printk("[CMDQ]DISP_MUTEX_INTSTA = 0x%08x, DISP_REG_COMMIT = 0x%08x\n",
+    pr_debug("[CMDQ]DISP_MUTEX_INTSTA = 0x%08x, DISP_REG_COMMIT = 0x%08x\n",
 	   DISP_REG_GET(0xF400E004),
 	   DISP_REG_GET(0xF400E00C));
     if (0 != DISP_REG_GET(0xF400E00C))
@@ -606,7 +606,7 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
 	/* dump current instruction */
 	if (reg_temp2 != (bufferAddr.VA + bufferAddr.blocksize))
 	{
-	    printk("[CMDQ]CMDQ current inst0 = 0x%08x0x%08x, inst1 = 0x%08x0x%08x\n",
+	    pr_debug("[CMDQ]CMDQ current inst0 = 0x%08x0x%08x, inst1 = 0x%08x0x%08x\n",
 		   DISP_REG_GET(reg_temp2-8),
 		   DISP_REG_GET(reg_temp2-4),
 		   DISP_REG_GET(reg_temp2),
@@ -614,7 +614,7 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
 	}
 	else
 	{
-	    printk("[CMDQ]CMDQ current inst0 = 0x%08x0x%08x, inst1 = 0x%08x0x%08x\n",
+	    pr_debug("[CMDQ]CMDQ current inst0 = 0x%08x0x%08x, inst1 = 0x%08x0x%08x\n",
 		   DISP_REG_GET(reg_temp2-16),
 		   DISP_REG_GET(reg_temp2-12),
 		   DISP_REG_GET(reg_temp2-8),
@@ -623,7 +623,7 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
     }
 
     /* dump CMDQ status */
-    printk("[CMDQ]CMDQ_THR%d_PC = 0x%08x, CMDQ_THR%d_END_ADDR = 0x%08x, CMDQ_THR%d_WAIT_TOKEN = 0x%08x\n",
+    pr_debug("[CMDQ]CMDQ_THR%d_PC = 0x%08x, CMDQ_THR%d_END_ADDR = 0x%08x, CMDQ_THR%d_WAIT_TOKEN = 0x%08x\n",
 	   cmdqIndex, reg_temp1,
 	   cmdqIndex, DISP_REG_GET(DISP_REG_CMDQ_THRx_END_ADDR(cmdqIndex)),
 	   cmdqIndex, DISP_REG_GET(DISP_REG_CMDQ_THRx_WAIT_EVENTS0(cmdqIndex)));
@@ -631,31 +631,31 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
     /* dump RDMA debug registers */
     if (engineFlag & (0x1 << tRDMA0))
     {
-	printk("[CMDQ]RDMA_SRC_CON: 0x%08x, RDMA_SRC_BASE_0: 0x%08x, RDMA_MF_BKGD_SIZE_IN_BYTE: 0x%08x\n",
+	pr_debug("[CMDQ]RDMA_SRC_CON: 0x%08x, RDMA_SRC_BASE_0: 0x%08x, RDMA_MF_BKGD_SIZE_IN_BYTE: 0x%08x\n",
 	       DISP_REG_GET(0xF4001030),
 	       DISP_REG_GET(0xF4001040),
 	       DISP_REG_GET(0xF4001060));
-	printk("[CMDQ]RDMA_MF_SRC_SIZE: 0x%08x, RDMA_MF_CLIP_SIZE: 0x%08x, RDMA_MF_OFFSET_1: 0x%08x\n",
+	pr_debug("[CMDQ]RDMA_MF_SRC_SIZE: 0x%08x, RDMA_MF_CLIP_SIZE: 0x%08x, RDMA_MF_OFFSET_1: 0x%08x\n",
 	       DISP_REG_GET(0xF4001070),
 	       DISP_REG_GET(0xF4001078),
 	       DISP_REG_GET(0xF4001080));
-	printk("[CMDQ]RDMA_SRC_END_0: 0x%08x, RDMA_SRC_OFFSET_0: 0x%08x, RDMA_SRC_OFFSET_W_0: 0x%08x\n",
+	pr_debug("[CMDQ]RDMA_SRC_END_0: 0x%08x, RDMA_SRC_OFFSET_0: 0x%08x, RDMA_SRC_OFFSET_W_0: 0x%08x\n",
 	       DISP_REG_GET(0xF4001100),
 	       DISP_REG_GET(0xF4001118),
 	       DISP_REG_GET(0xF4001130));
-	printk("[CMDQ](R)RDMA_MON_STA_0: 0x%08x, RDMA_MON_STA_1: 0x%08x, RDMA_MON_STA_2: 0x%08x\n",
+	pr_debug("[CMDQ](R)RDMA_MON_STA_0: 0x%08x, RDMA_MON_STA_1: 0x%08x, RDMA_MON_STA_2: 0x%08x\n",
 	       mdpRdmaPrevStatus[0],
 	       mdpRdmaPrevStatus[1],
 	       mdpRdmaPrevStatus[2]);
-	printk("[CMDQ](R)RDMA_MON_STA_4: 0x%08x, RDMA_MON_STA_6: 0x%08x, RDMA_MON_STA_26: 0x%08x\n",
+	pr_debug("[CMDQ](R)RDMA_MON_STA_4: 0x%08x, RDMA_MON_STA_6: 0x%08x, RDMA_MON_STA_26: 0x%08x\n",
 	       mdpRdmaPrevStatus[3],
 	       mdpRdmaPrevStatus[4],
 	       mdpRdmaPrevStatus[5]);
-	printk("[CMDQ]RDMA_MON_STA_0: 0x%08x, RDMA_MON_STA_1: 0x%08x, RDMA_MON_STA_2: 0x%08x\n",
+	pr_debug("[CMDQ]RDMA_MON_STA_0: 0x%08x, RDMA_MON_STA_1: 0x%08x, RDMA_MON_STA_2: 0x%08x\n",
 	       DISP_REG_GET(0xF4001400),
 	       DISP_REG_GET(0xF4001408),
 	       DISP_REG_GET(0xF4001410));
-	printk("[CMDQ]RDMA_MON_STA_4: 0x%08x, RDMA_MON_STA_6: 0x%08x, RDMA_MON_STA_26: 0x%08x\n",
+	pr_debug("[CMDQ]RDMA_MON_STA_4: 0x%08x, RDMA_MON_STA_6: 0x%08x, RDMA_MON_STA_26: 0x%08x\n",
 	       DISP_REG_GET(0xF4001420),
 	       DISP_REG_GET(0xF4001430),
 	       DISP_REG_GET(0xF40014D0));
@@ -672,12 +672,12 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
 	DISP_REG_SET(0xF4002040, 0x00000003);
 	reg_temp1 = DISP_REG_GET(0xF4002044);
 
-	printk("[CMDQ]RSZ0_CFG: 0x%08x, RSZ0_INPUT_CNT: 0x%08x, RSZ0_HORIZONTAL_COEFF_STEP = 0x%08x\n",
+	pr_debug("[CMDQ]RSZ0_CFG: 0x%08x, RSZ0_INPUT_CNT: 0x%08x, RSZ0_HORIZONTAL_COEFF_STEP = 0x%08x\n",
 	       DISP_REG_GET(0xF4002004),
 	       reg_temp1,
 	       DISP_REG_GET(0xF4002014));
 
-	printk("[CMDQ]RSZ0_IN_SIZE: 0x%08x, RSZ0_OUT_SIZE: 0x%08x, RSZ0_VERTICAL_COEFF_STEP = 0x%08x\n",
+	pr_debug("[CMDQ]RSZ0_IN_SIZE: 0x%08x, RSZ0_OUT_SIZE: 0x%08x, RSZ0_VERTICAL_COEFF_STEP = 0x%08x\n",
 	       DISP_REG_GET(0xF400200C),
 	       DISP_REG_GET(0xF4002010),
 	       DISP_REG_GET(0xF4002018));
@@ -688,12 +688,12 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
 	DISP_REG_SET(0xF4003040, 0x00000003);
 	reg_temp1 = DISP_REG_GET(0xF4003044);
 
-	printk("[CMDQ]RSZ1_CFG: 0x%08x, RSZ1_INPUT_CNT: 0x%08x, RSZ1_HORIZONTAL_COEFF_STEP = 0x%08x\n",
+	pr_debug("[CMDQ]RSZ1_CFG: 0x%08x, RSZ1_INPUT_CNT: 0x%08x, RSZ1_HORIZONTAL_COEFF_STEP = 0x%08x\n",
 	       DISP_REG_GET(0xF4003004),
 	       reg_temp1,
 	       DISP_REG_GET(0xF4003014));
 
-	printk("[CMDQ]RSZ1_IN_SIZE: 0x%08x, RSZ1_OUT_SIZE: 0x%08x, RSZ1_VERTICAL_COEFF_STEP = 0x%08x\n",
+	pr_debug("[CMDQ]RSZ1_IN_SIZE: 0x%08x, RSZ1_OUT_SIZE: 0x%08x, RSZ1_VERTICAL_COEFF_STEP = 0x%08x\n",
 	       DISP_REG_GET(0xF400300C),
 	       DISP_REG_GET(0xF4003010),
 	       DISP_REG_GET(0xF4003018));
@@ -702,15 +702,15 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
     /* dump WDMA debug registers */
     if (engineFlag & (0x1 << tWDMA1))
     {
-	printk("[CMDQ]WDMA_CFG: 0x%08x, WDMA_SRC_SIZE: 0x%08x, WDMA_DST_W_IN_BYTE = 0x%08x\n",
+	pr_debug("[CMDQ]WDMA_CFG: 0x%08x, WDMA_SRC_SIZE: 0x%08x, WDMA_DST_W_IN_BYTE = 0x%08x\n",
 	       DISP_REG_GET(0xF4004014),
 	       DISP_REG_GET(0xF4004018),
 	       DISP_REG_GET(0xF4004028));
-	printk("[CMDQ]WDMA_DST_ADDR0: 0x%08x, WDMA_DST_UV_PITCH: 0x%08x, WDMA_DST_ADDR_OFFSET0 = 0x%08x\n",
+	pr_debug("[CMDQ]WDMA_DST_ADDR0: 0x%08x, WDMA_DST_UV_PITCH: 0x%08x, WDMA_DST_ADDR_OFFSET0 = 0x%08x\n",
 	       DISP_REG_GET(0xF4004024),
 	       DISP_REG_GET(0xF4004078),
 	       DISP_REG_GET(0xF4004080));
-	printk("[CMDQ]WDMA_STATUS: 0x%08x, WDMA_INPUT_CNT: 0x%08x\n",
+	pr_debug("[CMDQ]WDMA_STATUS: 0x%08x, WDMA_INPUT_CNT: 0x%08x\n",
 	       DISP_REG_GET(0xF40040A0),
 	       DISP_REG_GET(0xF40040A8));
     }
@@ -718,17 +718,17 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
     /* dump WROT debug registers */
     if (engineFlag & (0x1 << tWROT))
     {
-	printk("[CMDQ]VIDO_CTRL: 0x%08x, VIDO_MAIN_BUF_SIZE: 0x%08x, VIDO_SUB_BUF_SIZE: 0x%08x\n",
+	pr_debug("[CMDQ]VIDO_CTRL: 0x%08x, VIDO_MAIN_BUF_SIZE: 0x%08x, VIDO_SUB_BUF_SIZE: 0x%08x\n",
 	       DISP_REG_GET(0xF4005000),
 	       DISP_REG_GET(0xF4005008),
 	       DISP_REG_GET(0xF400500C));
 
-	printk("[CMDQ]VIDO_TAR_SIZE: 0x%08x, VIDO_BASE_ADDR: 0x%08x, VIDO_OFST_ADDR: 0x%08x\n",
+	pr_debug("[CMDQ]VIDO_TAR_SIZE: 0x%08x, VIDO_BASE_ADDR: 0x%08x, VIDO_OFST_ADDR: 0x%08x\n",
 	       DISP_REG_GET(0xF4005024),
 	       DISP_REG_GET(0xF4005028),
 	       DISP_REG_GET(0xF400502C));
 
-	printk("[CMDQ]VIDO_DMA_PERF: 0x%08x, VIDO_STRIDE: 0x%08x, VIDO_IN_SIZE: 0x%08x\n",
+	pr_debug("[CMDQ]VIDO_DMA_PERF: 0x%08x, VIDO_STRIDE: 0x%08x, VIDO_IN_SIZE: 0x%08x\n",
 	       DISP_REG_GET(0xF4005004),
 	       DISP_REG_GET(0xF4005030),
 	       DISP_REG_GET(0xF4005078));
@@ -739,7 +739,7 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
 	reg_temp2 = DISP_REG_GET(0xF40050D0);
 	DISP_REG_SET(0xF4005018, 0x00000300);
 	reg_temp3 = DISP_REG_GET(0xF40050D0);
-	printk("[CMDQ]VIDO_DBG1: 0x%08x, VIDO_DBG2: 0x%08x, VIDO_DBG3: 0x%08x\n", reg_temp1, reg_temp2, reg_temp3);
+	pr_debug("[CMDQ]VIDO_DBG1: 0x%08x, VIDO_DBG2: 0x%08x, VIDO_DBG3: 0x%08x\n", reg_temp1, reg_temp2, reg_temp3);
 
 	DISP_REG_SET(0xF4005018, 0x00000500);
 	reg_temp1 = DISP_REG_GET(0xF40050D0);
@@ -747,7 +747,7 @@ void dumpRegDebugInfo(unsigned int engineFlag, int cmdqIndex, cmdq_buff_t buffer
 	reg_temp2 = DISP_REG_GET(0xF40050D0);
 	DISP_REG_SET(0xF4005018, 0x00000B00);
 	reg_temp3 = DISP_REG_GET(0xF40050D0);
-	printk("[CMDQ]VIDO_DBG5: 0x%08x, VIDO_DBG8: 0x%08x, VIDO_DBGB: 0x%08x\n", reg_temp1, reg_temp2, reg_temp3);
+	pr_debug("[CMDQ]VIDO_DBG5: 0x%08x, VIDO_DBG8: 0x%08x, VIDO_DBGB: 0x%08x\n", reg_temp1, reg_temp2, reg_temp3);
 
 	if (0x0 != (reg_temp3 & 0x1F))
 	{
@@ -994,7 +994,7 @@ void cmdqHwClockOn(unsigned int engineFlag, bool firstTask)
 	}
     }
 
-    /* printk("\n\n\n=========== Power On %x ==============\n\n\n",engineFlag); */
+    /* pr_debug("\n\n\n=========== Power On %x ==============\n\n\n",engineFlag); */
 }
 
 void cmdqHwClockOff(unsigned int engineFlag)
@@ -1080,7 +1080,7 @@ void cmdqHwClockOff(unsigned int engineFlag)
     /* M4U */
     /* larb_clock_off(0, "MDP"); */
 
-    /* printk("\n\n\n===========Power Off %x ==============\n\n\n",engineFlag); */
+    /* pr_debug("\n\n\n===========Power Off %x ==============\n\n\n",engineFlag); */
 }
 
 bool cmdqTaskAssigned(int taskID, unsigned int priority, unsigned int engineFlag, unsigned int blocksize)
@@ -1207,7 +1207,7 @@ bool cmdqTaskAssigned(int taskID, unsigned int priority, unsigned int engineFlag
 
 	/* Execuction */
 	DISP_REG_SET(DISP_REG_CMDQ_THRx_PC(cmdqThread), pCmdqAddr->MVA);
-	/* printk("1 Set PC to 0x%x",pCmdqAddr->MVA); */
+	/* pr_debug("1 Set PC to 0x%x",pCmdqAddr->MVA); */
 	DISP_REG_SET(DISP_REG_CMDQ_THRx_END_ADDR(cmdqThread), pCmdqAddr->MVA + cmdqBufTbl[buf_id].blocksize);
 
         DISP_REG_SET(DISP_REG_CMDQ_THRx_SUSPEND(cmdqThread), 0);
@@ -1319,7 +1319,7 @@ bool cmdqTaskAssigned(int taskID, unsigned int priority, unsigned int engineFlag
 			DISP_REG_SET(DISP_REG_CMDQ_THRx_RESET(cmdqThread), 1);
 			/* PC reset */
 			DISP_REG_SET(DISP_REG_CMDQ_THRx_PC(cmdqThread), pCmdqAddr->MVA);
-			/* printk("2 Set PC to 0x%x",pCmdqAddr->MVA); */
+			/* pr_debug("2 Set PC to 0x%x",pCmdqAddr->MVA); */
 			/* EN */
 			DISP_REG_SET(DISP_REG_CMDQ_THRx_EN(cmdqThread), 1);
 		}
@@ -1337,7 +1337,7 @@ bool cmdqTaskAssigned(int taskID, unsigned int priority, unsigned int engineFlag
 			    DISP_REG_SET(DISP_REG_CMDQ_THRx_RESET(cmdqThread), 1);
 			    /* PC reset */
 			    DISP_REG_SET(DISP_REG_CMDQ_THRx_PC(cmdqThread), pCmdqAddr->MVA);
-			    /* printk("3 Set PC to 0x%x",pCmdqAddr->MVA); */
+			    /* pr_debug("3 Set PC to 0x%x",pCmdqAddr->MVA); */
 			    /* EN */
 			    DISP_REG_SET(DISP_REG_CMDQ_THRx_EN(cmdqThread), 1);
 			    break;
@@ -1376,7 +1376,7 @@ bool cmdqTaskAssigned(int taskID, unsigned int priority, unsigned int engineFlag
 			DISP_REG_SET(DISP_REG_CMDQ_THRx_RESET(cmdqThread), 1);
 			/* PC reset */
 			DISP_REG_SET(DISP_REG_CMDQ_THRx_PC(cmdqThread), pCmdqAddr->MVA);
-			/* printk("4 Set PC to 0x%x",pCmdqAddr->MVA); */
+			/* pr_debug("4 Set PC to 0x%x",pCmdqAddr->MVA); */
 			/* EN */
 			DISP_REG_SET(DISP_REG_CMDQ_THRx_EN(cmdqThread), 1);
 		}
@@ -1394,7 +1394,7 @@ bool cmdqTaskAssigned(int taskID, unsigned int priority, unsigned int engineFlag
 			    DISP_REG_SET(DISP_REG_CMDQ_THRx_RESET(cmdqThread), 1);
 			    /* PC reset */
 			    DISP_REG_SET(DISP_REG_CMDQ_THRx_PC(cmdqThread), pCmdqAddr->MVA);
-			    /* printk("5 Set PC to 0x%x",pCmdqAddr->MVA); */
+			    /* pr_debug("5 Set PC to 0x%x",pCmdqAddr->MVA); */
 			    /* EN */
 			    DISP_REG_SET(DISP_REG_CMDQ_THRx_EN(cmdqThread), 1);
 			    break;
@@ -1458,7 +1458,7 @@ bool cmdqTaskAssigned(int taskID, unsigned int priority, unsigned int engineFlag
         if (DISP_REG_GET(DISP_REG_CMDQ_THRx_PC(cmdqThread)) == DISP_REG_GET(DISP_REG_CMDQ_THRx_END_ADDR(cmdqThread)))
 	{
 	    DISP_REG_SET(DISP_REG_CMDQ_THRx_PC(cmdqThread), pCmdqAddr->MVA);
-	    /* printk("6 Set PC to 0x%x",pCmdqAddr->MVA); */
+	    /* pr_debug("6 Set PC to 0x%x",pCmdqAddr->MVA); */
             CMDQ_MSG("\n==============Reset %d's PC  to ADDR[0x%x]===================\n", cmdqThread, (unsigned int)pCmdqAddr->MVA);
 	}
 	else
@@ -1600,7 +1600,7 @@ void cmdqForceFreeAll(int cmdqThread)
     int i = 0;
     unsigned int cmdq_polling_timeout;
 
-    printk("!!!!!!!!!!!cmdqForceFreeAll ! re-init!!!!!!!!!!!!\n");
+    pr_debug("!!!!!!!!!!!cmdqForceFreeAll ! re-init!!!!!!!!!!!!\n");
 
     for (i = 0; i < CMDQ_BUFFER_NUM; i++)
     {
@@ -1670,7 +1670,7 @@ void cmdqForceFree_SW(int taskID)
 
     if (taskID == -1 || taskID >= MAX_CMDQ_TASK_ID)
     {
-	printk("\n cmdqForceFree_SW Free Invalid Task ID\n");
+	pr_debug("\n cmdqForceFree_SW Free Invalid Task ID\n");
 	dumpDebugInfo();
 	return;
     }
@@ -1682,7 +1682,7 @@ void cmdqForceFree_SW(int taskID)
     bufID = taskResOccuTbl[taskID].cmdBufID;
 
     if (bufID >= 0)
-        printk("\n cmdqForceFree_SW Free Buf %x own by [%x=%x]\n", bufID, taskID, cmdqBufTbl[bufID].Owner);
+        pr_debug("\n cmdqForceFree_SW Free Buf %x own by [%x=%x]\n", bufID, taskID, cmdqBufTbl[bufID].Owner);
 
     if (bufID != -1) /* Free All resource and return ID */
     {
@@ -1730,7 +1730,7 @@ static int __init cmdq_mdp_init(void)
     }
     else
     {
-	printk("[CMDQ] cannot create mtk_mdp_cmdq!!!!!\n");
+	pr_debug("[CMDQ] cannot create mtk_mdp_cmdq!!!!!\n");
     }
 
     return 0;

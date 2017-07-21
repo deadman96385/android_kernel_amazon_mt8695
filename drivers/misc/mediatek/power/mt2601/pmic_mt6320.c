@@ -77,11 +77,11 @@ extern int get_gpu_power_src(void);
 #define MT65XX_UPLL 3
 static void enable_pll(int id, char *mod_name)
 {
-    printk("enable_pll is not ready.\n");
+    pr_debug("enable_pll is not ready.\n");
 }
 static void disable_pll(int id, char *mod_name)
 {
-    printk("disable_pll is not ready.\n");
+    pr_debug("disable_pll is not ready.\n");
 }
 /* ---------------------------------------------------------------------- */
 #endif
@@ -148,7 +148,7 @@ kal_uint32 upmu_get_reg_value(kal_uint32 reg)
     U32 ret = 0;
     U32 reg_val = 0;
 
-    /* printk("[upmu_get_reg_value]\n"); */
+    /* pr_debug("[upmu_get_reg_value]\n"); */
     ret = pmic_read_interface(reg, &reg_val, 0xFFFF, 0x0);
 
     return reg_val;
@@ -158,13 +158,13 @@ void upmu_set_reg_value(kal_uint32 reg, kal_uint32 reg_val)
 {
     U32 ret = 0;
 
-    /* printk("[upmu_set_reg_value]\n"); */
+    /* pr_debug("[upmu_set_reg_value]\n"); */
     ret = pmic_config_interface(reg, reg_val, 0xFFFF, 0x0);
 }
 
 void pmic_thermal_dump_reg(void)
 {
-    printk("[%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x\n",
+    pr_debug("[%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x, [%x]=%x\n",
 	0x540, upmu_get_reg_value(0x540),
 	0x542, upmu_get_reg_value(0x542),
 	0x554, upmu_get_reg_value(0x554),
@@ -881,7 +881,7 @@ void bat_l_int_handler(void)
     lbat_debounce_count_max = upmu_get_rg_lbat_debounce_count_max();
     lbat_debounce_count_min = upmu_get_rg_lbat_debounce_count_min();
 
-    printk("[bat_l_int_handler] (lbat_debounce_count_max=%d, lbat_debounce_count_min=%d)\n",
+    pr_debug("[bat_l_int_handler] (lbat_debounce_count_max=%d, lbat_debounce_count_min=%d)\n",
     lbat_debounce_count_max, lbat_debounce_count_min);
 
     ret = pmic_config_interface(INT_STATUS0, 0x1, 0x1, 4);
@@ -905,7 +905,7 @@ void bat_h_int_handler(void)
     lbat_debounce_count_max = upmu_get_rg_lbat_debounce_count_max();
     lbat_debounce_count_min = upmu_get_rg_lbat_debounce_count_min();
 
-    printk("[bat_h_int_handler] (lbat_debounce_count_max=%d, lbat_debounce_count_min=%d)\n",
+    pr_debug("[bat_h_int_handler] (lbat_debounce_count_max=%d, lbat_debounce_count_min=%d)\n",
     lbat_debounce_count_max, lbat_debounce_count_min);
 
     ret = pmic_config_interface(INT_STATUS0, 0x1, 0x1, 5);
@@ -1230,9 +1230,9 @@ static int pmic_thread_kthread(void *x)
 	if ((((int_status_val_1)&(0x0004))>>2) == 1)  { accdet_int_handler();       }
 	if ((((int_status_val_1)&(0x0008))>>3) == 1)  { audio_int_handler();        }
 	if ((((int_status_val_1)&(0x0010))>>4) == 1)  { rtc_int_handler();          }
-	if ((((int_status_val_1)&(0x0020))>>5) == 1)  { printk("Undefined PMIC INT 5\n");        }
-	if ((((int_status_val_1)&(0x0040))>>6) == 1)  { printk("Undefined PMIC INT 6\n");        }
-	if ((((int_status_val_1)&(0x0080))>>7) == 1)  { printk("Undefined PMIC INT 7\n");        }
+	if ((((int_status_val_1)&(0x0020))>>5) == 1)  { pr_debug("Undefined PMIC INT 5\n");        }
+	if ((((int_status_val_1)&(0x0040))>>6) == 1)  { pr_debug("Undefined PMIC INT 6\n");        }
+	if ((((int_status_val_1)&(0x0080))>>7) == 1)  { pr_debug("Undefined PMIC INT 7\n");        }
 	if ((((int_status_val_1)&(0x0100))>>8) == 1)  { vproc_int_handler();        }
 	if ((((int_status_val_1)&(0x0200))>>9) == 1)  { vsram_int_handler();        }
 	if ((((int_status_val_1)&(0x0400))>>10) == 1) { vcore_int_handler();        }

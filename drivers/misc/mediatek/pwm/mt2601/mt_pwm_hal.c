@@ -110,7 +110,7 @@ void mt_pwm_init_power_flag(unsigned long *power_flag)
 	    clear_bit(idx, power_flag);
 	}
     }
-    printk("mt_pwm_init_power_flag 0x%x\n", *power_flag);*/
+    pr_debug("mt_pwm_init_power_flag 0x%x\n", *power_flag);*/
 }
 S32 mt_pwm_sel_pmic_hal(U32 pwm_no)
 {
@@ -357,8 +357,8 @@ void mt_pwm_dump_regs_hal(void)
 	reg_val = INREG32(PWM_ENABLE);
 	PWMMSG("\r\n[PWM_ENABLE is:%x]\n\r ", reg_val);
 #if 0
-	printk("<0>""pwm power_flag: 0x%x\n", (unsigned int)pwm_dev->power_flag);
-	printk("<0>""peri pdn0 clock: 0x%x\n", INREG32(PERI_PDN0_STA));
+	pr_debug("<0>""pwm power_flag: 0x%x\n", (unsigned int)pwm_dev->power_flag);
+	pr_debug("<0>""peri pdn0 clock: 0x%x\n", INREG32(PERI_PDN0_STA));
 #endif
 
 	for (i = PWM1;  i < PWM_NUM; i ++)
@@ -416,7 +416,7 @@ void mt_pwm_dump_regs_hal(void)
 static void mt_pmic_pwm1_test(void)
 {
 	struct pwm_spec_config conf;
-	printk("<0>""=============mt_pmic_pwm1_test===============\n");
+	pr_debug("<0>""=============mt_pmic_pwm1_test===============\n");
 
 	mt_set_gpio_mode(GPIO73,GPIO_MODE_01);
 	conf.pwm_no = PWM1;
@@ -446,7 +446,7 @@ static void mt_pmic_pwm1_test(void)
 
 static void mt_pmic_pwm6_test(void)
 {
-	/* printk("<0>""=================mt_pmic_pwm6_test==================\n"); */
+	/* pr_debug("<0>""=================mt_pmic_pwm6_test==================\n"); */
 
 	/* mt_pwm_disable(PWM1, false); */
 	/* mt_pwm_disable(PWM5, true); */
@@ -456,8 +456,8 @@ void pwm_debug_store_hal(void)
 {
 #if 0
 	/* dump clock status */
-	printk("<0>""pwm power_flag: 0x%x\n", (unsigned int)pwm_dev->power_flag);
-	printk("<0>""peri pdn0 clock: 0x%x\n", INREG32(PERI_PDN0_STA));
+	pr_debug("<0>""pwm power_flag: 0x%x\n", (unsigned int)pwm_dev->power_flag);
+	pr_debug("<0>""peri pdn0 clock: 0x%x\n", INREG32(PERI_PDN0_STA));
 	mt_pmic_pwm1_test();
 	return count;
 #endif

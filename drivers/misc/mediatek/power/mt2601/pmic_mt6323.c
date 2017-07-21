@@ -78,11 +78,11 @@ U32 pmic_config_interface_nolock(U32 RegNum, U32 val, U32 MASK, U32 SHIFT);
 #define MT65XX_UPLL 3
 void pmic_enable_pll(int id, char *mod_name)
 {
-    printk("enable_pll is not ready.\n");
+    pr_debug("enable_pll is not ready.\n");
 }
 void pmic_disable_pll(int id, char *mod_name)
 {
-    printk("disable_pll is not ready.\n");
+    pr_debug("disable_pll is not ready.\n");
 }
 /* ---------------------------------------------------------------------- */
 
@@ -154,7 +154,7 @@ kal_uint32 upmu_get_reg_value(kal_uint32 reg)
     U32 ret = 0;
     U32 reg_val = 0;
 
-    /* printk("[upmu_get_reg_value]\n"); */
+    /* pr_debug("[upmu_get_reg_value]\n"); */
     ret = pmic_read_interface(reg, &reg_val, 0xFFFF, 0x0);
 
     return reg_val;
@@ -165,7 +165,7 @@ void upmu_set_reg_value(kal_uint32 reg, kal_uint32 reg_val)
 {
     U32 ret = 0;
 
-    /* printk("[upmu_set_reg_value]\n"); */
+    /* pr_debug("[upmu_set_reg_value]\n"); */
     ret = pmic_config_interface(reg, reg_val, 0xFFFF, 0x0);
 }
 
@@ -3424,37 +3424,37 @@ void dump_ldo_status_read_debug(void)
     val_0 = upmu_get_reg_value(0x138);
     val_1 = upmu_get_reg_value(0x13A);
 
-    printk("********** ldo status dump [1:ON,0:OFF]**********\n");
+    pr_debug("********** ldo status dump [1:ON,0:OFF]**********\n");
 
-    printk("VRTC    =%d, ",  (((val_0)&(0x0008))>>3));
-    printk("VA      =%d, ",  (((val_0)&(0x0010))>>4));
-    printk("VCAMA   =%d, ",  (((val_0)&(0x0020))>>5));
-    printk("VCAMD   =%d\n",  (((val_0)&(0x0040))>>6));
+    pr_debug("VRTC    =%d, ",  (((val_0)&(0x0008))>>3));
+    pr_debug("VA      =%d, ",  (((val_0)&(0x0010))>>4));
+    pr_debug("VCAMA   =%d, ",  (((val_0)&(0x0020))>>5));
+    pr_debug("VCAMD   =%d\n",  (((val_0)&(0x0040))>>6));
 
-    printk("VCAM_AF =%d, ",  (((val_0)&(0x0080))>>7));
-    printk("VCAM_IO =%d, ",  (((val_0)&(0x0100))>>8));
-    printk("VCN28   =%d, ",  (((val_0)&(0x0200))>>9));
-    printk("VCN33   =%d\n",  (((val_0)&(0x0400))>>10));
+    pr_debug("VCAM_AF =%d, ",  (((val_0)&(0x0080))>>7));
+    pr_debug("VCAM_IO =%d, ",  (((val_0)&(0x0100))>>8));
+    pr_debug("VCN28   =%d, ",  (((val_0)&(0x0200))>>9));
+    pr_debug("VCN33   =%d\n",  (((val_0)&(0x0400))>>10));
 
-    printk("VCN_1V8 =%d, ",  (((val_0)&(0x0800))>>11));
-    printk("VEMC_3V3=%d, ",  (((val_0)&(0x1000))>>12));
-    printk("VGP1    =%d, ",  (((val_0)&(0x2000))>>13));
-    printk("VGP2    =%d\n",  (((val_0)&(0x4000))>>14));
+    pr_debug("VCN_1V8 =%d, ",  (((val_0)&(0x0800))>>11));
+    pr_debug("VEMC_3V3=%d, ",  (((val_0)&(0x1000))>>12));
+    pr_debug("VGP1    =%d, ",  (((val_0)&(0x2000))>>13));
+    pr_debug("VGP2    =%d\n",  (((val_0)&(0x4000))>>14));
 
-    printk("VGP3    =%d, ",  (((val_0)&(0x8000))>>15));
-    printk("VIBR    =%d, ",  (((val_1)&(0x0001))>>0));
-    printk("VIO18   =%d, ",  (((val_1)&(0x0002))>>1));
-    printk("VIO28   =%d\n",  (((val_1)&(0x0004))>>2));
+    pr_debug("VGP3    =%d, ",  (((val_0)&(0x8000))>>15));
+    pr_debug("VIBR    =%d, ",  (((val_1)&(0x0001))>>0));
+    pr_debug("VIO18   =%d, ",  (((val_1)&(0x0002))>>1));
+    pr_debug("VIO28   =%d\n",  (((val_1)&(0x0004))>>2));
 
-    printk("VM      =%d, ",  (((val_1)&(0x0008))>>3));
-    printk("VMC     =%d, ",  (((val_1)&(0x0010))>>4));
-    printk("VMCH    =%d, ",  (((val_1)&(0x0020))>>5));
-    printk("VRF18   =%d\n",  (((val_1)&(0x0040))>>6));
+    pr_debug("VM      =%d, ",  (((val_1)&(0x0008))>>3));
+    pr_debug("VMC     =%d, ",  (((val_1)&(0x0010))>>4));
+    pr_debug("VMCH    =%d, ",  (((val_1)&(0x0020))>>5));
+    pr_debug("VRF18   =%d\n",  (((val_1)&(0x0040))>>6));
 
-    printk("VSIM1   =%d, ",  (((val_1)&(0x0080))>>7));
-    printk("VSIM2   =%d, ",  (((val_1)&(0x0100))>>8));
-    printk("VTCXO   =%d, ",  (((val_1)&(0x0200))>>9));
-    printk("VUSB    =%d\n",  (((val_1)&(0x0400))>>10));
+    pr_debug("VSIM1   =%d, ",  (((val_1)&(0x0080))>>7));
+    pr_debug("VSIM2   =%d, ",  (((val_1)&(0x0100))>>8));
+    pr_debug("VTCXO   =%d, ",  (((val_1)&(0x0200))>>9));
+    pr_debug("VUSB    =%d\n",  (((val_1)&(0x0400))>>10));
 }
 
 static int proc_utilization_show(struct seq_file *m, void *v)
@@ -3930,13 +3930,13 @@ static int pmic_fb_notifier_callback(struct notifier_block *self, unsigned long 
 	struct fb_event *evdata = data;
 	INT32 blank;
 
-	printk("pmic_fb_notifier_callback\n");
+	pr_debug("pmic_fb_notifier_callback\n");
 
 	if (event != FB_EVENT_BLANK)
 		return 0;
 
 	blank = *(INT32 *)evdata->data;
-	printk("fb_notify(blank=%d)\n", blank);
+	pr_debug("fb_notify(blank=%d)\n", blank);
 
 	switch (blank) {
 	case FB_BLANK_UNBLANK:
@@ -3998,7 +3998,7 @@ static int __init pmic_mt6323_init(void)
 #if defined(CONFIG_FB)
 	pmic_fb_notifier.notifier_call = pmic_fb_notifier_callback;
 	if (fb_register_client(&pmic_fb_notifier))
-		printk("register pmic fb_notifier fail!\n");
+		pr_debug("register pmic fb_notifier fail!\n");
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	register_early_suspend(&pmic_early_suspend_desc);
 #endif

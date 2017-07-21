@@ -268,7 +268,7 @@ static void kpd_aee_handler(u32 keycode, u16 pressed)
 
 static enum hrtimer_restart aee_timer_func(struct hrtimer *timer)
 {
-	/* printk("kpd: vol up+vol down AEE manual dump!\n"); */
+	/* pr_debug("kpd: vol up+vol down AEE manual dump!\n"); */
 	/* aee_kernel_reminding("manual dump ", "Triggered by press KEY_VOLUMEUP+KEY_VOLUMEDOWN"); */
 	aee_trigger_kdb();
 	return HRTIMER_NORESTART;
@@ -278,7 +278,7 @@ static enum hrtimer_restart aee_timer_func(struct hrtimer *timer)
 static enum hrtimer_restart aee_timer_5s_func(struct hrtimer *timer)
 {
 
-	/* printk("kpd: vol up+vol down AEE manual dump timer 5s !\n"); */
+	/* pr_debug("kpd: vol up+vol down AEE manual dump timer 5s !\n"); */
 	flags_5s = true;
 	return HRTIMER_NORESTART;
 }
@@ -334,7 +334,7 @@ void kpd_pwrkey_pmic_handler(unsigned long pressed)
 {
 	printk(KPD_SAY "Power Key generate, pressed=%ld\n", pressed);
 	if (!kpd_input_dev) {
-		printk("KPD input device not ready\n");
+		pr_debug("KPD input device not ready\n");
 		return;
 	}
 	kpd_pmic_pwrkey_hal(pressed);
@@ -346,7 +346,7 @@ void kpd_pmic_rstkey_handler(unsigned long pressed)
 {
 	printk(KPD_SAY "PMIC reset Key generate, pressed=%ld\n", pressed);
 	if (!kpd_input_dev) {
-		printk("KPD input device not ready\n");
+		pr_debug("KPD input device not ready\n");
 		return;
 	}
 	kpd_pmic_rstkey_hal(pressed);
@@ -422,282 +422,282 @@ long kpd_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 #if KPD_AUTOTEST
 	case PRESS_OK_KEY:	/* KPD_AUTOTEST disable auto test setting to resolve CR ALPS00464496 */
 		if (test_bit(KEY_OK, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS OK KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS OK KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_OK, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support OK KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support OK KEY!!\n");
 		}
 		break;
 	case RELEASE_OK_KEY:
 		if (test_bit(KEY_OK, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE OK KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE OK KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_OK, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support OK KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support OK KEY!!\n");
 		}
 		break;
 	case PRESS_MENU_KEY:
 		if (test_bit(KEY_MENU, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS MENU KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS MENU KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_MENU, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support MENU KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support MENU KEY!!\n");
 		}
 		break;
 	case RELEASE_MENU_KEY:
 		if (test_bit(KEY_MENU, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE MENU KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE MENU KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_MENU, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support MENU KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support MENU KEY!!\n");
 		}
 
 		break;
 	case PRESS_UP_KEY:
 		if (test_bit(KEY_UP, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS UP KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS UP KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_UP, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support UP KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support UP KEY!!\n");
 		}
 		break;
 	case RELEASE_UP_KEY:
 		if (test_bit(KEY_UP, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE UP KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE UP KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_UP, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support UP KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support UP KEY!!\n");
 		}
 		break;
 	case PRESS_DOWN_KEY:
 		if (test_bit(KEY_DOWN, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS DOWN KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS DOWN KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_DOWN, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support DOWN KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support DOWN KEY!!\n");
 		}
 		break;
 	case RELEASE_DOWN_KEY:
 		if (test_bit(KEY_DOWN, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE DOWN KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE DOWN KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_DOWN, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support DOWN KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support DOWN KEY!!\n");
 		}
 		break;
 	case PRESS_LEFT_KEY:
 		if (test_bit(KEY_LEFT, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS LEFT KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS LEFT KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_LEFT, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support LEFT KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support LEFT KEY!!\n");
 		}
 		break;
 	case RELEASE_LEFT_KEY:
 		if (test_bit(KEY_LEFT, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE LEFT KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE LEFT KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_LEFT, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support LEFT KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support LEFT KEY!!\n");
 		}
 		break;
 
 	case PRESS_RIGHT_KEY:
 		if (test_bit(KEY_RIGHT, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS RIGHT KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS RIGHT KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_RIGHT, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support RIGHT KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support RIGHT KEY!!\n");
 		}
 		break;
 	case RELEASE_RIGHT_KEY:
 		if (test_bit(KEY_RIGHT, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE RIGHT KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE RIGHT KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_RIGHT, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support RIGHT KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support RIGHT KEY!!\n");
 		}
 		break;
 	case PRESS_HOME_KEY:
 		if (test_bit(KEY_HOME, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS HOME KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS HOME KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_HOME, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support HOME KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support HOME KEY!!\n");
 		}
 		break;
 	case RELEASE_HOME_KEY:
 		if (test_bit(KEY_HOME, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE HOME KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE HOME KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_HOME, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support HOME KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support HOME KEY!!\n");
 		}
 		break;
 	case PRESS_BACK_KEY:
 		if (test_bit(KEY_BACK, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS BACK KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS BACK KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_BACK, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support BACK KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support BACK KEY!!\n");
 		}
 		break;
 	case RELEASE_BACK_KEY:
 		if (test_bit(KEY_BACK, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE BACK KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE BACK KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_BACK, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support BACK KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support BACK KEY!!\n");
 		}
 		break;
 	case PRESS_CALL_KEY:
 		if (test_bit(KEY_CALL, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS CALL KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS CALL KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_CALL, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support CALL KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support CALL KEY!!\n");
 		}
 		break;
 	case RELEASE_CALL_KEY:
 		if (test_bit(KEY_CALL, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE CALL KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE CALL KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_CALL, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support CALL KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support CALL KEY!!\n");
 		}
 		break;
 
 	case PRESS_ENDCALL_KEY:
 		if (test_bit(KEY_ENDCALL, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS ENDCALL KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS ENDCALL KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_ENDCALL, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support ENDCALL KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support ENDCALL KEY!!\n");
 		}
 		break;
 	case RELEASE_ENDCALL_KEY:
 		if (test_bit(KEY_ENDCALL, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE ENDCALL KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE ENDCALL KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_ENDCALL, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support ENDCALL KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support ENDCALL KEY!!\n");
 		}
 		break;
 	case PRESS_VLUP_KEY:
 		if (test_bit(KEY_VOLUMEUP, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS VOLUMEUP KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS VOLUMEUP KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_VOLUMEUP, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support VOLUMEUP KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support VOLUMEUP KEY!!\n");
 		}
 		break;
 	case RELEASE_VLUP_KEY:
 		if (test_bit(KEY_VOLUMEUP, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE VOLUMEUP KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE VOLUMEUP KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_VOLUMEUP, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support VOLUMEUP KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support VOLUMEUP KEY!!\n");
 		}
 		break;
 	case PRESS_VLDOWN_KEY:
 		if (test_bit(KEY_VOLUMEDOWN, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS VOLUMEDOWN KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS VOLUMEDOWN KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_VOLUMEDOWN, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support VOLUMEDOWN KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support VOLUMEDOWN KEY!!\n");
 		}
 		break;
 	case RELEASE_VLDOWN_KEY:
 		if (test_bit(KEY_VOLUMEDOWN, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE VOLUMEDOWN KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE VOLUMEDOWN KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_VOLUMEDOWN, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support VOLUMEDOWN KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support VOLUMEDOWN KEY!!\n");
 		}
 		break;
 	case PRESS_FOCUS_KEY:
 		if (test_bit(KEY_FOCUS, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS FOCUS KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS FOCUS KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_FOCUS, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support FOCUS KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support FOCUS KEY!!\n");
 		}
 		break;
 	case RELEASE_FOCUS_KEY:
 		if (test_bit(KEY_FOCUS, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE FOCUS KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE FOCUS KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_FOCUS, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support RELEASE KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support RELEASE KEY!!\n");
 		}
 		break;
 	case PRESS_CAMERA_KEY:
 		if (test_bit(KEY_CAMERA, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS CAMERA KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS CAMERA KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_CAMERA, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support CAMERA KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support CAMERA KEY!!\n");
 		}
 		break;
 	case RELEASE_CAMERA_KEY:
 		if (test_bit(KEY_CAMERA, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE CAMERA KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE CAMERA KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_CAMERA, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support CAMERA KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support CAMERA KEY!!\n");
 		}
 		break;
 	case PRESS_POWER_KEY:
 		if (test_bit(KEY_POWER, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] PRESS POWER KEY!!\n");
+			pr_debug("[AUTOTEST] PRESS POWER KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_POWER, 1);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support POWER KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support POWER KEY!!\n");
 		}
 		break;
 	case RELEASE_POWER_KEY:
 		if (test_bit(KEY_POWER, kpd_input_dev->keybit)) {
-			printk("[AUTOTEST] RELEASE POWER KEY!!\n");
+			pr_debug("[AUTOTEST] RELEASE POWER KEY!!\n");
 			input_report_key(kpd_input_dev, KEY_POWER, 0);
 			input_sync(kpd_input_dev);
 		} else {
-			printk("[AUTOTEST] Not Support POWER KEY!!\n");
+			pr_debug("[AUTOTEST] Not Support POWER KEY!!\n");
 		}
 		break;
 #endif
 
 	case SET_KPD_KCOL:
 		kpd_auto_test_for_factorymode();	/* API 3 for kpd factory mode auto-test */
-		printk("[kpd_auto_test_for_factorymode] test performed!!\n");
+		pr_debug("[kpd_auto_test_for_factorymode] test performed!!\n");
 		break;
 	default:
 		return -EINVAL;

@@ -283,7 +283,12 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 };
 
-
+/* ////////////////////////////////////////////////////////////////////////////// */
+/* Misc */
+/* ////////////////////////////////////////////////////////////////////////////// */
+#ifdef CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT
+int charging_auto_boot_flag = 0;
+#endif
 
 /* ///////////////////////////////////////////////////////////////////////////////////////// */
 /* // extern function */
@@ -2439,6 +2444,25 @@ static void mt_battery_update_status(void)
 #endif
 }
 
+static void mt_battery_charger_autoboot_init(void)
+{
+#ifdef CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT
+    if (strstr(saved_command_line, "androidboot.mode=charger")) {
+        if (get_rtc_spare_kpoc_value() == 1) { /* always stay at off-mode charging */
+            charging_auto_boot_flag = 0;
+        } else { /* enable charging auto-boot check*/
+            charging_auto_boot_flag = 1;
+        }
+        battery_xlog_init_printk(BAT_LOG_CRTI, "bootmode=charger, flag=%d, RTC_SOC=%d\n", charging_auto_boot_flag, get_rtc_spare_fg_value());
+    } else {
+        /* Other boot reason*/
+        charging_auto_boot_flag = 0;
+        battery_xlog_init_printk(BAT_LOG_CRTI, "bootmode=normal, flag=%d, RTC_SOC=%d\n", charging_auto_boot_flag, get_rtc_spare_fg_value());
+    }
+
+    set_rtc_spare_kpoc_value(0);
+#endif
+}
 
 CHARGER_TYPE mt_charger_type_detection(void)
 {
@@ -2549,12 +2573,18 @@ static void mt_kpoc_power_off_check(void)
 		}
 	}
 #endif
+#ifdef CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT
+	if (charging_auto_boot_flag && BMT_status.UI_SOC >= MTK_CHARGING_AUTO_BOOT_LEVEL) {
+		battery_xlog_printk(BAT_LOG_CRTI,
+			"[bat_thread_kthread] off-mode charging trigger auto-boot(SOC=%d)\r\n", BMT_status.UI_SOC);
+		battery_charging_control(CHARGING_CMD_SET_PLATFORM_RESET, "charger_autoboot");
+    }
+#endif
 }
 
 void do_chrdet_int_task(void)
 {
 	if (g_bat_init_flag == KAL_TRUE) {
-        
 #ifdef CONFIG_CHARGING_ON_SUSPEND_SUPPORT
 	    wake_lock(&battery_suspend_lock);
 #endif
@@ -3318,6 +3348,8 @@ static int battery_probe(struct platform_device *dev)
 	/*LOG System Set */
 	init_proc_log();
 
+	/* charging auto-boot check*/
+	mt_battery_charger_autoboot_init();
 #endif
 	g_bat_init_flag = KAL_TRUE;
 
@@ -3335,6 +3367,12 @@ static int battery_remove(struct platform_device *dev)
 
 static void battery_shutdown(struct platform_device *dev)
 {
+#ifdef CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT
+	if (bat_is_charger_exist()) {
+		battery_xlog_printk(BAT_LOG_CRTI, "battery shutdown:Set RTC_KPOC for off-mode charging\n");
+		set_rtc_spare_kpoc_value(1);
+	}
+#endif
 	battery_xlog_printk(BAT_LOG_CRTI, "******** battery driver shutdown!! ********\n");
 
 }

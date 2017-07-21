@@ -48,6 +48,11 @@ extern void rtc_read_pwron_alarm(struct rtc_wkalrm *alm);
 extern int get_rtc_spare_fg_value(void);
 extern int set_rtc_spare_fg_value(int val);
 
+#ifdef CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT
+extern int get_rtc_spare_kpoc_value(void);
+extern int set_rtc_spare_kpoc_value(int val);
+#endif
+
 extern void rtc_irq_handler(void);
 
 extern bool crystal_exist_status(void);

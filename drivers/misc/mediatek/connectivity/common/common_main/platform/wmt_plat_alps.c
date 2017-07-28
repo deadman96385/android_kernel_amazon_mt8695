@@ -195,6 +195,10 @@ INT32 wmt_plat_audio_ctrl(CMB_STUB_AIF_X state, CMB_STUB_AIF_CTRL ctrl)
 		iRet += wmt_plat_gpio_ctrl(PIN_I2S_GRP, PIN_STA_INIT);
 		break;
 
+	case CMB_STUB_AIF_4:
+		WMT_INFO_FUNC("BT use I2S for SCO,No need to ctrlI2S pinmux\n");
+		break;
+
 	default:
 		/* FIXME: move to cust folder? */
 		WMT_ERR_FUNC("invalid state [%d]\n", state);

@@ -118,7 +118,7 @@ extern int cust_matv_gpio_off(void);
 *           DEFINE AND CONSTANT
 ******************************************************************************
 */
-
+#define do_posix_clock_monotonic_gettime(ts) ktime_get_ts(ts)
 #define AUDDRV_NAME   "MediaTek Audio Driver"
 #define AUDDRV_AUTHOR "MediaTek WCX"
 
@@ -194,6 +194,9 @@ static DEFINE_MUTEX(AnaClk_mutex);
 void CheckPowerState(void);
 bool GetHeadPhoneState(void);
 void Auddrv_Check_Irq(void);
+static bool Auddrv_CheckRead_MemIF_Fp(int MEM_Type);
+AFE_MEM_CONTROL_T *Auddrv_Find_MemIF_Fp(struct file *fp);
+void Auddrv_Handle_DL_Mem_context(AFE_MEM_CONTROL_T *Mem_Block);
 
 /* PMIC AUX ADC function */
 int PMIC_IMM_GetOneChannelValue(int dwChannel, int deCount, int trimd);
@@ -217,8 +220,8 @@ static bool CheckNullPointer(void *pointer)
 {
     if (pointer == NULL)
     {
-	pr_warn("CheckNullPointer pointer = NULL\n");
-	return true;
+        pr_debug("CheckNullPointer pointer = NULL\n");
+        return true;
     }
     return false;
 }
@@ -227,8 +230,8 @@ static bool CheckSize(uint32 size)
 {
     if ((size) == 0)
     {
-	pr_warn("CheckSize size = 0\n");
-	return true;
+        pr_debug("CheckSize size = 0\n");
+        return true;
     }
     return false;
 }
@@ -237,27 +240,27 @@ static kal_uint32 AudDrv_SampleRateIndexConvert(kal_uint32 SampleRateIndex)
 {
     switch (SampleRateIndex)
     {
-	case 0x0:
-	    return 8000;
-	case 0x1:
-	    return 11025;
-	case 0x2:
-	    return 12000;
-	case 0x4:
-	    return 16000;
-	case 0x5:
-	    return 22050;
-	case 0x6:
-	    return 24000;
-	case 0x8:
-	    return 32000;
-	case 0x9:
-	    return 44100;
-	case 0xa:
-	    return 48000;
-	default:
-	    pr_warn("AudDrv_SampleRateIndexConvert SampleRateIndex = %d\n", SampleRateIndex);
-	    return 44100;
+        case 0x0:
+            return 8000;
+        case 0x1:
+            return 11025;
+        case 0x2:
+            return 12000;
+        case 0x4:
+            return 16000;
+        case 0x5:
+            return 22050;
+        case 0x6:
+            return 24000;
+        case 0x8:
+            return 32000;
+        case 0x9:
+            return 44100;
+        case 0xa:
+            return 48000;
+        default:
+            pr_debug("AudDrv_SampleRateIndexConvert SampleRateIndex = %d\n", SampleRateIndex);
+            return 44100;
     }
     return 0;
 }
@@ -599,46 +602,61 @@ static const struct file_operations auddrv_proc_fops = {
 void Auddrv_Handle_Mem_context(AFE_MEM_CONTROL_T *Mem_Block)
 {
     kal_uint32 HW_Cur_ReadIdx = 0;
+    kal_uint32 HW_Begin_Idx = 0;
+    kal_uint32 HW_End_Idx = 0;
     kal_int32 Hw_Get_bytes = 0;
     AFE_BLOCK_T  *mBlock = NULL;
     unsigned long flags;
 
     if (Mem_Block == NULL || AudDrvSuspendStatus == true)
     {
-	pr_warn("[Auddrv] Mem_Block ==[NULL] || AudDrvSuspendStatus = [%d]\n", AudDrvSuspendStatus);
-	return;
+        pr_debug("[Auddrv] Mem_Block ==[NULL] || AudDrvSuspendStatus = [%d]\n", AudDrvSuspendStatus);
+        return;
     }
 
     switch (Mem_Block->MemIfNum)
     {
-	case MEM_VUL:
-	    HW_Cur_ReadIdx = Afe_Get_Reg(AFE_VUL_CUR);
-	    break;
-	case MEM_AWB:
-	    HW_Cur_ReadIdx = Afe_Get_Reg(AFE_AWB_CUR);
-	    break;
-	case MEM_MOD_DAI:
-	    HW_Cur_ReadIdx = Afe_Get_Reg(AFE_MOD_PCM_CUR);
-	    break;
+        case MEM_VUL:
+            HW_Cur_ReadIdx = Afe_Get_Reg(AFE_VUL_CUR);
+            HW_Begin_Idx = Afe_Get_Reg(AFE_VUL_BASE);
+            HW_End_Idx = Afe_Get_Reg(AFE_VUL_END);
+            break;
+        case MEM_AWB:
+            HW_Cur_ReadIdx = Afe_Get_Reg(AFE_AWB_CUR);
+            HW_Begin_Idx = Afe_Get_Reg(AFE_AWB_BASE);
+            HW_End_Idx = Afe_Get_Reg(AFE_AWB_END);
+            break;
+        case MEM_MOD_DAI:
+            HW_Cur_ReadIdx = Afe_Get_Reg(AFE_MOD_PCM_CUR);
+            HW_Begin_Idx = Afe_Get_Reg(AFE_MOD_PCM_BASE);
+            HW_End_Idx = Afe_Get_Reg(AFE_MOD_PCM_END);
+            break;
     }
     mBlock = &Mem_Block->rBlock;
 
     if (CheckSize(HW_Cur_ReadIdx))
     {
-	pr_warn("AudDrv: HW_Cur_ReadIdx 0");
-	return;
+        pr_debug("AudDrv: HW_Cur_ReadIdx 0");
+        return;
     }
+
+    if (HW_Cur_ReadIdx < HW_Begin_Idx || HW_Cur_ReadIdx > HW_End_Idx)
+    {
+        PRINTK_AUDDRV("AudDrv: HW_Cur_ReadIdx over range");
+        return;
+    }
+
     if (mBlock->pucVirtBufAddr  == NULL)
     {
-	pr_warn("AudDrv: Auddrv_Handle_Mem_context pucVirtBufAddr NULL");
-	return;
+        pr_debug("AudDrv: Auddrv_Handle_Mem_context pucVirtBufAddr NULL");
+        return;
     }
 
     /* HW already fill in */
     Hw_Get_bytes = (HW_Cur_ReadIdx - mBlock->pucPhysBufAddr) - mBlock->u4WriteIdx;
     if (Hw_Get_bytes < 0)
     {
-	Hw_Get_bytes += mBlock->u4BufferSize;
+        Hw_Get_bytes = (Hw_Get_bytes + mBlock->u4BufferSize) % mBlock->u4BufferSize;
     }
 
     /*
@@ -654,35 +672,35 @@ void Auddrv_Handle_Mem_context(AFE_MEM_CONTROL_T *Mem_Block)
     /* buffer overflow */
     if (mBlock->u4DataRemained > mBlock->u4BufferSize)
     {
-	pr_warn("AudDrv=>+UL_Handling overflow ");
-        pr_warn("AudDrv=>DataRemained:0x%x R:0x%x W:0x%x BufSize:0x%x Hw_Get_bytes:0x%x ", mBlock->u4DataRemained, mBlock->u4DMAReadIdx, mBlock->u4WriteIdx, mBlock->u4BufferSize, Hw_Get_bytes);
-        pr_warn("AudDrv=>HW_Cur_ReadIdx:0x%x pucPhysBufAddr:0x%x", HW_Cur_ReadIdx, mBlock->pucPhysBufAddr);
+        pr_debug("AudDrv=>+UL_Handling overflow ");
+        pr_debug("AudDrv=>DataRemained:0x%x R:0x%x W:0x%x BufSize:0x%x Hw_Get_bytes:0x%x ", mBlock->u4DataRemained, mBlock->u4DMAReadIdx, mBlock->u4WriteIdx, mBlock->u4BufferSize, Hw_Get_bytes);
+        pr_debug("AudDrv=>HW_Cur_ReadIdx:0x%x pucPhysBufAddr:0x%x", HW_Cur_ReadIdx, mBlock->pucPhysBufAddr);
 
-	mBlock->u4DataRemained = mBlock->u4BufferSize / 2;
-	mBlock->u4DMAReadIdx = mBlock->u4WriteIdx - mBlock->u4BufferSize / 2;
-	if (mBlock->u4DMAReadIdx < 0)
-	{
-	    mBlock->u4DMAReadIdx += mBlock->u4BufferSize;
-	}
+        mBlock->u4DataRemained = mBlock->u4BufferSize / 2;
+        mBlock->u4DMAReadIdx = mBlock->u4WriteIdx - mBlock->u4BufferSize / 2;
+        if (mBlock->u4DMAReadIdx < 0)
+        {
+            mBlock->u4DMAReadIdx = (mBlock->u4DMAReadIdx + mBlock->u4BufferSize) % mBlock->u4BufferSize;
+        }
     }
     spin_unlock_irqrestore(&auddrv_ULInCtl_lock, flags);
 
     switch (Mem_Block->MemIfNum)
     {
-	case MEM_VUL:
-	    VUL_wait_queue_flag = 1;
-	    wake_up_interruptible(&VUL_Wait_Queue);
-	    break;
-	case MEM_AWB:
-	    AWB_wait_queue_flag = 1;
-	    wake_up_interruptible(&AWB_Wait_Queue);
-	    break;
-	case MEM_MOD_DAI:
-	    MODDAI_wait_queue_flag = 1;
-	    wake_up_interruptible(&MODDAI_Wait_Queue);
-	    break;
-	default:
-	    break;
+        case MEM_VUL:
+            VUL_wait_queue_flag = 1;
+            wake_up_interruptible(&VUL_Wait_Queue);
+            break;
+        case MEM_AWB:
+            AWB_wait_queue_flag = 1;
+            wake_up_interruptible(&AWB_Wait_Queue);
+            break;
+        case MEM_MOD_DAI:
+            MODDAI_wait_queue_flag = 1;
+            wake_up_interruptible(&MODDAI_Wait_Queue);
+            break;
+        default:
+            break;
     }
 }
 
@@ -747,84 +765,150 @@ void Auddrv_UL_Interrupt_Handler(void)  /* irq2 ISR handler */
  */
 void Auddrv_DL_Interrupt_Handler(void)  /* irq1 ISR handler */
 {
-    unsigned long flags = 0;
+    unsigned long flags;
+    kal_uint32 Afe_Dac_Con0 = Afe_Get_Reg(AFE_DAC_CON0);
+    AFE_MEM_CONTROL_T *Mem_Block = NULL;
+    spin_lock_irqsave(&auddrv_irqstatus_lock, flags);
+    if (Afe_Dac_Con0 & 0x2)
+    {
+        // handle DL1 Context
+        pr_debug("%s  AFE_dL1_Control_context\n",__func__);
+        Mem_Block = &AFE_dL1_Control_context;
+        Auddrv_Handle_DL_Mem_context(&AFE_dL1_Control_context);
+    }
+    if (Afe_Dac_Con0 & 0x4)
+    {
+        // handle DL2 Context
+        pr_debug("%s  AFE_dL2_Control_context\n",__func__);
+        Mem_Block = &AFE_dL2_Control_context;
+        Auddrv_Handle_DL_Mem_context(&AFE_dL2_Control_context);
+    }
+    spin_unlock_irqrestore(&auddrv_irqstatus_lock, flags);
+
+}
+
+void Auddrv_Handle_DL_Mem_context(AFE_MEM_CONTROL_T *Mem_Block)
+{
+    //unsigned long flags = 0;
     kal_int32 Afe_consumed_bytes = 0;
     kal_int32 HW_memory_index = 0;
     kal_int32 HW_Cur_ReadIdx = 0;
-    AFE_BLOCK_T *Afe_Block = &(AFE_dL1_Control_context.rBlock);
-    /* spin lock with interrupt disable */
-    spin_lock_irqsave(&auddrv_irqstatus_lock, flags);
+
+    AFE_MEM_CONTROL_T  *pAfe_MEM_ConTrol = NULL;
+    AFE_BLOCK_T  *Afe_Block = NULL;
+
+    // check which memif need to be read
+    pAfe_MEM_ConTrol = Mem_Block;
+    Afe_Block = &(pAfe_MEM_ConTrol->rBlock);
+
+    pr_debug("%s pAfe_MEM_ConTrol->MemIfNum = %d Mem_Block->MemIfNum = %d\n ", __func__,pAfe_MEM_ConTrol->MemIfNum,Mem_Block->MemIfNum);
+
+    if (pAfe_MEM_ConTrol == NULL)
+    {
+        pr_debug("cannot find MEM control !!!!!!!\n");
+        return;
+    }
+
+    if (Afe_Block->u4BufferSize <= 0)
+    {
+        pr_debug("Afe_Block->u4BufferSize \n");
+        return;
+    }
 
     if (AudDrvSuspendStatus == true)
     {
-	HW_Cur_ReadIdx = 0;
+        HW_Cur_ReadIdx = 0;
     }
     else
     {
-    HW_Cur_ReadIdx = Afe_Get_Reg(AFE_DL1_CUR);
+        // wait up write thread
+        switch (pAfe_MEM_ConTrol->MemIfNum)
+        {
+            case MEM_DL1:
+            {
+                HW_Cur_ReadIdx = Afe_Get_Reg(AFE_DL1_CUR);
+                break;
+            }
+            case MEM_DL2:
+            {
+                HW_Cur_ReadIdx = Afe_Get_Reg(AFE_DL2_CUR);
+                break;
+            }
+            default:
+                pr_debug("Auddrv_Handle_DL_Mem_context cannot find match MemIfNum!!!\n");
+                HW_Cur_ReadIdx =0;
+        }
     }
     /* if(HW_Cur_ReadIdx == 0) */
     if (HW_Cur_ReadIdx < Afe_Block->pucPhysBufAddr || HW_Cur_ReadIdx >= (Afe_Block->pucPhysBufAddr+Afe_Block->u4BufferSize))
     {
-        pr_notice("[Auddrv][Warn] HW_Cur_ReadIdx ==0x%x, PhyAddr=0x%x, VirAddr = %p\n", HW_Cur_ReadIdx, Afe_Block->pucPhysBufAddr, Afe_Block->pucVirtBufAddr);
-        pr_notice("[Auddrv][Warn] AFE_DL1_BASE ==0x%x, AFE_DL1_END=0x%x\n", Afe_Get_Reg(AFE_DL1_BASE), Afe_Get_Reg(AFE_DL1_END));
-	HW_Cur_ReadIdx = Afe_Block->pucPhysBufAddr;
+        pr_debug("[Auddrv][Warn] HW_Cur_ReadIdx ==0x%x, PhyAddr=0x%x, VirAddr = %p\n", HW_Cur_ReadIdx, Afe_Block->pucPhysBufAddr, Afe_Block->pucVirtBufAddr);
+        pr_debug("[Auddrv][Warn] AFE_DL1_BASE ==0x%x, AFE_DL1_END=0x%x\n", Afe_Get_Reg(AFE_DL1_BASE), Afe_Get_Reg(AFE_DL1_END));
+        HW_Cur_ReadIdx = Afe_Block->pucPhysBufAddr;
     }
     HW_memory_index = (HW_Cur_ReadIdx - Afe_Block->pucPhysBufAddr);
-    /*
-    PRINTK_AUDDRV("[Auddrv] HW_Cur_ReadIdx=0x%x HW_memory_index = 0x%x Afe_Block->pucPhysBufAddr = 0x%x\n",
-	HW_Cur_ReadIdx,HW_memory_index,Afe_Block->pucPhysBufAddr);*/
-
+    pr_debug("[Auddrv] HW_Cur_ReadIdx=0x%x HW_memory_index = 0x%x Afe_Block->pucPhysBufAddr = 0x%x\n",
+    HW_Cur_ReadIdx,HW_memory_index,Afe_Block->pucPhysBufAddr);
     /* get hw consume bytes */
     if (HW_memory_index > Afe_Block->u4DMAReadIdx)
     {
-	Afe_consumed_bytes = HW_memory_index - Afe_Block->u4DMAReadIdx;
+        Afe_consumed_bytes = HW_memory_index - Afe_Block->u4DMAReadIdx;
     }
     else
     {
-	Afe_consumed_bytes = Afe_Block->u4BufferSize + HW_memory_index - Afe_Block->u4DMAReadIdx;
+        Afe_consumed_bytes = Afe_Block->u4BufferSize + HW_memory_index - Afe_Block->u4DMAReadIdx;
     }
 
     if ((Afe_consumed_bytes & 0x3) != 0) {
-	pr_debug("[Auddrv] MEMIF address is not aligned 4 bytes\n");
+        pr_debug("[Auddrv] MEMIF address is not aligned 4 bytes\n");
     }
-    /*
-    PRINTK_AUDDRV("+Auddrv_DL_Interrupt_Handler ReadIdx:%x WriteIdx:%x, DataRemained:%x, Afe_consumed_bytes:%x HW_memory_index = %x\n",
-	Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx,Afe_Block->u4DataRemained,Afe_consumed_bytes,HW_memory_index);
-	*/
-    spin_lock_irqsave(&auddrv_DLCtl_lock, flags);
 
     if (Afe_Block->u4DataRemained < Afe_consumed_bytes || Afe_Block->u4DataRemained <= 0 || Afe_Block->u4DataRemained  > Afe_Block->u4BufferSize || AudIrqReset)
     {
-	/* buffer underflow --> clear  whole buffer */
-	pr_warn("AudDrv=>+DL_Handling underflow ");
-        pr_warn("AudDrv=>DataRemained:0x%x R:0x%x W:0x%x BufSize:0x%x Consumed_bytes:0x%x ", Afe_Block->u4DataRemained, Afe_Block->u4DMAReadIdx, Afe_Block->u4WriteIdx, Afe_Block->u4BufferSize, Afe_consumed_bytes);
-        pr_warn("AudDrv=>HW_memory_index:0x%x pucPhysBufAddr:0x%x AudIrqReset:0x%x", HW_memory_index, Afe_Block->pucPhysBufAddr, AudIrqReset);
-	memset(Afe_Block->pucVirtBufAddr, 0, Afe_Block->u4BufferSize);
-	pr_warn("AudDrv=>-DL_Handling underflow ");
-	Afe_Block->u4DMAReadIdx  = HW_memory_index;
-	Afe_Block->u4WriteIdx  = Afe_Block->u4DMAReadIdx;
-	Afe_Block->u4DataRemained = Afe_Block->u4BufferSize;
-	AudIrqReset = false;
+        /* buffer underflow --> clear  whole buffer */
+        pr_debug("AudDrv=>+DL_Handling underflow ");
+        pr_debug("AudDrv=>DataRemained:0x%x R:0x%x W:0x%x BufSize:0x%x Consumed_bytes:0x%x ", Afe_Block->u4DataRemained, Afe_Block->u4DMAReadIdx, Afe_Block->u4WriteIdx, Afe_Block->u4BufferSize, Afe_consumed_bytes);
+        pr_debug("AudDrv=>HW_memory_index:0x%x pucPhysBufAddr:0x%x AudIrqReset:0x%x", HW_memory_index, Afe_Block->pucPhysBufAddr, AudIrqReset);
+        memset(Afe_Block->pucVirtBufAddr, 0, Afe_Block->u4BufferSize);
+        pr_debug("AudDrv=>-DL_Handling underflow ");
+        Afe_Block->u4DMAReadIdx  = HW_memory_index;
+        Afe_Block->u4WriteIdx  = Afe_Block->u4DMAReadIdx;
+        Afe_Block->u4DataRemained = Afe_Block->u4BufferSize;
+        AudIrqReset = false;
     }
     else
     {
-	/*
-	PRINTK_AUDDRV("+DL_Handling normal ReadIdx:%x ,DataRemained:%x, WriteIdx:%x\n",
-	    Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained,Afe_Block->u4WriteIdx);*/
-	Afe_Block->u4DataRemained -= Afe_consumed_bytes;
-	Afe_Block->u4DMAReadIdx += Afe_consumed_bytes;
-	Afe_Block->u4DMAReadIdx %= Afe_Block->u4BufferSize;
-	/*
-	PRINTK_AUDDRV("-DL_Handling normal ReadIdx:%x ,DataRemained:%x, WriteIdx:%x\n",
-	    Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained,Afe_Block->u4WriteIdx);*/
+        pr_debug("+DL_Handling normal ReadIdx:%x ,DataRemained:%x, WriteIdx:%x\n",
+        Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained,Afe_Block->u4WriteIdx);
+        Afe_Block->u4DataRemained -= Afe_consumed_bytes;
+        Afe_Block->u4DMAReadIdx += Afe_consumed_bytes;
+        Afe_Block->u4DMAReadIdx %= Afe_Block->u4BufferSize;
+        pr_debug("-DL_Handling normal ReadIdx:%x ,DataRemained:%x, WriteIdx:%x\n",
+        Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained,Afe_Block->u4WriteIdx);
     }
-    spin_unlock_irqrestore(&auddrv_DLCtl_lock, flags);
+    pr_debug("Auddrv_Handle_DL_Mem_context_+lock1");
+    pr_debug("Auddrv_Handle_DL_Mem_context_-lock1");
     /* wait up write thread */
-    DL1_wait_queue_flag = 1;
-    wake_up_interruptible(&DL1_Wait_Queue);
-    spin_unlock_irqrestore(&auddrv_irqstatus_lock, flags);
+    switch (pAfe_MEM_ConTrol->MemIfNum)
+    {
+        case MEM_DL1:
+        {
+            DL1_wait_queue_flag = 1;
+            wake_up_interruptible(&DL1_Wait_Queue);
+            break;
+        }
+        case MEM_DL2:
+        {
+            DL2_wait_queue_flag = 1;
+            wake_up_interruptible(&DL2_Wait_Queue);
+            pr_debug("Auddrv_Handle_DL_Mem_context_+lock2");
+            pr_debug("Auddrv_Handle_DL_Mem_context_-lock2");
 
+            break;
+        }
+        default:
+            pr_err("cannot find matcg MemIfNum!!!\n");
+    }
 }
 
 static unsigned long long Irq_time_t1 = 0, Irq_time_t2;
@@ -846,7 +930,7 @@ static void CheckInterruptTiming(void)
 	    Irq_time_t2 = Irq_time_t1 - Irq_time_t2;
 	    if (Irq_time_t2 > DL1_Interrupt_Interval_Limit * 1000000)
 	    {
-		pr_warn("CheckInterruptTiming interrupt may be blocked Irq_time_t2 = %llu DL1_Interrupt_Interval_Limit = %d\n",
+		pr_debug("CheckInterruptTiming interrupt may be blocked Irq_time_t2 = %llu DL1_Interrupt_Interval_Limit = %d\n",
 			      Irq_time_t2, DL1_Interrupt_Interval_Limit);
 	    }
 	}
@@ -882,12 +966,11 @@ static irqreturn_t AudDrv_IRQ_handler(int irq, void *dev_id)
     }
     u4RegValue &= 0xf;
     u4RegValue2 &= 0x3;
-    /* PRINTK_AUDDRV("AudDrv_IRQ_handler AFE_IRQ_MCU_STATUS = %x\n",u4RegValue); */
-
+    pr_debug("AudDrv_IRQ_handler AFE_IRQ_MCU_STATUS = %x\n",u4RegValue);
     /* here is error handle , for interrupt is trigger but not status , clear all interrupt with bit 6 */
     if (u4RegValue == 0 || Aud_AFE_Clk_cntr == 0 || u4RegValue2 == 0)
     {
-	pr_warn("AudDrv u4RegValue == %d Aud_AFE_Clk_cntr = %d u4RegValue2 = %d\n", u4RegValue, Aud_AFE_Clk_cntr, u4RegValue2);
+	pr_debug("AudDrv u4RegValue == %d Aud_AFE_Clk_cntr = %d u4RegValue2 = %d\n", u4RegValue, Aud_AFE_Clk_cntr, u4RegValue2);
 	AudioWayDisable();
 	/*
 	AudDrv_Clk_On();
@@ -902,7 +985,7 @@ static irqreturn_t AudDrv_IRQ_handler(int irq, void *dev_id)
 	AudDrv_Clk_Off();
 	*/
 	AudDrv_Clk_On_ClrISRStatus();
-	pr_warn("IRQ Handle Exception");
+	pr_debug("IRQ Handle Exception");
 	goto AudDrv_IRQ_handler_exit;
     }
     CheckInterruptTiming();
@@ -945,13 +1028,13 @@ AudDrv_IRQ_handler_exit:
 static int AudDrv_probe(struct platform_device *dev)
 {
     int ret = 0;
-    pr_notice("+AudDrv_probe\n");
+    pr_debug("+AudDrv_probe\n");
 
     pr_debug("+request_irq\n");
    ret = request_irq(AUD_AFE_MCU_IRQ_LINE, AudDrv_IRQ_handler, IRQF_TRIGGER_LOW/*IRQF_TRIGGER_FALLING*/, "Afe_ISR_Handle", dev);
     if (ret < 0)
     {
-	pr_err("AudDrv_probe request_irq Fail\n");
+        pr_err("AudDrv_probe request_irq Fail\n");
     }
 
     /* init */
@@ -971,18 +1054,18 @@ static int AudDrv_probe(struct platform_device *dev)
 
 #ifdef AUDIO_MEMORY_SRAM
     AFE_SRAM_ADDRESS = ioremap_nocache(AFE_INTERNAL_SRAM_PHY_BASE, 0x10000);
-    pr_notice("AFE_BASE_ADDRESS = %p AFE_SRAM_ADDRESS = %p\n", AFE_BASE_ADDRESS, AFE_SRAM_ADDRESS);
+    pr_debug("AFE_BASE_ADDRESS = %p AFE_SRAM_ADDRESS = %p\n", AFE_BASE_ADDRESS, AFE_SRAM_ADDRESS);
 #endif
 
 #ifdef AUDIO_MEM_IOREMAP
     AFE_BASE_ADDRESS = ioremap_nocache(AUDIO_HW_PHYSICAL_BASE, 0x10000);
 #endif
 
-    pr_notice("-AudDrv_probe\n");
+    pr_debug("-AudDrv_probe\n");
     Speaker_Init();
     if (Auddrv_First_bootup == true)
     {
-	power_init();
+        power_init();
     }
     else
     {
@@ -1246,7 +1329,7 @@ static int AudDrv_remove(struct platform_device *dev)
 
 static void AudDrv_shutdown(struct platform_device *dev)
 {
-    pr_notice("+AudDrv_shutdown\n");
+    pr_debug("+AudDrv_shutdown\n");
     Speaker_DeInit();
     pr_notice("-AudDrv_shutdown\n");
 }
@@ -1264,11 +1347,11 @@ static int AudDrv_suspend(struct platform_device *dev, pm_message_t state)
 
     if (b_modem1_speech_on == true/* || b_modem2_speech_on == true*/)
     {
-	/* PRINTK_AUDDRV("AudDrv_suspend: b_modem1_speech_on(%d) || b_modem2_speech_on(%d), return", b_modem1_speech_on, b_modem2_speech_on); */
+	pr_debug("AudDrv_suspend: b_modem1_speech_on(%d), return", b_modem1_speech_on);
 	return 0;
     }
 
-    /* PRINTK_AUDDRV("AudDrv_suspend AudDrvSuspendStatus = %d bSpeechFlag = %d\n",AudDrvSuspendStatus,SPH_Ctrl_State.bSpeechFlag); */
+    pr_debug("AudDrv_suspend AudDrvSuspendStatus = %d bSpeechFlag = %d\n",AudDrvSuspendStatus,SPH_Ctrl_State.bSpeechFlag);
 
     if (AudDrvSuspendStatus == false)
     {
@@ -1551,7 +1634,7 @@ int AudDrv_Allocate_DL1_Buffer(struct file *fp, kal_uint32 Afe_Buf_Length)
     /* check 32 bytes align */
     if ((pblock->pucPhysBufAddr & 0x1f) != 0)
     {
-	pr_warn("[Auddrv] AudDrv_Allocate_DL1_Buffer is not aligned (0x%x)\n", pblock->pucPhysBufAddr);
+	pr_debug("[Auddrv] AudDrv_Allocate_DL1_Buffer is not aligned (0x%x)\n", pblock->pucPhysBufAddr);
     }
 
     pblock->u4SampleNumMask = 0x001f;  /* 32 byte align */
@@ -1644,7 +1727,7 @@ int AudDrv_Allocate_Buffer(struct file *fp, kal_uint32 Afe_Buf_Length , int mem_
 	pblock->pucVirtBufAddr = dma_alloc_coherent(0, pblock->u4BufferSize, &pblock->pucPhysBufAddr, GFP_KERNEL);
 	if ((0 == pblock->pucPhysBufAddr) || (NULL == pblock->pucVirtBufAddr))
 	{
-	    pr_err("AudDrv_Allocate_Buffer dma_alloc_coherent fail\n");
+	    pr_debug("AudDrv_Allocate_Buffer dma_alloc_coherent fail\n");
 	    return -1;
 	}
 	/* fix me , is here need to check audio clock? */
@@ -1805,6 +1888,12 @@ void Auddrv_Add_MemIF_Counter(int MEM_Type)
 	    }
 	    break;
 	case MEM_DL2:
+            {
+            AFE_BLOCK_T *Afe_Block = &(AFE_dL2_Control_context.rBlock);
+            pr_debug("+ AudDrv Add_MemIF_Counter memset 0");
+            memset(Afe_Block->pucVirtBufAddr, 0, Afe_Block->u4BufferSize);
+            pr_debug("- AudDrv Add_MemIF_Counter memset 0");
+            }
 	    break;
 	case MEM_AWB:
 	    break;
@@ -1813,7 +1902,7 @@ void Auddrv_Add_MemIF_Counter(int MEM_Type)
 	case MEM_MOD_DAI:
 	    break;
 	default:
-	    pr_warn("Auddrv_Add_MemIF_Conter MEMTYPE = %d", MEM_Type);
+	    pr_debug("Auddrv_Add_MemIF_Conter MEMTYPE = %d", MEM_Type);
 	    return;
     }
 }
@@ -1826,12 +1915,14 @@ void Auddrv_Release_MemIF_Counter(int MEM_Type)
 	    Afe_Mem_Pwr_on--;
 	    if (Afe_Mem_Pwr_on < 0)
 	    {
-		pr_warn("Auddrv_Release_MemIF_Conter Afe_Mem_Pwr_on <0\n");
+		pr_debug("Auddrv_Release_MemIF_Conter Afe_Mem_Pwr_on <0\n");
 		Afe_Mem_Pwr_on = 0;
 	    }
 	    ResetWriteWaitEvent();
 	    break;
 	case MEM_DL2:
+        ResetWriteWaitEvent();
+		pr_debug("DL2 Auddrv_Release_MemIF_Conter\n");
 	    break;
 	case MEM_AWB:
 	    break;
@@ -2025,7 +2116,7 @@ int AudDrv_Reassign_Buffer_In_EMI(struct file *fp, unsigned long arg)
 	pblock->pucVirtBufAddr = pblock->pucVirtBufAddrBackup;
 	pblock->pucPhysBufAddr = pblock->pucPhysBufAddrBackup;
     }
-    pr_notice("AudDrv_Reassign_Buffer_In_EMI type = %d, fp = %p, virtAdddr %p, physAddr %x\n", mem_type, fp, pblock->pucVirtBufAddr, (unsigned int)pblock->pucPhysBufAddr);
+    pr_debug("AudDrv_Reassign_Buffer_In_EMI type = %d, fp = %p, virtAdddr %p, physAddr %x\n", mem_type, fp, pblock->pucVirtBufAddr, (unsigned int)pblock->pucPhysBufAddr);
     pblock->u4WriteIdx     = 0;
     pblock->u4DMAReadIdx    = 0;
     pblock->u4DataRemained  = 0;
@@ -2092,12 +2183,12 @@ void Auddrv_Set_MemIF_Fp(struct file *fp, unsigned long arg)
     pr_debug("+Auddrv_Set_MemIF_Fp  = %p arg = %lu\n", fp , arg);
     if (pAfe_MEM_ConTrol == NULL)
     {
-	pr_warn("+ pAfe_MEM_ConTrol Error !!! pAfe_MEM_ConTrol = NULL, fp = %p,\n", fp);
+	pr_debug("+ pAfe_MEM_ConTrol Error !!! pAfe_MEM_ConTrol = NULL, fp = %p,\n", fp);
 	return;
     }
     else if (pAfe_MEM_ConTrol->flip != NULL)
     {
-	pr_warn("+ pAfe_MEM_ConTrol flip = %p Error fp = %p\n", pAfe_MEM_ConTrol->flip, fp);
+	pr_debug("+ pAfe_MEM_ConTrol flip = %p Error fp = %p\n", pAfe_MEM_ConTrol->flip, fp);
 	return;
     }
 
@@ -2195,7 +2286,7 @@ void Auddrv_Release_MemIF_Fp(struct file *fp, unsigned long arg)
 void AudDrv_Reg_Reset(void)
 {
     unsigned long flags = 0;
-    pr_notice("AudDrv_Reg_Reset\n");
+    pr_debug("AudDrv_Reg_Reset\n");
     spin_lock_irqsave(&auddrv_lock, flags);
     Afe_Set_Reg(AFE_DAC_CON0 , 0x0 , 0xffffffff);
     Afe_Set_Reg(AFE_DAC_CON1, 0x0, 0xffffffff);
@@ -2218,7 +2309,7 @@ void AudDrv_Reg_Reset(void)
 void AudDrv_Mem_Reset(void)
 {
     int i = 0;
-    pr_notice("AudDrv_Mem_Reset\n");
+    pr_debug("AudDrv_Mem_Reset\n");
 #if defined(DL1_MEM_FIXED_IN_SRAM)
     AudDrv_Force_Free_DL1_Buffer();
     for (i = MEM_DL2; i < NUM_OF_MEM_INTERFACE; i++)
@@ -2266,7 +2357,7 @@ int AudDrv_GET_DL1_REMAIN_TIME(struct file *fp)
     HW_Cur_ReadIdx = Afe_Get_Reg(AFE_DL1_CUR);
     if (HW_Cur_ReadIdx == 0)
     {
-	pr_notice("[Auddrv] AudDrv_GET_DL1_REMAIN_TIME HW_Cur_ReadIdx ==0\n");
+	pr_debug("[Auddrv] AudDrv_GET_DL1_REMAIN_TIME HW_Cur_ReadIdx ==0\n");
 	HW_Cur_ReadIdx = Afe_Block->pucPhysBufAddr;
     }
     HW_memory_index = (HW_Cur_ReadIdx - Afe_Block->pucPhysBufAddr);
@@ -2290,7 +2381,7 @@ int AudDrv_GET_DL1_REMAIN_TIME(struct file *fp)
 
     if ((Afe_consumed_bytes & 0x07) != 0)
     {
-	pr_notice("[Auddrv] GET_DL1_REMAIN_SIZE DMA address is not aligned 8 bytes. Afe_consumed_bytes = [0x%x]\n", Afe_consumed_bytes);
+	pr_debug("[Auddrv] GET_DL1_REMAIN_SIZE DMA address is not aligned 8 bytes. Afe_consumed_bytes = [0x%x]\n", Afe_consumed_bytes);
     }
     /*
     PRINTK_AUDDRV("+Auddrv_DL_Interrupt_Handler ReadIdx:%x WriteIdx:%x, DataRemained:%x, Afe_consumed_bytes:%x HW_memory_index = %x\n",
@@ -2434,6 +2525,19 @@ int AudDrv_GET_UL_REMAIN_TIME(struct file *fp)
 
 }
 
+/*****************************************************************************
+ * FUNCTION
+ *  AudDrv_AUDIO_REMAINING
+ *
+ * DESCRIPTION
+ *  Get DL buffer remaining size and time stamp
+ *
+ ******************************************************************************/
+void AudDrv_AUDIO_REMAINING(struct file *fp, Data_Remaining *time)
+{
+	do_posix_clock_monotonic_gettime(&(time->time));
+	time->bytes_remaining = AudDrv_GET_DL1_REMAIN_TIME(fp);
+}
 
 /*****************************************************************************
  * FILE OPERATION FUNCTION
@@ -2700,7 +2804,7 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 	}
 	case AUD_SET_LINE_IN_CLOCK:
 	{
-	    pr_notice("+AudDrv AUD_SET_LINE_IN_CLOCK(%ld), lineIn_clk(%d)\n", arg, Aud_LineIn_Clk_cntr);
+	    pr_debug("+AudDrv AUD_SET_LINE_IN_CLOCK(%ld), lineIn_clk(%d)\n", arg, Aud_LineIn_Clk_cntr);
 	    if (arg == 1)
 	    {
 		spin_lock(&auddrv_lock);
@@ -2713,7 +2817,7 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 		AudDrv_Clk_Off();
 		spin_unlock(&auddrv_lock);
 	    }
-	    pr_notice("-AudDrv AUD_SET_LINE_IN_CLOCK, AFE(%d)\n", Aud_AFE_Clk_cntr);
+	    pr_debug("-AudDrv AUD_SET_LINE_IN_CLOCK, AFE(%d)\n", Aud_AFE_Clk_cntr);
 	    break;
 	}
 	case AUD_SET_CLOCK:
@@ -2840,6 +2944,12 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 	{
 	    break;
 	}
+        case AUDDRV_SET_BT_I2S_GPIO:
+        {
+            pr_notice("!! AudDrv, BT ON, use I2S, COMBO_AUDIO_STATE_4 \n");
+            mtk_wcn_cmb_stub_audio_ctrl((CMB_STUB_AIF_X)CMB_STUB_AIF_4);
+            break;
+        }
 #else
 	case AUDDRV_RESET_BT_FM_GPIO:
 	{
@@ -2893,11 +3003,11 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 	}
 		case GET_EAMP_PARAMETER:
 		{
-		  pr_notice("AudDrv GET_EAMP_PARAMETER\n");
+		  pr_debug("AudDrv GET_EAMP_PARAMETER\n");
 		  mutex_lock(&gamp_mutex);
 		  if (copy_from_user((void *)(&AMPParam), (const void __user *)(arg), sizeof(AMPParam))) {
 				mutex_unlock(&gamp_mutex);
-				pr_debug("Failed to copy from user");
+				pr_err("Failed to copy from user");
 				return -EFAULT;
 		  }
 		  pr_debug("command=%lu,param1=%lu,param2=%lu\n", AMPParam.command, AMPParam.param1, AMPParam.param2);
@@ -2937,11 +3047,11 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 		}
 		case SET_EAMP_PARAMETER:
 		{
-		  pr_notice("AudDrv SET_EAMP_PARAMETER\n");
+		  pr_debug("AudDrv SET_EAMP_PARAMETER\n");
 		  mutex_lock(&gamp_mutex);
 		  if (copy_from_user((void *)(&AMPParam), (const void __user *)(arg), sizeof(AMPParam))) {
 				mutex_unlock(&gamp_mutex);
-				pr_debug("Failed to copy from user");
+				pr_err("Failed to copy from user");
 				return -EFAULT;
 		  }
 		  pr_debug("command=%lu,param1=%lu,param2=%lu\n", AMPParam.command, AMPParam.param1, AMPParam.param2);
@@ -2970,18 +3080,18 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 		}
 
 	case SET_SPEAKER_VOL:
-	    pr_notice("AudDrv SET_SPEAKER_VOL level:%lu\n", arg);
+	    pr_debug("AudDrv SET_SPEAKER_VOL level:%lu\n", arg);
 	    Sound_Speaker_SetVolLevel((int)arg);
 	    break;
 	case SET_SPEAKER_ON:
-	    pr_notice("AudDrv SET_SPEAKER_ON arg:%lu\n", arg);
+	    pr_debug("AudDrv SET_SPEAKER_ON arg:%lu\n", arg);
 	    mutex_lock(&gamp_mutex);
 	    Sound_Speaker_Turnon((int)arg);
 	    AuddrvSpkStatus = true;
 	    mutex_unlock(&gamp_mutex);
 	    break;
 	case SET_SPEAKER_OFF:
-	    pr_notice("AudDrv SET_SPEAKER_OFF arg:%lu\n", arg);
+	    pr_debug("AudDrv SET_SPEAKER_OFF arg:%lu\n", arg);
 	    mutex_lock(&gamp_mutex);
 	    Sound_Speaker_Turnoff((int)arg);
 	    AuddrvSpkStatus = false;
@@ -2989,7 +3099,7 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 	    break;
 	case SET_HEADSET_STATE:
 	    mutex_lock(&gamp_mutex);
-	    pr_notice("!! AudDrv SET_HEADSET_STATE arg:%lu\n", arg);
+	    pr_debug("!! AudDrv SET_HEADSET_STATE arg:%lu\n", arg);
 	    if (arg)
 	    {
 		Sound_Headset_Turnon();
@@ -3001,19 +3111,19 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 	    mutex_unlock(&gamp_mutex);
 	    break;
 	case SET_HEADPHONE_ON:
-	    pr_notice("AudDrv SET_HEADPHONE_ON arg:%lu\n", arg);
+	    pr_debug("AudDrv SET_HEADPHONE_ON arg:%lu\n", arg);
 	    mutex_lock(&gamp_mutex);
 	    Audio_eamp_command(EAMP_HEADPHONE_OPEN, arg, 1);
 	    mutex_unlock(&gamp_mutex);
 	    break;
 	case SET_HEADPHONE_OFF:
-	    pr_notice("AudDrv SET_HEADPHONE_OFF arg:%lu\n", arg);
+	    pr_debug("AudDrv SET_HEADPHONE_OFF arg:%lu\n", arg);
 	    mutex_lock(&gamp_mutex);
 	    Audio_eamp_command(EAMP_HEADPHONE_CLOSE, arg, 1);
 	    mutex_unlock(&gamp_mutex);
 	    break;
 	case SET_EARPIECE_ON:
-	    pr_notice("AudDrv SET_EARPIECE_ON arg:%lu\n", arg);
+	    pr_debug("AudDrv SET_EARPIECE_ON arg:%lu\n", arg);
 	    mutex_lock(&gamp_mutex);
 	    Audio_eamp_command(EAMP_EARPIECE_OPEN, arg, 1);
 	    mutex_unlock(&gamp_mutex);
@@ -3107,9 +3217,18 @@ static long AudDrv_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 	    ret = AudDrv_GET_UL_REMAIN_TIME(fp);
 	    break;
 	}
+	    case AUDDRV_AUDIO_REMAINING:
+		{
+			Data_Remaining data;
+			AudDrv_AUDIO_REMAINING(fp, &data);
+			if (copy_to_user((void __user *)(arg), (void *)(&data), sizeof(Data_Remaining)))
+				return -EFAULT;
+
+			break;
+		}
 	default:
 	{
-	    pr_warn("AudDrv Fail IOCTL command no such ioctl cmd = %x\n", cmd);
+	    pr_debug("AudDrv Fail IOCTL command no such ioctl cmd = %x\n", cmd);
 	    ret = -1;
 	    break;
 	}
@@ -3143,7 +3262,7 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
     unsigned long flags;
     char *data_w_ptr = (char *)data;
 
-    /* PRINTK_AUDDRV("+AudDrv_writeAudDrv_write = %p count = %d\n",fp ,count); */
+    pr_debug("+AudDrv_writeAudDrv_write = %p count = %d\n",fp ,count);
 
     /* check which memif nned to be write */
     pAfe_MEM_ConTrol = Auddrv_Find_MemIF_Fp(fp);
@@ -3151,7 +3270,7 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 
     if ((pAfe_MEM_ConTrol == NULL) || (Afe_Block == NULL))
     {
-	pr_warn("AudDrv_writeAudDrv_write g fbut find no MEM control block");
+	pr_debug("AudDrv_writeAudDrv_write g fbut find no MEM control block");
 	msleep(60);
 	return written_size;
     }
@@ -3163,7 +3282,7 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 
     if (Afe_Block->u4BufferSize == 0)
     {
-	pr_warn("AudDrv_write: u4BufferSize=0 Error");
+	pr_debug("AudDrv_write: u4BufferSize=0 Error");
 	msleep(AFE_INT_TIMEOUT);
 	return -1;
     }
@@ -3186,7 +3305,7 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 	{
 	    copy_size = count;
 	    }
-	    /* PRINTK_AUDDRV("AudDrv_write copy_size:%x\n", copy_size);  // (free  space of buffer) */
+	    pr_debug("AudDrv_write copy_size:%x\n", copy_size);  // (free  space of buffer)
 	}
 
 	if (copy_size != 0)
@@ -3195,7 +3314,7 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 	    Afe_WriteIdx_tmp = Afe_Block->u4WriteIdx;
 	    spin_unlock_irqrestore(&auddrv_DLCtl_lock, flags);
 	   if (Afe_WriteIdx_tmp > Afe_Block->u4BufferSize) {
-	       PRINTK_AUDDRV("[AudDrv][Warn]mcmcpy Afe_Block->pucVirtBufAddr=%p, Afe_WriteIdx= %x data_w_ptr = %p copy_size = %x\n",
+	       pr_debug("[AudDrv][Warn]mcmcpy Afe_Block->pucVirtBufAddr=%p, Afe_WriteIdx= %x data_w_ptr = %p copy_size = %x\n",
                    Afe_Block->pucVirtBufAddr, Afe_WriteIdx_tmp, data_w_ptr, copy_size);
 	       Afe_WriteIdx_tmp = 0;
 	   }
@@ -3203,14 +3322,13 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 	    {
 		if (!access_ok(VERIFY_READ, data_w_ptr, copy_size))
 		{
-		    pr_warn("AudDrv_write 0ptr invalid data_w_ptr=%x, size=%d", (kal_uint32)data_w_ptr, copy_size);
-		    pr_warn("AudDrv_write u4BufferSize=%d, u4DataRemained=%d", Afe_Block->u4BufferSize, Afe_Block->u4DataRemained);
+		    pr_debug("AudDrv_write 0ptr invalid data_w_ptr=%x, size=%d", (kal_uint32)data_w_ptr, copy_size);
+		    pr_debug("AudDrv_write u4BufferSize=%d, u4DataRemained=%d", Afe_Block->u4BufferSize, Afe_Block->u4DataRemained);
 		}
 		else
 		{
-		    /*
-		    PRINTK_AUDDRV("mcmcpy Afe_Block->pucVirtBufAddr+Afe_WriteIdx= %x data_w_ptr = %p copy_size = %x\n",
-			Afe_Block->pucVirtBufAddr+Afe_WriteIdx_tmp,data_w_ptr,copy_size);*/
+		    //pr_debug("mcmcpy Afe_Block->pucVirtBufAddr+Afe_WriteIdx= %x data_w_ptr = %p copy_size = %zu\n",
+			//Afe_Block->pucVirtBufAddr+Afe_WriteIdx_tmp,data_w_ptr,copy_size);
 		    if (copy_from_user((Afe_Block->pucVirtBufAddr + Afe_WriteIdx_tmp), data_w_ptr, copy_size))
 		    {
 			pr_err("AudDrv_write Fail copy from user\n");
@@ -3225,9 +3343,8 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 		spin_unlock_irqrestore(&auddrv_DLCtl_lock, flags);
 		data_w_ptr += copy_size;
 		count -= copy_size;
-		/*
-		    PRINTK_AUDDRV("AudDrv_write finish1, copy_size:%x, WriteIdx:%x, ReadIdx=%x, DataRemained:%x, count=%x \r\n",
-		    copy_size,Afe_Block->u4WriteIdx,Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained,count);*/
+		pr_debug("AudDrv_write finish1, copy_size:%x, WriteIdx:%x, ReadIdx=%x, DataRemained:%x, count=%d \r\n",
+		    copy_size,Afe_Block->u4WriteIdx,Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained,count);
 	    }
 	    else  /* copy twice */
 	    {
@@ -3236,14 +3353,13 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 		size_2 = copy_size - size_1;
 		if (!access_ok(VERIFY_READ, data_w_ptr, size_1))
 		{
-		    pr_warn("AudDrv_write 1ptr invalid data_w_ptr=%x, size_1=%d", (kal_uint32)data_w_ptr, size_1);
-		    pr_warn("AudDrv_write u4BufferSize=%d, u4DataRemained=%d", Afe_Block->u4BufferSize, Afe_Block->u4DataRemained);
+		    pr_debug("AudDrv_write 1ptr invalid data_w_ptr=%x, size_1=%d", (kal_uint32)data_w_ptr, size_1);
+		    pr_debug("AudDrv_write u4BufferSize=%d, u4DataRemained=%d", Afe_Block->u4BufferSize, Afe_Block->u4DataRemained);
 		}
 		else
 		{
-		    /*
-		    PRINTK_AUDDRV("mcmcpy Afe_Block->pucVirtBufAddr+Afe_WriteIdx= %x data_w_ptr = %p size_1 = %x\n",
-			Afe_Block->pucVirtBufAddr+Afe_WriteIdx_tmp,data_w_ptr,size_1);*/
+		    //pr_debug("mcmcpy Afe_Block->pucVirtBufAddr+Afe_WriteIdx= %x data_w_ptr = %p size_1 = %zu\n",
+			//Afe_Block->pucVirtBufAddr+Afe_WriteIdx_tmp,data_w_ptr,size_1);
 		    if ((copy_from_user((Afe_Block->pucVirtBufAddr + Afe_WriteIdx_tmp), data_w_ptr , size_1)))
 		    {
 			pr_err("AudDrv_write Fail 1 copy from user");
@@ -3259,14 +3375,13 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 
 		if (!access_ok(VERIFY_READ, data_w_ptr + size_1, size_2))
 		{
-		    pr_warn("AudDrv_write 2ptr invalid data_w_ptr=%x, size_1=%d, size_2=%d", (kal_uint32)data_w_ptr, size_1, size_2);
-		    pr_warn("AudDrv_write u4BufferSize=%d, u4DataRemained=%d", Afe_Block->u4BufferSize, Afe_Block->u4DataRemained);
+		    pr_debug("AudDrv_write 2ptr invalid data_w_ptr=%x, size_1=%d, size_2=%d", (kal_uint32)data_w_ptr, size_1, size_2);
+		    pr_debug("AudDrv_write u4BufferSize=%d, u4DataRemained=%d", Afe_Block->u4BufferSize, Afe_Block->u4DataRemained);
 		}
 		else
 		{
-		    /*
-		    PRINTK_AUDDRV("mcmcpy Afe_Block->pucVirtBufAddr+Afe_WriteIdx= %x data_w_ptr+size_1 = %p size_2 = %x\n",
-			Afe_Block->pucVirtBufAddr+Afe_WriteIdx_tmp,data_w_ptr+size_1,size_2);*/
+		    //pr_debug("mcmcpy Afe_Block->pucVirtBufAddr+Afe_WriteIdx= %x data_w_ptr+size_1 = %p size_2 = %zu\n",
+			//Afe_Block->pucVirtBufAddr+Afe_WriteIdx_tmp,data_w_ptr+size_1,size_2);
 		    if ((copy_from_user((Afe_Block->pucVirtBufAddr + Afe_WriteIdx_tmp), (data_w_ptr + size_1), size_2)))
 		    {
 			pr_err("AudDrv_write Fail 2  copy from user");
@@ -3281,24 +3396,21 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 		spin_unlock_irqrestore(&auddrv_DLCtl_lock, flags);
 		count -= copy_size;
 		data_w_ptr += copy_size;
-		/*
-		    PRINTK_AUDDRV("AudDrv_write finish2, copy size:%x, WriteIdx:%x,ReadIdx=%x DataRemained:%x \r\n",
+		pr_debug("AudDrv_write finish2, copy size:%x, WriteIdx:%x,ReadIdx=%x DataRemained:%x \r\n",
 		    copy_size,Afe_Block->u4WriteIdx,Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained );
-		*/
+
 	    }
 	}
 	else
 	{
-	    /*
-	    PRINTK_AUDDRV("AudDrv_write copy_size =0, copy size:%x, WriteIdx:%x,ReadIdx=%x DataRemained:%x \r\n",
+	    pr_debug("AudDrv_write copy_size =0, copy size:%x, WriteIdx:%x,ReadIdx=%x DataRemained:%x \r\n",
 		copy_size,Afe_Block->u4WriteIdx,Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained );
-	    */
 	}
 
 	if (count != 0)
 	{
 	    unsigned long long t1, t2;
-	    /* PRINTK_AUDDRV("AudDrv_write wait for interrupt count=%x\n",count); */
+	    pr_debug("AudDrv_write wait for interrupt count=%x\n",count);
 	    t1 = sched_clock(); /* in ns (10^9) */
 	    switch (pAfe_MEM_ConTrol->MemIfNum)
 	    {
@@ -3322,9 +3434,9 @@ static ssize_t AudDrv_write(struct file *fp, const char __user *data, size_t cou
 	    CheckWriteWaitEvent();
 	    if ((ret <= 0) && (t2  > DL1_Interrupt_Interval * 1000000))
 	    {
-		pr_warn("AudDrv_write timeout, [Warning]blocked by others.(%llu)ns,(%d)jiffies written_size = %d\n",
+		pr_debug("AudDrv_write timeout, [Warning]blocked by others.(%llu)ns,(%d)jiffies written_size = %d\n",
 			      t2, (DL1_Interrupt_Interval * 2 / 10), written_size);
-		pr_warn("auddrv write t2 = %llu t1 = %llu t2-t1 = %llu WriteArrayIndex = %d\n", t2, t1, t2 - t1, WriteArrayIndex);
+		pr_debug("auddrv write t2 = %llu t1 = %llu t2-t1 = %llu WriteArrayIndex = %d\n", t2, t1, t2 - t1, WriteArrayIndex);
 		/* handle for wait interrupt timoout */
 		spin_lock_irqsave(&auddrv_irqstatus_lock, flags);
 		AudIrqReset = true;
@@ -3371,13 +3483,13 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
     Afe_Block = &(pAfe_MEM_ConTrol->rBlock);
     if (pAfe_MEM_ConTrol == NULL)
     {
-	pr_warn("cannot find MEM control !!!!!!!\n");
+	pr_debug("cannot find MEM control !!!!!!!\n");
 	msleep(50);
 	return -1;
     }
     if (!Auddrv_CheckRead_MemIF_Fp(pAfe_MEM_ConTrol->MemIfNum))
     {
-	pr_warn("cannot find matcg MemIfNum!!!\n");
+	pr_debug("cannot find matcg MemIfNum!!!\n");
 	msleep(50);
 	return -1;
     }
@@ -3388,10 +3500,8 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 	return -1;
     }
     /* handle for buffer management */
-    /*
-    PRINTK_AUDDRV("AudDrv_MEMIF_Read WriteIdx=%x, ReadIdx=%x, DataRemained=%x\n",
-	Afe_Block->u4WriteIdx, Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained);*/
-
+   pr_debug("AudDrv_MEMIF_Read WriteIdx=%x, ReadIdx=%x, DataRemained=%x\n",
+	Afe_Block->u4WriteIdx, Afe_Block->u4DMAReadIdx,Afe_Block->u4DataRemained);
     while (count)
     {
 	if (CheckNullPointer((void *)Afe_Block->pucVirtBufAddr))
@@ -3402,8 +3512,9 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 	spin_lock_irqsave(&auddrv_ULInCtl_lock, flags);
 	if (Afe_Block->u4DataRemained >  Afe_Block->u4BufferSize)
 	{
-	    pr_warn("AudDrv_MEMIF_Read u4DataRemained=%x > u4BufferSize=%x" , Afe_Block->u4DataRemained, Afe_Block->u4BufferSize);
+	    pr_debug("AudDrv_MEMIF_Read u4DataRemained=%x > u4BufferSize=%x" , Afe_Block->u4DataRemained, Afe_Block->u4BufferSize);
 	    Afe_Block->u4DataRemained = 0;
+            Afe_Block->u4WriteIdx = Afe_Block->u4WriteIdx%Afe_Block->u4BufferSize;
 	    Afe_Block->u4DMAReadIdx   = Afe_Block->u4WriteIdx;
 	}
 	if (count >  Afe_Block->u4DataRemained)
@@ -3417,28 +3528,27 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 	DMA_Read_Ptr = Afe_Block->u4DMAReadIdx;
 	spin_unlock_irqrestore(&auddrv_ULInCtl_lock, flags);
 
-	/*
-	PRINTK_AUDDRV("AudDrv_MEMIF_Read finish0, read_count:%x, read_size:%x, u4DataRemained:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x \r\n",
-	    read_count,read_size,Afe_Block->u4DataRemained,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx);*/
+	pr_debug("AudDrv_MEMIF_Read finish0, read_count:%x, read_size:%x, u4DataRemained:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x \r\n",
+	    read_count,read_size,Afe_Block->u4DataRemained,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx);
 
 	if (DMA_Read_Ptr + read_size < Afe_Block->u4BufferSize)
 	{
 #ifndef SOUND_FAKE_READ
 	    if (DMA_Read_Ptr != Afe_Block->u4DMAReadIdx)
 	    {
-		pr_warn("AudDrv_MEMIF_Read 1, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x \r\n",
+		pr_debug("AudDrv_MEMIF_Read 1, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x \r\n",
 			      read_size, Afe_Block->u4DataRemained, DMA_Read_Ptr, Afe_Block->u4DMAReadIdx);
 	    }
 
             if (DMA_Read_Ptr < 0 || DMA_Read_Ptr > Afe_Block->u4BufferSize)
 	    {
-		pr_warn("AudDrv_MEMIF_Read E1, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x pucVirtBufAddr : %x \r\n",
+		pr_debug("AudDrv_MEMIF_Read E1, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x pucVirtBufAddr : %x \r\n",
 			      read_size, Afe_Block->u4DataRemained, DMA_Read_Ptr, Afe_Block->u4DMAReadIdx, (unsigned int)Afe_Block->pucVirtBufAddr);
 	    }
 
 	    if (copy_to_user((void __user *)Read_Data_Ptr, (Afe_Block->pucVirtBufAddr + DMA_Read_Ptr), read_size))
 	    {
-		pr_warn("AudDrv_MEMIF_Read Fail 1 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:0x%x, read_size:%x",
+		pr_debug("AudDrv_MEMIF_Read Fail 1 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:0x%x, read_size:%x",
 			      Read_Data_Ptr, Afe_Block->pucVirtBufAddr, Afe_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);
 		if (read_count == 0)
 		{
@@ -3462,8 +3572,8 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 
 	    Read_Data_Ptr += read_size;
 	    count -= read_size;
-	    /*PRINTK_AUDDRV("AudDrv_MEMIF_Read finish1, copy size:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x, u4DataRemained:%x \r\n",
-	    read_size,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx,Afe_Block->u4DataRemained );*/
+	    pr_debug("AudDrv_MEMIF_Read finish1, copy size:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x, u4DataRemained:%x \r\n",
+	    read_size,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx,Afe_Block->u4DataRemained );
 	}
 
 	else
@@ -3473,23 +3583,20 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 #ifndef SOUND_FAKE_READ
 	    if (DMA_Read_Ptr != Afe_Block->u4DMAReadIdx)
 	    {
-		/*
-		 PRINTK_AUDDRV("AudDrv_MEMIF_Read 2, read_size1:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x \r\n",
-		     size_1,Afe_Block->u4DataRemained,DMA_Read_Ptr,Afe_Block->u4DMAReadIdx);*/
+		pr_debug("AudDrv_MEMIF_Read 2, read_size1:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x \r\n",
+		     size_1,Afe_Block->u4DataRemained,DMA_Read_Ptr,Afe_Block->u4DMAReadIdx);
 	    }
 
             if (DMA_Read_Ptr < 0 || DMA_Read_Ptr > Afe_Block->u4BufferSize)
 	    {
-		pr_warn("AudDrv_MEMIF_Read E2, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x pucVirtBufAddr : %x \r\n",
+		pr_debug("AudDrv_MEMIF_Read E2, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x pucVirtBufAddr : %x \r\n",
 			      read_size, Afe_Block->u4DataRemained, DMA_Read_Ptr, Afe_Block->u4DMAReadIdx, (unsigned int)Afe_Block->pucVirtBufAddr);
 	    }
 
 	    if (copy_to_user((void __user *)Read_Data_Ptr, (Afe_Block->pucVirtBufAddr + DMA_Read_Ptr), size_1))
 	    {
-		/*
-		 PRINTK_AUDDRV("AudDrv_MEMIF_Read Fail 2 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:0x%x, read_size:%x",
-		     Read_Data_Ptr,Afe_Block->pucVirtBufAddr, Afe_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);*/
-
+		pr_debug("AudDrv_MEMIF_Read Fail 2 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:0x%x, read_size:%x",
+		     Read_Data_Ptr,Afe_Block->pucVirtBufAddr, Afe_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);
 		if (read_count == 0)
 		{
 		    return -1;
@@ -3509,9 +3616,8 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 	    Afe_Block->u4DMAReadIdx %= Afe_Block->u4BufferSize;
 	    DMA_Read_Ptr = Afe_Block->u4DMAReadIdx;
 	    spin_unlock_irqrestore(&auddrv_ULInCtl_lock, flags);
-	    /*
-	    PRINTK_AUDDRV("AudDrv_MEMIF_Read finish2, copy size_1:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x, u4DataRemained:%x \r\n",
-		size_1,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx,Afe_Block->u4DataRemained );*/
+	    pr_debug("AudDrv_MEMIF_Read finish2, copy size_1:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x, u4DataRemained:%x \r\n",
+		size_1,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx,Afe_Block->u4DataRemained );
 #ifndef SOUND_FAKE_READ
 	    if (DMA_Read_Ptr != Afe_Block->u4DMAReadIdx)
 	    {
@@ -3521,7 +3627,7 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 	    }
             if (DMA_Read_Ptr < 0 || DMA_Read_Ptr > Afe_Block->u4BufferSize)
 	    {
-		pr_warn("AudDrv_MEMIF_Read E3, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x pucVirtBufAddr : %x \r\n",
+		pr_debug("AudDrv_MEMIF_Read E3, read_size:%x, DataRemained:%x, DMA_Read_Ptr:0x%x, DMAReadIdx:%x pucVirtBufAddr : %x \r\n",
 			      read_size, Afe_Block->u4DataRemained, DMA_Read_Ptr, Afe_Block->u4DMAReadIdx, (unsigned int)Afe_Block->pucVirtBufAddr);
 	    }
 
@@ -3551,14 +3657,13 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 
 	    count -= read_size;
 	    Read_Data_Ptr += read_size;
-	    /*
-	    PRINTK_AUDDRV("AudDrv_MEMIF_Read finish3, copy size_2:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x u4DataRemained:%x \r\n",
-		size_2,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx,Afe_Block->u4DataRemained );*/
+	 pr_debug("AudDrv_MEMIF_Read finish3, copy size_2:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x u4DataRemained:%x \r\n",
+		size_2,Afe_Block->u4DMAReadIdx,Afe_Block->u4WriteIdx,Afe_Block->u4DataRemained );
 	}
 
 	if (count != 0)
 	{
-	    /* PRINTK_AUDDRV("AudDrv_MEMIF_Read wait for interrupt signal pAfe_MEM_ConTrol->MemIfNum = %d\n",pAfe_MEM_ConTrol->MemIfNum); */
+	   pr_debug("AudDrv_MEMIF_Read wait for interrupt signal pAfe_MEM_ConTrol->MemIfNum = %d\n",pAfe_MEM_ConTrol->MemIfNum);
 	    switch (pAfe_MEM_ConTrol->MemIfNum)
 	    {
 		case MEM_VUL:
@@ -3580,7 +3685,7 @@ ssize_t AudDrv_MEMIF_Read(struct file *fp,  char __user *data, size_t count, lof
 		    break;
 		}
 		default:
-		    pr_warn("cannot find matcg MemIfNum!!!\n");
+		    pr_debug("cannot find matcg MemIfNum!!!\n");
 		    msleep(200);
 		    return -1;
 	    }
@@ -3655,12 +3760,12 @@ static int AudDrv_flush(struct file *flip, fl_owner_t id)
  */
 void AudDrv_vma_open(struct vm_area_struct *vma)
 {
-    pr_notice("AudDrv_vma_open virt:%lx, phys:%lx, length:%lx\n", vma->vm_start, vma->vm_pgoff << PAGE_SHIFT, vma->vm_end - vma->vm_start);
+    pr_debug("AudDrv_vma_open virt:%lx, phys:%lx, length:%lx\n", vma->vm_start, vma->vm_pgoff << PAGE_SHIFT, vma->vm_end - vma->vm_start);
 }
 
 void AudDrv_vma_close(struct vm_area_struct *vma)
 {
-    pr_notice("AudDrv_vma_close virt");
+    pr_debug("AudDrv_vma_close virt");
 }
 
 /*
@@ -3691,7 +3796,7 @@ static struct vm_operations_struct AudDrv_remap_vm_ops =
 
 static int AudDrv_remap_mmap(struct file *flip, struct vm_area_struct *vma)
 {
-    pr_notice("AudDrv_remap_mmap\n");
+    pr_debug("AudDrv_remap_mmap\n");
     /*
     vma->vm_pgoff =( AFE_dl_Control->rBlock.pucPhysBufAddr)>>PAGE_SHIFT;
     if(remap_pfn_range(vma , vma->vm_start , vma->vm_pgoff ,
@@ -3725,7 +3830,7 @@ static int AudDrv_remap_mmap(struct file *flip, struct vm_area_struct *vma)
  */
 static int AudDrv_fasync(int fd, struct file *flip, int mode)
 {
-    pr_notice("AudDrv_fasync\n");
+    pr_debug("AudDrv_fasync\n");
     return fasync_helper(fd, flip, mode, &AudDrv_async);
 }
 
@@ -3804,7 +3909,7 @@ struct platform_device AudDrv_device =
 static int AudDrv_mod_init(void)
 {
     int ret = 0;
-    pr_notice("+AudDrv_mod_init\n");
+    pr_debug("+AudDrv_mod_init\n");
 
     /* register speaker driver */
     Speaker_Register();
@@ -3835,21 +3940,21 @@ static int AudDrv_mod_init(void)
     wake_lock_init(&Audio_wake_lock, WAKE_LOCK_SUSPEND, "Audio_WakeLock");
     wake_lock_init(&Audio_record_wake_lock, WAKE_LOCK_SUSPEND, "Audio_Record_WakeLock");
 
-    pr_notice("AudDrv_mod_init: Init Audio WakeLock\n");
+    pr_debug("AudDrv_mod_init: Init Audio WakeLock\n");
 
     return 0;
 }
 
 static void  AudDrv_mod_exit(void)
 {
-    pr_notice("+AudDrv_mod_exit\n");
+    pr_debug("+AudDrv_mod_exit\n");
 
     /*
     remove_proc_entry("audio", NULL);
     platform_driver_unregister(&AudDrv_driver);
     */
 
-    pr_notice("-AudDrv_mod_exit\n");
+    pr_debug("-AudDrv_mod_exit\n");
 }
 
 

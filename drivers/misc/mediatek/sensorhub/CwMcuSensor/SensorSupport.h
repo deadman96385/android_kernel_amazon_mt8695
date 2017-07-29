@@ -21,15 +21,17 @@
 #define SP_STEP_DETECTOR                    (14)
 #define SP_STEP_COUNTER                     (15)
 #define SP_SIGNIFICANT_MOTION               (16)
-#define SP_CYW_SHAKE                        (17)
-#define SP_CYW_TAP                          (18)
-#define SP_CYW_PRIVATE_SENSOR_A             (19)
-#define SP_CYW_CONTEXT_AWARENESS            (20)
-#define SP_CYW_STATIC_DETECTOR              (21)
-#define SP_CYW_WATCH_HANDUPDOWN             (22)
-#define SP_CUSTOMALGO1                      (23)
-#define SP_CUSTOMALGO2                      (24)
-#define SP_CUSTOMIZED_PEDOMETER             (25)
+#define SP_TILT_DETECTOR                    (17)
+#define SP_CYW_SHAKE                        (18)
+#define SP_CYW_TAP                          (19)
+#define SP_CYW_PRIVATE_SENSOR_A             (20)
+#define SP_CYW_CONTEXT_AWARENESS            (21)
+#define SP_CYW_STATIC_DETECTOR              (22)
+#define SP_CYW_WATCH_HANDUPDOWN             (23)
+#define SP_CUSTOMALGO1                      (24)
+#define SP_CUSTOMALGO2                      (25)
+#define SP_CUSTOMIZED_PEDOMETER             (26)
+#define SP_CYW_WRIST_TILT                   (27)
 */
 
 #define SP_ACCELEROMETER                    (CWM_SUPPORT)
@@ -61,7 +63,7 @@
 #define SP_STEP_DETECTOR                    (CWM_SUPPORT)
 #define SP_STEP_COUNTER                     (CWM_SUPPORT)
 #define SP_SIGNIFICANT_MOTION               (CWM_SUPPORT)
-#define SP_TILT_DETECTOR                    (CWM_NOT_SUPPORT)
+#define SP_TILT_DETECTOR                    (CWM_SUPPORT)
 #define SP_WAKE_UP                          (CWM_NOT_SUPPORT)
 #define SP_GLANCE                           (CWM_NOT_SUPPORT)
 #define SP_PICK_UP                          (CWM_NOT_SUPPORT)
@@ -106,6 +108,7 @@
 #define SP_CUSTOMALGO1                      (CWM_SUPPORT)
 #define SP_CUSTOMALGO2                      (CWM_SUPPORT)
 #define SP_CUSTOMIZED_PEDOMETER             (CWM_SUPPORT)
+#define SP_CYW_WRIST_TILT                   (CWM_SUPPORT)
 
 /**
 *   Description:
@@ -164,7 +167,7 @@ typedef enum {
 #if SP_HEART_RATE
     emHEART_RATE    ,
 #endif
-#ifdef SP_HEART_RATE_TOUCH
+#if SP_HEART_RATE_TOUCH
     emHEART_RATE_TOUCH,
 #endif
 #if SP_AUDIO
@@ -331,6 +334,9 @@ typedef enum {
 #endif
 #if SP_CUSTOMIZED_PEDOMETER
     emCUSTOMIZED_PEDOMETER  ,
+#endif
+#if SP_CYW_WRIST_TILT
+    emCYW_WRIST_TILT,
 #endif
     SENSORS_ID_END
 } SENSORS_ID;
@@ -540,6 +546,10 @@ typedef enum {
 #endif
 #if SP_CUSTOMIZED_PEDOMETER
 #define CUSTOMIZED_PEDOMETER                       (emCUSTOMIZED_PEDOMETER)
+#endif
+
+#if SP_CYW_WRIST_TILT
+#define CYW_WRIST_TILT                      (emCYW_WRIST_TILT)
 #endif
 
 #define STD_DRIVER_ID_END                   (ORIENTATION)

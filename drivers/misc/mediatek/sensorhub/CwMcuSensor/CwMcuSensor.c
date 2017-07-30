@@ -3051,7 +3051,8 @@ static int cw_pm_notifier_callback(struct notifier_block *self,
 		CW_INFO("sensorhub start resume\n");
 		cw_wakeup_time = jiffies;
 		CWMCU_late_resume(NULL);
-	} else if (event == DISP_POWER_MODE_DOZE_SUSPEND) {
+	} else if (event == DISP_POWER_MODE_DOZE_SUSPEND
+	    || event == DISP_POWER_MODE_OFF) {
 		if (sensor->pm_flag == 1) {
 			sensor->pm_flag = 0;
 			return 0;

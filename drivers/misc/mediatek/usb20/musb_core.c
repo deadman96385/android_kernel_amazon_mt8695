@@ -1347,7 +1347,7 @@ void musb_generic_disable(struct musb *musb)
 	musb_writeb(musb->mregs, MUSB_INTRUSB, 0xEF);
 #endif
 }
-#if 0
+
 static void gadget_stop(struct musb *musb)
 {
 	u8 power;
@@ -1364,24 +1364,13 @@ static void gadget_stop(struct musb *musb)
 		DBG(0, "musb->gadget_driver:%p\n", musb->gadget_driver);
 		if (musb->gadget_driver && musb->gadget_driver->disconnect) {
 			DBG(0, "musb->gadget_driver->disconnect:%p\n", musb->gadget_driver->disconnect);
-			/* align musb_g_disconnect */
-			spin_unlock(&musb->lock);
 
 			musb->gadget_driver->disconnect(&musb->g);
-
-			/* align musb_g_disconnect */
-			#ifndef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
-			spin_lock(&musb->lock);
-			#endif
 		}
 		musb->g.speed = USB_SPEED_UNKNOWN;
-	#ifdef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
-	} else {
-		spin_unlock(&musb->lock);
-	#endif
 	}
 }
-#endif
+
 /*
  * Make the HDRC stop (disable interrupts, etc.);
  * reversible by musb_start
@@ -1393,7 +1382,7 @@ void musb_stop(struct musb *musb)
 {
 	/* stop IRQs, timers, ... */
 	musb_generic_disable(musb);
-	//gadget_stop(musb);
+	gadget_stop(musb);
 	musb_platform_disable(musb);
 	musb->is_active = 0;
 	DBG(0, "HDRC disabled\n");

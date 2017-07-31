@@ -2215,7 +2215,7 @@ static int musb_gadget_pullup(struct usb_gadget *gadget, int is_on)
 
 	/* MTK additional */
 	DBG(0, "is_on=%d, softconnect=%d ++\n", is_on, musb->softconnect);
-	if (!musb->is_ready && is_on) {
+	if (is_on) {
 		int delay_time;
 		static struct delayed_work connect_rescue_work;
 
@@ -2223,11 +2223,7 @@ static int musb_gadget_pullup(struct usb_gadget *gadget, int is_on)
 		musb->is_ready = true;
 		set_usb_rdy();
 
-		/* direct issue connection work if usb is forced on */
-		if (musb_force_on)
-			delay_time = 0;
-		else
-			delay_time = 8000;
+		delay_time = 0;
 
 		INIT_DELAYED_WORK(&connect_rescue_work, do_connect_rescue_work);
 		DBG(0, "issue connect_rescue_work on is_ready begin, delay_time:%d ms\n", delay_time);

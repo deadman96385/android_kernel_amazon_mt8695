@@ -204,8 +204,20 @@ struct reboot_reason_lk {
 	u32 data[0];
 };
 
+/* For 3.10 paired preloader compatible */
+struct legacy_padding_preloader {
+	uint32_t start;
+	uint32_t size;
+	uint8_t hw_status;
+	uint8_t fiq_step;
+	uint8_t reboot_mode;
+	uint8_t __pad2;
+};
+
 struct ram_console_buffer {
 	uint32_t sig;
+	struct legacy_padding_preloader lgc_pl;
+
 	/* for size comptible */
 	uint32_t off_pl;
 	uint32_t off_lpl;	/* last preloader: struct reboot_reason_pl */
@@ -455,9 +467,9 @@ static int ram_console_lastk_show(struct ram_console_buffer *buffer, struct seq_
 	} else
 		wdt_status = LAST_RRPL_BUF_VAL(buffer, wdt_status);
 
-	seq_printf(m, "ram console header, hw_status: %u, fiq step %u.\n",
-		   wdt_status, LAST_RRR_BUF_VAL(buffer, fiq_step));
-	seq_printf(m, "%s, old status is %u.\n", ram_console_clear ? "Clear" : "Not Clear", old_wdt_status);
+	seq_printf(m, "hw_s=%u, fiq s=%u, log_s=%u, log_sz=%u, sz_cons=%u.\n",
+		   wdt_status, LAST_RRR_BUF_VAL(buffer, fiq_step), buffer->log_start, buffer->off_console, buffer->sz_console);
+	seq_printf(m, "%s, old_s=%u\n", ram_console_clear ? "C" : "NC", old_wdt_status);
 
 #ifdef CONFIG_PSTORE_CONSOLE
 	/*pr_err("ram_console: pstore show start\n");*/
@@ -651,7 +663,7 @@ static int __init ram_console_early_init(void)
 	return 0;
 #endif
 
-	pr_err("ram_console: buffer start: 0x%p, size: 0x%zx\n", bufp, buffer_size);
+	pr_err("ram_console: pa=%p, buffer start: 0x%p, size: 0x%zx\n", ram_console_buffer_pa, bufp, buffer_size);
 	mtk_cpu_num = num_present_cpus();
 	return ram_console_init(bufp, buffer_size);
 }

@@ -96,7 +96,7 @@ static BATTERY_VOLTAGE_ENUM select_jeita_cv_linear(void)
 		cv_voltage = cv_pos_45_60;
 	} else if (g_temp_status == TEMP_POS_10_TO_POS_45) {
 		if (high_battery_volt_enable) {
-			cv_voltage = BATTERY_VOLT_04_350000_V;
+			cv_voltage = BATTERY_VOLT_04_320000_V;
 		} else {
 			cv_voltage = cv_pos_10_45;
 		}
@@ -465,7 +465,7 @@ static void pchr_turn_on_charging_linear(void)
 			/* Set CV */
 			if (jeita_enable == 0) {
 				if (high_battery_volt_enable == 1) {
-					cv_voltage = BATTERY_VOLT_04_350000_V;
+					cv_voltage = BATTERY_VOLT_04_320000_V;
 				} else {
 					cv_voltage = BATTERY_VOLT_04_200000_V;
 				}

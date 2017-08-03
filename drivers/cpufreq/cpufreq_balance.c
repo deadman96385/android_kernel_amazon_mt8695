@@ -86,7 +86,7 @@ static unsigned int min_sampling_rate;
 #define TRANSITION_LATENCY_LIMIT		(10 * 1000 * 1000)
 
 static void do_dbs_timer(struct work_struct *work);
-static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
+static int bl_cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				unsigned int event);
 
 #ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_BALANCE
@@ -94,7 +94,7 @@ static
 #endif
 struct cpufreq_governor cpufreq_gov_balance = {
        .name                   = "hotplug",
-       .governor               = cpufreq_governor_dbs,
+       .governor               = bl_cpufreq_governor_dbs,
        .max_transition_latency = TRANSITION_LATENCY_LIMIT,
        .owner                  = THIS_MODULE,
 };
@@ -1325,9 +1325,29 @@ static struct input_handler dbs_input_handler = {
 };
 #endif //#ifdef CONFIG_HOTPLUG_CPU
 
+extern atomic_t hotplug_cpu_count;
+static int bl_idle_notifier(struct notifier_block *nb, unsigned long val, void *data)
+{
+	if (atomic_read(&hotplug_cpu_count) != 1)
+		return 0;
 
+	switch (val) {
+	case IDLE_START:
+		bl_enable_timer(0);
+		break;
+	case IDLE_END:
+		bl_enable_timer(1);
+		break;
+	}
 
-static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
+	return 0;
+}
+
+struct notifier_block bl_idle_nb = {
+	.notifier_call = bl_idle_notifier,
+};
+
+static int bl_cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				   unsigned int event)
 {
 	unsigned int cpu = policy->cpu;
@@ -1338,6 +1358,18 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	this_dbs_info = &per_cpu(hp_cpu_dbs_info, cpu);
 
 	switch (event) {
+	case CPUFREQ_GOV_POLICY_INIT:
+		if (!cpu && (!policy->governor->initialized)) {
+			pr_debug("[%s] INIT\n", __func__);
+			idle_notifier_register(&bl_idle_nb);
+		}
+		break;
+	case CPUFREQ_GOV_POLICY_EXIT:
+		if (!cpu) {
+			pr_debug("[%s] EXIT\n", __func__);
+			idle_notifier_unregister(&bl_idle_nb);
+		}
+		break;
 	case CPUFREQ_GOV_START:
 		if ((!cpu_online(cpu)) || (!policy->cur))
 			return -EINVAL;
@@ -1388,9 +1420,9 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			dbs_tuners_ins.io_is_busy = should_io_be_busy();
 
 			#ifdef DEBUG_LOG
-			printk("cpufreq_governor_dbs: min_sampling_rate = %d\n", min_sampling_rate);
-			printk("cpufreq_governor_dbs: dbs_tuners_ins.sampling_rate = %d\n", dbs_tuners_ins.sampling_rate);
-			printk("cpufreq_governor_dbs: dbs_tuners_ins.io_is_busy = %d\n", dbs_tuners_ins.io_is_busy);
+			printk("bl_cpufreq_governor_dbs: min_sampling_rate = %d\n", min_sampling_rate);
+			printk("bl_cpufreq_governor_dbs: dbs_tuners_ins.sampling_rate = %d\n", dbs_tuners_ins.sampling_rate);
+			printk("bl_cpufreq_governor_dbs: dbs_tuners_ins.io_is_busy = %d\n", dbs_tuners_ins.io_is_busy);
 			#endif
 		}
 #if INPUT_BOOST

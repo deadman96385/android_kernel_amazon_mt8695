@@ -1,24 +1,13 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
+** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/CFG_Wifi_File.h#1
 */
 
-/*
- * ! \file   CFG_Wifi_File.h
- * \brief  Collection of NVRAM structure used for YuSu project
- *
- *  In this file we collect all compiler flags and detail the driver behavior if
- *  enable/disable such switch or adjust numeric parameters.
- */
+/*! \file   CFG_Wifi_File.h
+    \brief  Collection of NVRAM structure used for YuSu project
+
+    In this file we collect all compiler flags and detail the driver behavior if
+    enable/disable such switch or adjust numeric parameters.
+*/
 
 #ifndef _CFG_WIFI_FILE_H
 #define _CFG_WIFI_FILE_H
@@ -271,8 +260,8 @@ typedef struct _MT6620_CFG_PARAM_STRUCT {
 *                                 M A C R O S
 ********************************************************************************
 */
-#ifndef DATA_STRUCT_INSPECTING_ASSERT
-#define DATA_STRUCT_INSPECTING_ASSERT(expr) \
+#ifndef DATA_STRUC_INSPECTING_ASSERT
+#define DATA_STRUC_INSPECTING_ASSERT(expr) \
 		{switch (0) {case 0: case (expr): default:; } }
 #endif
 
@@ -295,15 +284,15 @@ typedef struct _MT6620_CFG_PARAM_STRUCT {
  */
 static __KAL_INLINE__ VOID nvramOffsetCheck(VOID)
 {
-	DATA_STRUCT_INSPECTING_ASSERT(OFFSET_OF(WIFI_CFG_PARAM_STRUCT, u2Part2OwnVersion) == 256);
+	DATA_STRUC_INSPECTING_ASSERT(OFFSET_OF(WIFI_CFG_PARAM_STRUCT, u2Part2OwnVersion) == 256);
 
-	DATA_STRUCT_INSPECTING_ASSERT(sizeof(WIFI_CFG_PARAM_STRUCT) == 512);
+	DATA_STRUC_INSPECTING_ASSERT(sizeof(WIFI_CFG_PARAM_STRUCT) == 512);
 #if CFG_SUPPORT_NVRAM_5G
-	DATA_STRUCT_INSPECTING_ASSERT((OFFSET_OF(WIFI_CFG_PARAM_STRUCT, EfuseMapping) & 0x0001) == 0);
+	DATA_STRUC_INSPECTING_ASSERT((OFFSET_OF(WIFI_CFG_PARAM_STRUCT, EfuseMapping) & 0x0001) == 0);
 #else
-	DATA_STRUCT_INSPECTING_ASSERT((OFFSET_OF(WIFI_CFG_PARAM_STRUCT, aucEFUSE) & 0x0001) == 0);
+	DATA_STRUC_INSPECTING_ASSERT((OFFSET_OF(WIFI_CFG_PARAM_STRUCT, aucEFUSE) & 0x0001) == 0);
 #endif
-	DATA_STRUCT_INSPECTING_ASSERT((OFFSET_OF(WIFI_CFG_PARAM_STRUCT, aucRegSubbandInfo) & 0x0001)
+	DATA_STRUC_INSPECTING_ASSERT((OFFSET_OF(WIFI_CFG_PARAM_STRUCT, aucRegSubbandInfo) & 0x0001)
 				     == 0);
 }
 #endif

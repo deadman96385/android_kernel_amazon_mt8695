@@ -1,28 +1,627 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
+** Id: @(#) gl_p2p.c@@
+*/
+
+/*! \file   gl_p2p.c
+    \brief  Main routines of Linux driver interface for Wi-Fi Direct
+
+    This file contains the main routines of Linux driver for MediaTek Inc. 802.11
+    Wireless LAN Adapters.
 */
 
 /*
- * Id: @(#) gl_p2p.c@@
- */
-
-/*
- * ! \file   gl_p2p.c
- * \brief  Main routines of Linux driver interface for Wi-Fi Direct
+** Log: gl_p2p.c
+**
+** 04 14 2014 eason.tsai
+** [ALPS01510349] [6595][KK][HotKnot][Reboot][KE][p2pDevFsmRunEventScanDone]Sender
+** reboot automatically with KE about p2pDevFsmRunEventScanDone.
+** fix KE
+**
+** 01 23 2014 eason.tsai
+** [ALPS01070904] [Need Patch] [Volunteer Patch][MT6630][Driver]MT6630 Wi-Fi Patch
+** fix ap mode
+**
+** 07 31 2013 yuche.tsai
+** [BORA00002398] [MT6630][Volunteer Patch] P2P Driver Re-Design for Multiple BSS support
+** Change private data of net device.
+**
+** 07 30 2013 yuche.tsai
+** [BORA00002398] [MT6630][Volunteer Patch] P2P Driver Re-Design for Multiple BSS support
+** Temp fix Hot-spot data path issue.
+**
+** 07 30 2013 yuche.tsai
+** [BORA00002398] [MT6630][Volunteer Patch] P2P Driver Re-Design for Multiple BSS support
+** MT6630 Driver Update for Hot-Spot.
+**
+** 07 29 2013 cp.wu
+** [BORA00002725] [MT6630][Wi-Fi] Add MGMT TX/RX support for Linux port
+** Preparation for porting remain_on_channel support
+**
+** 07 26 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** 1. Reduce extra Tx frame header parsing
+** 2. Add TX port control
+** 3. Add net interface to BSS binding
+**
+** 07 19 2013 yuche.tsai
+** [BORA00002398] [MT6630][Volunteer Patch] P2P Driver Re-Design for Multiple BSS support
+** Code update for P2P.
+**
+** 07 17 2013 yuche.tsai
+** [BORA00002398] [MT6630][Volunteer Patch] P2P Driver Re-Design for Multiple BSS support
+** MT6630 P2P first connection check point 1.
+**
+** 02 27 2013 yuche.tsai
+** [BORA00002398] [MT6630][Volunteer Patch] P2P Driver Re-Design for Multiple BSS support
+** Add new code, fix compile warning.
+**
+** 01 23 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** Refine net dev implementation
+**
+** 01 21 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** Update TX path based on new ucBssIndex modifications.
+**
+** 01 17 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Use ucBssIndex to replace eNetworkTypeIndex
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+**
+** 08 24 2012 yuche.tsai
+** NULL
+** Fix bug of invitation request.
+**
+** 08 17 2012 yuche.tsai
+** NULL
+** Fix compile warning.
+**
+** 08 16 2012 yuche.tsai
+** NULL
+** Fix compile warning.
+**
+** 08 15 2012 yuche.tsai
+** NULL
+** Fix compile warning.
+**
+** 07 31 2012 yuche.tsai
+** NULL
+** Update Active/Deactive network policy for P2P network.
+** Highly related to power saving.
+**
+** 07 24 2012 yuche.tsai
+** NULL
+** Bug fix for JB.
+**
+** 07 20 2012 yuche.tsai
+** [WCXRP00001119] [Volunteer Patch][WiFi Direct][Driver] Connection Policy Set for WFD SIGMA test
+** Support remain on channel.
+**
+** 07 19 2012 yuche.tsai
+** NULL
+** Update code for net device register.
+**
+** 07 19 2012 yuche.tsai
+** NULL
+** Code update for JB.
  *
- * This file contains the main routines of Linux driver for MediaTek Inc. 802.11
- * Wireless LAN Adapters.
- */
+ * 07 17 2012 yuche.tsai
+ * NULL
+ * Fix compile error for JB.
+ *
+ * 07 17 2012 yuche.tsai
+ * NULL
+ * Let netdev bring up.
+ *
+ * 07 17 2012 yuche.tsai
+ * NULL
+ * Compile no error before trial run.
+ *
+ * 01 09 2012 terry.wu
+ * [WCXRP00001166] [Wi-Fi] [Driver] cfg80211 integration for p2p newtork
+ * cfg80211 integration for p2p network.
+ *
+ * 12 19 2011 terry.wu
+ * [WCXRP00001142] [Wi-Fi] [P2P Driver] XOR local admin bit to generate p2p net device MAC
+ * XOR local administrated bit to generate net device MAC of p2p network.
+ *
+ * 12 02 2011 yuche.tsai
+ * NULL
+ * Fix possible KE when unload p2p.
+ *
+ * 11 24 2011 yuche.tsai
+ * NULL
+ * Fix P2P IOCTL of multicast address bug, add low power driver stop control.
+ *
+ * 11 22 2011 yuche.tsai
+ * NULL
+ * Update RSSI link quality of P2P Network query method. (Bug fix)
+ *
+ * 11 19 2011 yuche.tsai
+ * NULL
+ * Add RSSI support for P2P network.
+ *
+ * 11 16 2011 yuche.tsai
+ * [WCXRP00001107] [Volunteer Patch][Driver] Large Network Type index assert in FW issue.
+ * Avoid using work thread in set p2p multicast address callback.
+ *
+ * 11 11 2011 yuche.tsai
+ * NULL
+ * Fix work thread cancel issue.
+ *
+ * 11 11 2011 yuche.tsai
+ * NULL
+ * Fix default device name issue.
+ *
+ * 11 08 2011 yuche.tsai
+ * [WCXRP00001094] [Volunteer Patch][Driver] Driver version & supplicant version query & set support for service
+ * discovery version check.
+ * Add support for driver version query & p2p supplicant verseion set.
+ * For new service discovery mechanism sync.
+ *
+ * 11 07 2011 yuche.tsai
+ * NULL
+ * [ALPS 00087243] KE in worker thread.
+ * The multicast address list is scheduled in worker thread.
+ * Before the worker thread is excuted, if P2P is unloaded, a KE may occur.
+ *
+ * 10 26 2011 terry.wu
+ * [WCXRP00001066] [MT6620 Wi-Fi] [P2P Driver] Fix P2P Oid Issue
+ * Fix some P2P OID functions didn't raise its flag "fgIsP2pOid" issue.
+ *
+ * 10 25 2011 cm.chang
+ * [WCXRP00001058] [All Wi-Fi][Driver] Fix sta_rec's phyTypeSet and OBSS scan in AP mode
+ * .
+ *
+ * 10 18 2011 yuche.tsai
+ * [WCXRP00001045] [WiFi Direct][Driver] Check 2.1 branch.
+ * Support Channle Query.
+ *
+ * 10 18 2011 yuche.tsai
+ * [WCXRP00001045] [WiFi Direct][Driver] Check 2.1 branch.
+ * New 2.1 branch
+
+ *
+ * 08 26 2011 yuche.tsai
+ * NULL
+ * Fix bug of parsing secondary device list type issue.
+ *
+ * 08 24 2011 yuche.tsai
+ * [WCXRP00000919] [Volunteer Patch][WiFi Direct][Driver] Invitation New Feature.
+ * Invitation Abort.
+ *
+ * 08 23 2011 yuche.tsai
+ * NULL
+ * Fix multicast address list issue of P2P.
+ *
+ * 08 22 2011 chinglan.wang
+ * NULL
+ * Fix invitation indication bug..
+ *
+ * 08 16 2011 cp.wu
+ * [WCXRP00000934] [MT6620 Wi-Fi][Driver][P2P] Wi-Fi hot spot with auto sparse channel residence
+ * auto channel decision for 2.4GHz hot spot mode
+ *
+ * 08 16 2011 chinglan.wang
+ * NULL
+ * Add the group id information in the invitation indication.
+ *
+ * 08 09 2011 yuche.tsai
+ * [WCXRP00000919] [Volunteer Patch][WiFi Direct][Driver] Invitation New Feature.
+ * Invitation Feature add on.
+ *
+ * 08 05 2011 yuche.tsai
+ * [WCXRP00000856] [Volunteer Patch][WiFi Direct][Driver] MT6620 WiFi Direct IOT Issue with BCM solution.
+ * Add Password ID check for quick connection.
+ * Also modify some connection policy.
+ *
+ * 07 18 2011 chinglan.wang
+ * NULL
+ * Add IOC_P2P_GO_WSC_IE (p2p capability).
+ *
+ * 06 14 2011 yuche.tsai
+ * NULL
+ * Add compile flag to disable persistent group support.
+ *
+ * 05 04 2011 chinglan.wang
+ * [WCXRP00000698] [MT6620 Wi-Fi][P2P][Driver] Add p2p invitation command for the p2p driver
+ * .
+ *
+ * 05 02 2011 yuche.tsai
+ * [WCXRP00000693] [Volunteer Patch][MT6620][Driver] Clear Formation Flag after TX lifetime timeout.
+ * Clear formation flag after formation timeout.
+ *
+ * 04 22 2011 george.huang
+ * [WCXRP00000621] [MT6620 Wi-Fi][Driver] Support P2P supplicant to set power mode
+ * .
+ *
+ * 04 21 2011 george.huang
+ * [WCXRP00000621] [MT6620 Wi-Fi][Driver] Support P2P supplicant to set power mode
+ * 1. Revise P2P power mode setting.
+ * 2. Revise fast-PS for concurrent
+ *
+ * 04 19 2011 wh.su
+ * NULL
+ * Adding length check before doing WPA RSN IE parsing for scan results indicate.
+ *
+ * 04 14 2011 yuche.tsai
+ * [WCXRP00000646] [Volunteer Patch][MT6620][FW/Driver] Sigma Test Modification for some test case.
+ * Connection flow refine for Sigma test.
+ *
+ * 04 08 2011 yuche.tsai
+ * [WCXRP00000624] [Volunteer Patch][MT6620][Driver] Add device discoverability support for GO.
+ * Add device discoverability support.
+ *
+ * 04 08 2011 george.huang
+ * [WCXRP00000621] [MT6620 Wi-Fi][Driver] Support P2P supplicant to set power mode
+ * separate settings of P2P and AIS
+ *
+ * 04 07 2011 terry.wu
+ * [WCXRP00000619] [MT6620 Wi-Fi][Driver] fix kernel panic may occur when removing wlan
+ * Fix kernel panic may occur when removing wlan driver.
+ *
+ * 03 31 2011 wh.su
+ * [WCXRP00000614] [MT6620 Wi-Fi][Driver] P2P: Update beacon content while setting WSC IE
+ * Update the wsc ie to beacon content.
+ *
+ * 03 25 2011 wh.su
+ * NULL
+ * add the sample code for set power mode and get power mode.
+ *
+ * 03 25 2011 yuche.tsai
+ * NULL
+ * Improve some error handleing.
+ *
+ * 03 22 2011 george.huang
+ * [WCXRP00000504] [MT6620 Wi-Fi][FW] Support Sigma CAPI for power saving related command
+ * link with supplicant commands
+ *
+ * 03 22 2011 yuche.tsai
+ * [WCXRP00000584] [Volunteer Patch][MT6620][Driver] Add beacon timeout support for WiFi Direct.
+ * Modify formation policy.
+ *
+ * 03 22 2011 yuche.tsai
+ * NULL
+ * Modify formation policy setting.
+ *
+ * 03 18 2011 yuche.tsai
+ * [WCXRP00000574] [Volunteer Patch][MT6620][Driver] Modify P2P FSM Connection Flow
+ * Modify connection flow after Group Formation Complete, or device connect to a GO.
+ * Instead of request channel & connect directly, we use scan to allocate channel bandwidth & connect after RX BCN.
+ *
+ * 03 15 2011 wh.su
+ * [WCXRP00000563] [MT6620 Wi-Fi] [P2P] Set local config method while set password Id ready
+ * set lccal config method method while set password Id ready.
+ *
+ * 03 15 2011 yuche.tsai
+ * [WCXRP00000560] [Volunteer Patch][MT6620][Driver] P2P Connection from UI using KEY/DISPLAY issue
+ * Fix some configure method issue.
+ *
+ * 03 15 2011 jeffrey.chang
+ * [WCXRP00000558] [MT6620 Wi-Fi][MT6620 Wi-Fi][Driver] refine the queue selection algorithm for WMM
+ * refine queue_select function
+ *
+ * 03 13 2011 wh.su
+ * [WCXRP00000530] [MT6620 Wi-Fi] [Driver] skip doing p2pRunEventAAAComplete after send assoc response Tx Done
+ * add code for avoid compiling warning.
+ *
+ * 03 10 2011 yuche.tsai
+ * NULL
+ * Add P2P API.
+ *
+ * 03 10 2011 terry.wu
+ * [WCXRP00000505] [MT6620 Wi-Fi][Driver/FW] WiFi Direct Integration
+ * Remove unnecessary assert and message.
+ *
+ * 03 08 2011 wh.su
+ * [WCXRP00000488] [MT6620 Wi-Fi][Driver] Support the SIGMA set p2p parameter to driver
+ * support the power save related p2p setting.
+ *
+ * 03 07 2011 wh.su
+ * [WCXRP00000506] [MT6620 Wi-Fi][Driver][FW] Add Security check related code
+ * rename the define to anti_pviracy.
+ *
+ * 03 05 2011 wh.su
+ * [WCXRP00000506] [MT6620 Wi-Fi][Driver][FW] Add Security check related code
+ * add the code to get the check rsponse and indicate to app.
+ *
+ * 03 03 2011 jeffrey.chang
+ * [WCXRP00000512] [MT6620 Wi-Fi][Driver] modify the net device relative functions to support the H/W multiple queue
+ * support concurrent network
+ *
+ * 03 03 2011 jeffrey.chang
+ * [WCXRP00000512] [MT6620 Wi-Fi][Driver] modify the net device relative functions to support the H/W multiple queue
+ * modify P2P's netdevice  functions to support multiple H/W queues
+ *
+ * 03 03 2011 cp.wu
+ * [WCXRP00000283] [MT6620 Wi-Fi][Driver][Wi-Fi Direct] Implementation of interface for supporting Wi-Fi Direct Service
+ * Discovery
+ * for get request, the buffer length to be copied is header + payload.
+ *
+ * 03 02 2011 wh.su
+ * [WCXRP00000506] [MT6620 Wi-Fi][Driver][FW] Add Security check related code
+ * add code to let the beacon and probe response for Auto GO WSC .
+ *
+ * 03 02 2011 cp.wu
+ * [WCXRP00000283] [MT6620 Wi-Fi][Driver][Wi-Fi Direct] Implementation of interface for supporting Wi-Fi Direct Service
+ * Discovery
+ * add a missed break.
+ *
+ * 03 01 2011 yuche.tsai
+ * [WCXRP00000501] [Volunteer Patch][MT6620][Driver] No common channel issue when doing GO formation
+ * Update channel issue when doing GO formation..
+ *
+ * 02 25 2011 wh.su
+ * [WCXRP00000488] [MT6620 Wi-Fi][Driver] Support the SIGMA set p2p parameter to driver
+ * add the Operation channel setting.
+ *
+ * 02 23 2011 wh.su
+ * [WCXRP00000488] [MT6620 Wi-Fi][Driver] Support the SIGMA set p2p parameter to driver
+ * fixed the set int ioctl set index and value map to driver issue.
+ *
+ * 02 22 2011 wh.su
+ * [WCXRP00000488] [MT6620 Wi-Fi][Driver] Support the SIGMA set p2p parameter to driver
+ * adding the ioctl set int from supplicant, and can used to set the p2p paramters
+ *
+ * 02 21 2011 terry.wu
+ * [WCXRP00000476] [MT6620 Wi-Fi][Driver] Clean P2P scan list while removing P2P
+ * Clean P2P scan list while removing P2P.
+ *
+ * 02 18 2011 wh.su
+ * [WCXRP00000471] [MT6620 Wi-Fi][Driver] Add P2P Provison discovery append Config Method attribute at WSC IE
+ * fixed the ioctl setting that index not map to spec defined config method.
+ *
+ * 02 17 2011 wh.su
+ * [WCXRP00000471] [MT6620 Wi-Fi][Driver] Add P2P Provison discovery append Config Method attribute at WSC IE
+ * append the WSC IE config method attribute at provision discovery request.
+ *
+ * 02 17 2011 wh.su
+ * [WCXRP00000448] [MT6620 Wi-Fi][Driver] Fixed WSC IE not send out at probe request
+ * modify the structure pointer for set WSC IE.
+ *
+ * 02 16 2011 wh.su
+ * [WCXRP00000448] [MT6620 Wi-Fi][Driver] Fixed WSC IE not send out at probe request
+ * fixed the probe request send out without WSC IE issue (at P2P).
+ *
+ * 02 09 2011 cp.wu
+ * [WCXRP00000283] [MT6620 Wi-Fi][Driver][Wi-Fi Direct] Implementation of interface for supporting Wi-Fi Direct Service
+ * Discovery
+ * fix typo
+ *
+ * 02 09 2011 yuche.tsai
+ * [WCXRP00000431] [Volunteer Patch][MT6620][Driver] Add MLME support for deauthentication under AP(Hot-Spot) mode.
+ * Add Support for MLME deauthentication for Hot-Spot.
+ *
+ * 01 25 2011 terry.wu
+ * [WCXRP00000393] [MT6620 Wi-Fi][Driver] Add new module insert parameter
+ * Add a new module parameter to indicate current runnig mode, P2P or AP.
+ *
+ * 01 12 2011 yuche.tsai
+ * [WCXRP00000352] [Volunteer Patch][MT6620][Driver] P2P Statsion Record Client List Issue
+ * 1. Modify Channel Acquire Time of AP mode from 5s to 1s.
+ * 2. Call cnmP2pIsPermit() before active P2P network.
+ * 3. Add channel selection support for AP mode.
+ *
+ * 01 05 2011 cp.wu
+ * [WCXRP00000283] [MT6620 Wi-Fi][Driver][Wi-Fi Direct] Implementation of interface for supporting Wi-Fi Direct Service
+ * Discovery
+ * ioctl implementations for P2P Service Discovery
+ *
+ * 01 04 2011 cp.wu
+ * [WCXRP00000338] [MT6620 Wi-Fi][Driver] Separate kalMemAlloc into kmalloc and vmalloc implementations to ease
+ * physically continous memory demands
+ * separate kalMemAlloc() into virtually-continous and physically-continous type to ease slab system pressure
+ *
+ * 12 22 2010 cp.wu
+ * [WCXRP00000283] [MT6620 Wi-Fi][Driver][Wi-Fi Direct] Implementation of interface for supporting Wi-Fi Direct Service
+ * Discovery
+ * 1. header file restructure for more clear module isolation
+ * 2. add function interface definition for implementing Service Discovery callbacks
+ *
+ * 12 15 2010 cp.wu
+ * NULL
+ * invoke nicEnableInterrupt() before leaving from wlanAdapterStart()
+ *
+ * 12 08 2010 yuche.tsai
+ * [WCXRP00000245] [MT6620][Driver] Invitation & Provision Discovery Feature Check-in
+ * [WCXRP000000245][MT6620][Driver] Invitation Request Feature Add
+ *
+ * 11 30 2010 yuche.tsai
+ * NULL
+ * Invitation & Provision Discovery Indication.
+ *
+ * 11 17 2010 wh.su
+ * [WCXRP00000164] [MT6620 Wi-Fi][Driver] Support the p2p random SSID[WCXRP00000179] [MT6620 Wi-Fi][FW] Set the Tx
+ * lowest rate at wlan table for normal operation
+ * fixed some ASSERT check.
+ *
+ * 11 04 2010 wh.su
+ * [WCXRP00000164] [MT6620 Wi-Fi][Driver] Support the p2p random SSID
+ * adding the p2p random ssid support.
+ *
+ * 10 20 2010 wh.su
+ * [WCXRP00000124] [MT6620 Wi-Fi] [Driver] Support the dissolve P2P Group
+ * Add the code to support disconnect p2p group
+ *
+ * 10 04 2010 wh.su
+ * [WCXRP00000081] [MT6620][Driver] Fix the compiling error at WinXP while enable P2P
+ * add a kal function for set cipher.
+ *
+ * 10 04 2010 wh.su
+ * [WCXRP00000081] [MT6620][Driver] Fix the compiling error at WinXP while enable P2P
+ * fixed compiling error while enable p2p.
+ *
+ * 09 28 2010 wh.su
+ * NULL
+ * [WCXRP00000069][MT6620 Wi-Fi][Driver] Fix some code for phase 1 P2P Demo.
+ *
+ * 09 21 2010 kevin.huang
+ * [WCXRP00000054] [MT6620 Wi-Fi][Driver] Restructure driver for second Interface
+ * Isolate P2P related function for Hardware Software Bundle
+ *
+ * 09 21 2010 kevin.huang
+ * [WCXRP00000052] [MT6620 Wi-Fi][Driver] Eliminate Linux Compile Warning
+ * Eliminate Linux Compile Warning
+ *
+ * 09 10 2010 george.huang
+ * NULL
+ * update iwpriv LP related
+ *
+ * 09 10 2010 wh.su
+ * NULL
+ * fixed the compiling error at win XP.
+ *
+ * 09 09 2010 cp.wu
+ * NULL
+ * add WPS/WPA/RSN IE for Wi-Fi Direct scanning result.
+ *
+ * 09 07 2010 wh.su
+ * NULL
+ * adding the code for beacon/probe req/ probe rsp wsc ie at p2p.
+ *
+ * 09 06 2010 wh.su
+ * NULL
+ * let the p2p can set the privacy bit at beacon and rsn ie at assoc req at key handshake state.
+ *
+ * 08 25 2010 cp.wu
+ * NULL
+ * add netdev_ops(NDO) for linux kernel 2.6.31 or greater
+ *
+ * 08 23 2010 cp.wu
+ * NULL
+ * revise constant definitions to be matched with implementation (original cmd-event definition is deprecated)
+ *
+ * 08 20 2010 cp.wu
+ * NULL
+ * correct typo.
+ *
+ * 08 20 2010 yuche.tsai
+ * NULL
+ * Invert Connection request provision status parameter.
+ *
+ * 08 19 2010 cp.wu
+ * NULL
+ * add set mac address interface for further possibilities of wpa_supplicant overriding interface address.
+ *
+ * 08 18 2010 cp.wu
+ * NULL
+ * modify pwp ioctls attribution by removing FIXED_SIZE.
+ *
+ * 08 18 2010 jeffrey.chang
+ * NULL
+ * support multi-function sdio
+ *
+ * 08 17 2010 cp.wu
+ * NULL
+ * correct p2p net device registration with NULL pointer access issue.
+ *
+ * 08 16 2010 cp.wu
+ * NULL
+ * P2P packets are now marked when being queued into driver, and identified later without checking MAC address
+ *
+ * 08 16 2010 cp.wu
+ * NULL
+ * add subroutines for P2P to set multicast list.
+ *
+ * 08 16 2010 george.huang
+ * NULL
+ * add wext handlers to link P2P set PS profile/ network address function (TBD)
+ *
+ * 08 16 2010 cp.wu
+ * NULL
+ * revised implementation of Wi-Fi Direct io controls.
+ *
+ * 08 12 2010 cp.wu
+ * NULL
+ * follow-up with ioctl interface update for Wi-Fi Direct application
+ *
+ * 08 06 2010 cp.wu
+ * NULL
+ * driver hook modifications corresponding to ioctl interface change.
+ *
+ * 08 03 2010 cp.wu
+ * NULL
+ * add basic support for ioctl of getting scan result. (only address and SSID are reporterd though)
+ *
+ * 08 03 2010 cp.wu
+ * NULL
+ * [Wi-Fi Direct Driver Hook] change event indication API to be consistent with supplicant
+ *
+ * 08 03 2010 cp.wu
+ * NULL
+ * surpress compilation warning.
+ *
+ * 08 03 2010 cp.wu
+ * NULL
+ * [Wi-Fi Direct] add framework for driver hooks
+ *
+ * 07 08 2010 cp.wu
+ *
+ * [WPD00003833] [MT6620 and MT5931] Driver migration - move to new repository.
+ *
+ * 06 23 2010 cp.wu
+ * [WPD00003833][MT6620 and MT5931] Driver migration
+ * p2p interface revised to be sync. with HAL
+ *
+ * 06 06 2010 kevin.huang
+ * [WPD00003832][MT6620 5931] Create driver base
+ * [MT6620 5931] Create driver base
+ *
+ * 06 01 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * add ioctl to configure scan mode for p2p connection
+ *
+ * 05 31 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * add cfg80211 interface, which is to replace WE, for further extension
+ *
+ * 05 17 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * implement private io controls for Wi-Fi Direct
+ *
+ * 05 17 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * implement get scan result.
+ *
+ * 05 17 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * add basic handling framework for wireless extension ioctls.
+ *
+ * 05 17 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * 1) add timeout handler mechanism for pending command packets
+ * 2) add p2p add/removal key
+ *
+ * 05 14 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * implement wireless extension ioctls in iw_handler form.
+ *
+ * 05 14 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * add ioctl framework for Wi-Fi Direct by reusing wireless extension ioctls as well
+ *
+ * 05 11 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * p2p ioctls revised.
+ *
+ * 05 11 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * add ioctl for controlling p2p scan phase parameters
+ *
+ * 05 10 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * implement basic wi-fi direct framework
+ *
+ * 05 07 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * add basic framework for implementating P2P driver hook.
+ *
+**
+*/
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -33,15 +632,15 @@
 *                    E X T E R N A L   R E F E R E N C E S
 ********************************************************************************
 */
-#include <linux/poll.h>
-#include <linux/kmod.h>
-
 #include "gl_os.h"
+#include "debug.h"
 #include "wlan_lib.h"
 #include "gl_wext.h"
-#include "gl_p2p_os.h"
+#include <linux/poll.h>
+
+#include <linux/kmod.h>
+/* #include <net/cfg80211.h> */
 #include "gl_p2p_ioctl.h"
-#include "gl_vendor.h"
 
 #include "precomp.h"
 
@@ -74,8 +673,137 @@ static struct net_device *g_P2pPrDev;
 static struct wireless_dev *gprP2pWdev;
 
 #if CFG_ENABLE_WIFI_DIRECT_CFG_80211
-static struct cfg80211_ops mtk_p2p_ops = {
-	/*.add_virtual_intf = mtk_p2p_cfg80211_add_iface,*/
+/* for cfg80211 - frequency table */
+static struct ieee80211_channel mtk_2ghz_channels[] = {
+	CHAN2G(1, 2412, 0),
+	CHAN2G(2, 2417, 0),
+	CHAN2G(3, 2422, 0),
+	CHAN2G(4, 2427, 0),
+	CHAN2G(5, 2432, 0),
+	CHAN2G(6, 2437, 0),
+	CHAN2G(7, 2442, 0),
+	CHAN2G(8, 2447, 0),
+	CHAN2G(9, 2452, 0),
+	CHAN2G(10, 2457, 0),
+	CHAN2G(11, 2462, 0),
+	CHAN2G(12, 2467, 0),
+	CHAN2G(13, 2472, 0),
+	CHAN2G(14, 2484, 0),
+};
+
+static struct ieee80211_channel mtk_5ghz_a_channels[] = {
+	CHAN5G(34, 0), CHAN5G(36, 0),
+	CHAN5G(38, 0), CHAN5G(40, 0),
+	CHAN5G(42, 0), CHAN5G(44, 0),
+	CHAN5G(46, 0), CHAN5G(48, 0),
+	CHAN5G(52, 0), CHAN5G(56, 0),
+	CHAN5G(60, 0), CHAN5G(64, 0),
+	CHAN5G(100, 0), CHAN5G(104, 0),
+	CHAN5G(108, 0), CHAN5G(112, 0),
+	CHAN5G(116, 0), CHAN5G(120, 0),
+	CHAN5G(124, 0), CHAN5G(128, 0),
+	CHAN5G(132, 0), CHAN5G(136, 0),
+	CHAN5G(140, 0), CHAN5G(149, 0),
+	CHAN5G(153, 0), CHAN5G(157, 0),
+	CHAN5G(161, 0), CHAN5G(165, 0),
+	CHAN5G(169, 0), CHAN5G(173, 0),
+	CHAN5G(184, 0), CHAN5G(188, 0),
+	CHAN5G(192, 0), CHAN5G(196, 0),
+	CHAN5G(200, 0), CHAN5G(204, 0),
+	CHAN5G(208, 0), CHAN5G(212, 0),
+	CHAN5G(216, 0),
+};
+
+/* for cfg80211 - rate table */
+static struct ieee80211_rate mtk_rates[] = {
+	RATETAB_ENT(10, 0x1000, 0),
+	RATETAB_ENT(20, 0x1001, 0),
+	RATETAB_ENT(55, 0x1002, 0),
+	RATETAB_ENT(110, 0x1003, 0),	/* 802.11b */
+	RATETAB_ENT(60, 0x2000, 0),
+	RATETAB_ENT(90, 0x2001, 0),
+	RATETAB_ENT(120, 0x2002, 0),
+	RATETAB_ENT(180, 0x2003, 0),
+	RATETAB_ENT(240, 0x2004, 0),
+	RATETAB_ENT(360, 0x2005, 0),
+	RATETAB_ENT(480, 0x2006, 0),
+	RATETAB_ENT(540, 0x2007, 0),	/* 802.11a/g */
+};
+
+#define mtk_a_rates         (mtk_rates + 4)
+#define mtk_a_rates_size    (sizeof(mtk_rates) / sizeof(mtk_rates[0]) - 4)
+#define mtk_g_rates         (mtk_rates + 0)
+#define mtk_g_rates_size    (sizeof(mtk_rates) / sizeof(mtk_rates[0]) - 0)
+
+#define WLAN_MCS_INFO                                     \
+{                                                           \
+	/* MCS1~7*/                                        \
+	.rx_mask        = {0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0},\
+	.rx_highest     = 0,                                \
+	.tx_params      = IEEE80211_HT_MCS_TX_DEFINED,      \
+}
+
+#if 0
+/*Bandwidth 20Mhz Only*/
+#define WLAN_HT_CAP                                       \
+{                                                           \
+	.ht_supported   = true,                             \
+	.cap            = IEEE80211_HT_CAP_SM_PS            \
+			| IEEE80211_HT_CAP_GRN_FLD          \
+			| IEEE80211_HT_CAP_SGI_20,          \
+	.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,       \
+	.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_NONE,   \
+	.mcs            = WLAN_MCS_INFO,                  \
+}
+#else
+/*Bandwidth 20/40Mhz*/
+#define WLAN_HT_CAP                                       \
+{                                                           \
+	.ht_supported   = true,                             \
+	.cap            = IEEE80211_HT_CAP_SUP_WIDTH_20_40  \
+			| IEEE80211_HT_CAP_SM_PS            \
+			| IEEE80211_HT_CAP_GRN_FLD          \
+			| IEEE80211_HT_CAP_SGI_20           \
+			| IEEE80211_HT_CAP_SGI_40,          \
+	.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,       \
+	.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_NONE,   \
+	.mcs            = WLAN_MCS_INFO,                  \
+}
+#endif
+
+static struct ieee80211_supported_band mtk_band_2ghz = {
+	.band = IEEE80211_BAND_2GHZ,
+	.channels = mtk_2ghz_channels,
+	.n_channels = ARRAY_SIZE(mtk_2ghz_channels),
+	.bitrates = mtk_g_rates,
+	.n_bitrates = mtk_g_rates_size,
+	.ht_cap = WLAN_HT_CAP,
+};
+
+static struct ieee80211_supported_band mtk_band_5ghz = {
+	.band = IEEE80211_BAND_5GHZ,
+	.channels = mtk_5ghz_a_channels,
+	.n_channels = ARRAY_SIZE(mtk_5ghz_a_channels),
+	.bitrates = mtk_a_rates,
+	.n_bitrates = mtk_a_rates_size,
+	.ht_cap = WLAN_HT_CAP,
+};
+
+static const UINT_32 cipher_suites[] = {
+	/* keep WEP first, it may be removed below */
+	WLAN_CIPHER_SUITE_WEP40,
+	WLAN_CIPHER_SUITE_WEP104,
+	WLAN_CIPHER_SUITE_TKIP,
+	WLAN_CIPHER_SUITE_CCMP,
+
+	/* keep last -- depends on hw flags! */
+	WLAN_CIPHER_SUITE_AES_CMAC
+};
+
+static struct cfg80211_ops mtk_p2p_config_ops = {
+#if (CFG_ENABLE_WIFI_DIRECT_CFG_80211 != 0)
+	/* Froyo */
+	.add_virtual_intf = mtk_p2p_cfg80211_add_iface,
 	.change_virtual_intf = mtk_p2p_cfg80211_change_iface,	/* 1 st */
 	.del_virtual_intf = mtk_p2p_cfg80211_del_iface,
 	.change_bss = mtk_p2p_cfg80211_change_bss,
@@ -96,6 +824,7 @@ static struct cfg80211_ops mtk_p2p_ops = {
 	.set_bitrate_mask = mtk_p2p_cfg80211_set_bitrate_mask,
 	.mgmt_frame_register = mtk_p2p_cfg80211_mgmt_frame_register,
 	.get_station = mtk_p2p_cfg80211_get_station,
+	/* ================ */
 	.add_key = mtk_p2p_cfg80211_add_key,
 	.get_key = mtk_p2p_cfg80211_get_key,
 	.del_key = mtk_p2p_cfg80211_del_key,
@@ -108,83 +837,44 @@ static struct cfg80211_ops mtk_p2p_ops = {
 #ifdef CONFIG_NL80211_TESTMODE
 	.testmode_cmd = mtk_p2p_cfg80211_testmode_cmd,
 #endif
-};
-
-static const struct wiphy_vendor_command mtk_p2p_vendor_ops[] = {
-	{
-		{
-			.vendor_id = GOOGLE_OUI,
-			.subcmd = WIFI_SUBCMD_GET_CHANNEL_LIST
-		},
-		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
-		.doit = mtk_cfg80211_vendor_get_channel_list
-	},
-	{
-		{
-			.vendor_id = GOOGLE_OUI,
-			.subcmd = WIFI_SUBCMD_SET_COUNTRY_CODE
-		},
-		.flags = WIPHY_VENDOR_CMD_NEED_WDEV | WIPHY_VENDOR_CMD_NEED_NETDEV,
-		.doit = mtk_cfg80211_vendor_set_country_code
-	},
+#endif
 };
 
 /* There isn't a lot of sense in it, but you can transmit anything you like */
 static const struct ieee80211_txrx_stypes
-	mtk_cfg80211_default_mgmt_stypes[NUM_NL80211_IFTYPES] = {
+mtk_cfg80211_default_mgmt_stypes[NUM_NL80211_IFTYPES] = {
 	[NL80211_IFTYPE_ADHOC] = {
-		.tx = 0xffff,
-		.rx = BIT(IEEE80211_STYPE_ACTION >> 4)
-	},
+				  .tx = 0xffff,
+				  .rx = BIT(IEEE80211_STYPE_ACTION >> 4)
+				  },
 	[NL80211_IFTYPE_STATION] = {
-		.tx = 0xffff,
-		.rx = BIT(IEEE80211_STYPE_ACTION >> 4) | BIT(IEEE80211_STYPE_PROBE_REQ >> 4)
-	},
+				    .tx = 0xffff,
+				    .rx = BIT(IEEE80211_STYPE_ACTION >> 4) | BIT(IEEE80211_STYPE_PROBE_REQ >> 4)
+				    },
 	[NL80211_IFTYPE_AP] = {
-		.tx = 0xffff,
-		.rx = BIT(IEEE80211_STYPE_PROBE_REQ >> 4) | BIT(IEEE80211_STYPE_ACTION >> 4)
-	},
+			       .tx = 0xffff,
+			       .rx = BIT(IEEE80211_STYPE_PROBE_REQ >> 4) | BIT(IEEE80211_STYPE_ACTION >> 4)
+			       },
 	[NL80211_IFTYPE_AP_VLAN] = {
-		/* copy AP */
-		.tx = 0xffff,
-		.rx = BIT(IEEE80211_STYPE_ASSOC_REQ >> 4) |
-		      BIT(IEEE80211_STYPE_REASSOC_REQ >> 4) |
-		      BIT(IEEE80211_STYPE_PROBE_REQ >> 4) |
-		      BIT(IEEE80211_STYPE_DISASSOC >> 4) |
-		      BIT(IEEE80211_STYPE_AUTH >> 4) |
-		      BIT(IEEE80211_STYPE_DEAUTH >> 4) | BIT(IEEE80211_STYPE_ACTION >> 4)
-	},
+				    /* copy AP */
+				    .tx = 0xffff,
+				    .rx = BIT(IEEE80211_STYPE_ASSOC_REQ >> 4) |
+				    BIT(IEEE80211_STYPE_REASSOC_REQ >> 4) |
+				    BIT(IEEE80211_STYPE_PROBE_REQ >> 4) |
+				    BIT(IEEE80211_STYPE_DISASSOC >> 4) |
+				    BIT(IEEE80211_STYPE_AUTH >> 4) |
+				    BIT(IEEE80211_STYPE_DEAUTH >> 4) | BIT(IEEE80211_STYPE_ACTION >> 4)
+				    },
 	[NL80211_IFTYPE_P2P_CLIENT] = {
-		.tx = 0xffff,
-		.rx = BIT(IEEE80211_STYPE_ACTION >> 4) | BIT(IEEE80211_STYPE_PROBE_REQ >> 4)
-	},
+				       .tx = 0xffff,
+				       .rx = BIT(IEEE80211_STYPE_ACTION >> 4) | BIT(IEEE80211_STYPE_PROBE_REQ >> 4)
+				       },
 	[NL80211_IFTYPE_P2P_GO] = {
-		.tx = 0xffff,
-		.rx = BIT(IEEE80211_STYPE_PROBE_REQ >> 4) | BIT(IEEE80211_STYPE_ACTION >> 4)
-	}
+				   .tx = 0xffff,
+				   .rx = BIT(IEEE80211_STYPE_PROBE_REQ >> 4) | BIT(IEEE80211_STYPE_ACTION >> 4)
+				   }
 };
 
-static const struct ieee80211_iface_limit mtk_p2p_iface_limits[] = {
-	{
-		.max = 1,
-		.types = BIT(NL80211_IFTYPE_STATION) |
-			BIT(NL80211_IFTYPE_AP)
-	},
-	{
-		.max = 1,
-		.types = BIT(NL80211_IFTYPE_P2P_CLIENT) |
-		BIT(NL80211_IFTYPE_P2P_GO)
-	},
-};
-
-static const struct ieee80211_iface_combination mtk_p2p_iface_combos[] = {
-	{
-		.max_interfaces = 2,
-		.num_different_channels = 2,
-		.n_limits = ARRAY_SIZE(mtk_p2p_iface_limits),
-		.limits = mtk_p2p_iface_limits
-	}
-};
 #endif
 
 #if 0
@@ -337,7 +1027,7 @@ static int p2pHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDe
 
 static int p2pSetMACAddress(IN struct net_device *prDev, void *addr);
 
-static int p2pDoIOCTL(struct net_device *prDev, struct ifreq *prIfReq, int i4Cmd);
+static int p2pDoIOCTL(struct net_device *prDev, struct ifreq *prIFReq, int i4Cmd);
 
 #if 0
 
@@ -411,6 +1101,8 @@ static int p2pInit(struct net_device *prDev)
 /*----------------------------------------------------------------------------*/
 static void p2pUninit(IN struct net_device *prDev)
 {
+
+	return;
 }				/* end of p2pUninit() */
 
 const struct net_device_ops p2p_netdev_ops = {
@@ -466,22 +1158,21 @@ BOOLEAN p2PAllocInfo(IN P_GLUE_INFO_T prGlueInfo)
 
 			prWifiVar->prP2pDevFsmInfo = kalMemAlloc(sizeof(P2P_DEV_FSM_INFO_T), VIR_MEM_TYPE);
 
-			/* TODO: It can be moved to the interface been created. */
-			/*
-			 * for (u4Idx = 0; u4Idx < BSS_P2P_NUM; u4Idx++) {
-			 *     prWifiVar->aprP2pRoleFsmInfo[u4Idx] =
-			 *     kalMemAlloc(sizeof(P2P_ROLE_FSM_INFO_T),VIR_MEM_TYPE);
-			 * }
-			 */
+			/* TODO: It can be moved to the inteface been created. */
+/*
+	    for (u4Idx = 0; u4Idx < BSS_P2P_NUM; u4Idx++) {
+		prWifiVar->aprP2pRoleFsmInfo[u4Idx] = kalMemAlloc(sizeof(P2P_ROLE_FSM_INFO_T),VIR_MEM_TYPE);
+	    }
+*/
 
 			prWifiVar->prP2pSpecificBssInfo = kalMemAlloc(sizeof(P2P_SPECIFIC_BSS_INFO_T), VIR_MEM_TYPE);
 		} else {
 			ASSERT(prAdapter->prP2pInfo != NULL);
 			ASSERT(prWifiVar->prP2PConnSettings != NULL);
-			/* ASSERT(prWifiVar->prP2pFsmInfo != NULL); */
+/* ASSERT(prWifiVar->prP2pFsmInfo != NULL); */
 			ASSERT(prWifiVar->prP2pSpecificBssInfo != NULL);
 		}
-		/* MUST set memory to 0 */
+		/*MUST set memory to 0 */
 		if (prGlueInfo->prP2PInfo)
 			kalMemZero(prGlueInfo->prP2PInfo, sizeof(GL_P2P_INFO_T));
 		if (prAdapter->prP2pInfo)
@@ -499,34 +1190,36 @@ BOOLEAN p2PAllocInfo(IN P_GLUE_INFO_T prGlueInfo)
 /* prWifiVar->prP2pFsmInfo && */
 	    prWifiVar->prP2pSpecificBssInfo) {
 		return TRUE;
-	}
+	} else {
 
-	if (prWifiVar->prP2pSpecificBssInfo) {
-		kalMemFree(prWifiVar->prP2pSpecificBssInfo, VIR_MEM_TYPE, sizeof(P2P_SPECIFIC_BSS_INFO_T));
+		if (prWifiVar->prP2pSpecificBssInfo) {
+			kalMemFree(prWifiVar->prP2pSpecificBssInfo, VIR_MEM_TYPE, sizeof(P2P_SPECIFIC_BSS_INFO_T));
 
-		prWifiVar->prP2pSpecificBssInfo = NULL;
-	}
+			prWifiVar->prP2pSpecificBssInfo = NULL;
+		}
 /* if (prWifiVar->prP2pFsmInfo) { */
 /* kalMemFree(prWifiVar->prP2pFsmInfo, VIR_MEM_TYPE, sizeof(P2P_FSM_INFO_T)); */
 
 /* prWifiVar->prP2pFsmInfo = NULL; */
 /* } */
-	if (prWifiVar->prP2PConnSettings) {
-		kalMemFree(prWifiVar->prP2PConnSettings, VIR_MEM_TYPE, sizeof(P2P_CONNECTION_SETTINGS_T));
+		if (prWifiVar->prP2PConnSettings) {
+			kalMemFree(prWifiVar->prP2PConnSettings, VIR_MEM_TYPE, sizeof(P2P_CONNECTION_SETTINGS_T));
 
-		prWifiVar->prP2PConnSettings = NULL;
-	}
-	if (prGlueInfo->prP2PInfo) {
-		kalMemFree(prGlueInfo->prP2PInfo, VIR_MEM_TYPE, sizeof(GL_P2P_INFO_T));
+			prWifiVar->prP2PConnSettings = NULL;
+		}
+		if (prGlueInfo->prP2PInfo) {
+			kalMemFree(prGlueInfo->prP2PInfo, VIR_MEM_TYPE, sizeof(GL_P2P_INFO_T));
 
-		prGlueInfo->prP2PInfo = NULL;
-	}
-	if (prAdapter->prP2pInfo) {
-		kalMemFree(prAdapter->prP2pInfo, VIR_MEM_TYPE, sizeof(P2P_INFO_T));
+			prGlueInfo->prP2PInfo = NULL;
+		}
+		if (prAdapter->prP2pInfo) {
+			kalMemFree(prAdapter->prP2pInfo, VIR_MEM_TYPE, sizeof(P2P_INFO_T));
 
-		prAdapter->prP2pInfo = NULL;
+			prAdapter->prP2pInfo = NULL;
+		}
+		return FALSE;
 	}
-	return FALSE;
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -574,6 +1267,37 @@ BOOLEAN p2PFreeInfo(P_GLUE_INFO_T prGlueInfo)
 		return FALSE;
 	}
 
+}
+
+/*----------------------------------------------------------------------------*/
+/*!
+* \brief Enable Channel  for cfg80211 for Wi-Fi Direct based on current country code
+*
+* \param[in] prGlueInfo      Pointer to glue info
+*
+* \return   TRUE
+*           FALSE
+*/
+/*----------------------------------------------------------------------------*/
+VOID
+p2pEnableChannel(PUINT_8 pucChIdx, UINT_8 ucChannelNum, struct ieee80211_channel *mtk_channels, UINT_8 mtk_channel_sz)
+{
+	UINT_8 ucCurChIdx = *pucChIdx;
+
+	while (TRUE) {
+		(*pucChIdx)++;
+		(*pucChIdx) %= mtk_channel_sz;
+
+		if (ucChannelNum == mtk_channels[*pucChIdx].hw_value) {
+			mtk_channels[*pucChIdx].flags &= ~IEEE80211_CHAN_DISABLED;
+			break;
+		}
+
+		if (*pucChIdx == ucCurChIdx) {
+			DBGLOG(INIT, WARN, "Orphan channel [%d]\n", ucChannelNum);
+			break;
+		}
+	}
 }
 
 BOOLEAN p2pNetRegister(P_GLUE_INFO_T prGlueInfo, BOOLEAN fgIsRtnlLockAcquired)
@@ -668,6 +1392,70 @@ BOOLEAN p2pNetUnregister(P_GLUE_INFO_T prGlueInfo, BOOLEAN fgIsRtnlLockAcquired)
 
 /*----------------------------------------------------------------------------*/
 /*!
+* \brief Update Channel table for cfg80211 for Wi-Fi Direct based on current country code
+*
+* \param[in] prGlueInfo      Pointer to glue info
+*
+* \return   TRUE
+*           FALSE
+*/
+/*----------------------------------------------------------------------------*/
+VOID p2pUpdateChannelTableByDomain(P_GLUE_INFO_T prGlueInfo)
+{
+	UINT_8 i, j, uc2gChIdx, uc5gChIdx;
+	UINT_8 ucMaxChannelNum = ARRAY_SIZE(mtk_2ghz_channels) + ARRAY_SIZE(mtk_5ghz_a_channels);
+	UINT_8 ucNumOfChannel = ucMaxChannelNum;
+	RF_CHANNEL_INFO_T aucChannelList[ucMaxChannelNum];
+
+	uc2gChIdx = uc5gChIdx = 0;
+
+	/* 1. Disable all channel */
+	for (i = 0; i < ARRAY_SIZE(mtk_2ghz_channels); i++) {
+		mtk_2ghz_channels[i].flags |= IEEE80211_CHAN_DISABLED;
+		mtk_2ghz_channels[i].orig_flags |= IEEE80211_CHAN_DISABLED;
+	}
+	for (i = 0; i < ARRAY_SIZE(mtk_5ghz_a_channels); i++) {
+		mtk_5ghz_a_channels[i].flags |= IEEE80211_CHAN_DISABLED;
+		mtk_5ghz_a_channels[i].orig_flags |= IEEE80211_CHAN_DISABLED;
+	}
+
+	/* 2. Get current domain channel list */
+	rlmDomainGetChnlList(prGlueInfo->prAdapter, BAND_NULL, ucMaxChannelNum, &ucNumOfChannel, aucChannelList);
+
+	/* 3. Enable specific channel based on domain channel list */
+	for (i = 0; i < ucNumOfChannel; i++) {
+		switch (aucChannelList[i].eBand) {
+		case BAND_2G4:
+			for (j = 0; j < ARRAY_SIZE(mtk_2ghz_channels); j++) {
+				if (mtk_2ghz_channels[j].hw_value == aucChannelList[i].ucChannelNum) {
+					mtk_2ghz_channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
+					mtk_2ghz_channels[j].orig_flags &= ~IEEE80211_CHAN_DISABLED;
+					break;
+				}
+			}
+			break;
+
+		case BAND_5G:
+			for (j = 0; j < ARRAY_SIZE(mtk_5ghz_a_channels); j++) {
+				if (mtk_5ghz_a_channels[j].hw_value == aucChannelList[i].ucChannelNum) {
+					mtk_5ghz_a_channels[j].flags &= ~IEEE80211_CHAN_DISABLED;
+					mtk_5ghz_a_channels[j].orig_flags &= ~IEEE80211_CHAN_DISABLED;
+					break;
+				}
+			}
+			break;
+
+		default:
+			DBGLOG(INIT, WARN, "Unknow band.\n");
+			break;
+
+		}
+	}
+
+}
+
+/*----------------------------------------------------------------------------*/
+/*!
 * \brief Register for cfg80211 for Wi-Fi Direct
 *
 * \param[in] prGlueInfo      Pointer to glue info
@@ -718,14 +1506,14 @@ BOOLEAN glRegisterP2P(P_GLUE_INFO_T prGlueInfo, const char *prDevName, BOOLEAN f
 			"unable to get struct dev for p2p\n");
 	}
 #else
-
-	prDev = prHif->Dev;
-
+	prDev = &(prHif->func->dev);
 #endif
 	prGlueInfo->prP2PInfo->prWdev = gprP2pWdev;
 	/*set_wiphy_dev(gprP2pWdev->wiphy, prDev);*/
 	if (!prGlueInfo->prAdapter->fgEnable5GBand)
 		gprP2pWdev->wiphy->bands[IEEE80211_BAND_5GHZ] = NULL;
+
+	p2pUpdateChannelTableByDomain(prGlueInfo);
 
 	/* 2.2 wdev initialization */
 	if (fgIsApMode)
@@ -738,7 +1526,7 @@ BOOLEAN glRegisterP2P(P_GLUE_INFO_T prGlueInfo, const char *prDevName, BOOLEAN f
 	/* 3. allocate netdev */
 	prGlueInfo->prP2PInfo->prDevHandler =
 	    alloc_netdev_mq(sizeof(NETDEV_PRIVATE_GLUE_INFO), prDevName,
-				NET_NAME_PREDICTABLE, ether_setup, CFG_MAX_TXQ_NUM);
+			    NET_NAME_PREDICTABLE, ether_setup, CFG_MAX_TXQ_NUM);
 	if (!prGlueInfo->prP2PInfo->prDevHandler) {
 		DBGLOG(INIT, WARN, "unable to allocate netdevice for p2p\n");
 
@@ -754,15 +1542,15 @@ BOOLEAN glRegisterP2P(P_GLUE_INFO_T prGlueInfo, const char *prDevName, BOOLEAN f
 	/* 4.2 fill hardware address */
 	COPY_MAC_ADDR(rMacAddr, prAdapter->rMyMacAddr);
 	rMacAddr[0] ^= 0x2;	/* change to local administrated address */
-	ether_addr_copy(prGlueInfo->prP2PInfo->prDevHandler->dev_addr, rMacAddr);
-	ether_addr_copy(prGlueInfo->prP2PInfo->prDevHandler->perm_addr, prGlueInfo->prP2PInfo->prDevHandler->dev_addr);
+	memcpy(prGlueInfo->prP2PInfo->prDevHandler->dev_addr, rMacAddr, ETH_ALEN);
+	memcpy(prGlueInfo->prP2PInfo->prDevHandler->perm_addr, prGlueInfo->prP2PInfo->prDevHandler->dev_addr, ETH_ALEN);
 
 	/* 4.3 register callback functions */
 	prGlueInfo->prP2PInfo->prDevHandler->netdev_ops = &p2p_netdev_ops;
 /* prGlueInfo->prP2PInfo->prDevHandler->wireless_handlers    = &mtk_p2p_wext_handler_def; */
 
 #if (MTK_WCN_HIF_SDIO == 0)
-	SET_NETDEV_DEV(prGlueInfo->prP2PInfo->prDevHandler, prHif->Dev);
+	SET_NETDEV_DEV(prGlueInfo->prP2PInfo->prDevHandler, &(prHif->func->dev));
 #endif
 
 #if CFG_ENABLE_WIFI_DIRECT_CFG_80211
@@ -838,7 +1626,7 @@ BOOLEAN glP2pCreateWirelessDevice(P_GLUE_INFO_T prGlueInfo)
 		return FALSE;
 	}
 	/* 1. allocate WIPHY */
-	prWiphy = wiphy_new(&mtk_p2p_ops, sizeof(P_GLUE_INFO_T));
+	prWiphy = wiphy_new(&mtk_p2p_config_ops, sizeof(P_GLUE_INFO_T));
 	if (!prWiphy) {
 		DBGLOG(P2P, ERROR, "unable to allocate wiphy for p2p\n");
 		goto free_wdev;
@@ -849,30 +1637,22 @@ BOOLEAN glP2pCreateWirelessDevice(P_GLUE_INFO_T prGlueInfo)
 	    | BIT(NL80211_IFTYPE_P2P_GO)
 	    | BIT(NL80211_IFTYPE_STATION);
 
-	prWiphy->iface_combinations = mtk_p2p_iface_combos;
-	prWiphy->n_iface_combinations = ARRAY_SIZE(mtk_p2p_iface_combos);
-
 	prWiphy->bands[IEEE80211_BAND_2GHZ] = &mtk_band_2ghz;
 	prWiphy->bands[IEEE80211_BAND_5GHZ] = &mtk_band_5ghz;
 
 	prWiphy->mgmt_stypes = mtk_cfg80211_default_mgmt_stypes;
 	prWiphy->max_remain_on_channel_duration = 5000;
-	prWiphy->cipher_suites = mtk_cipher_suites;
-	prWiphy->n_cipher_suites = ARRAY_SIZE(mtk_cipher_suites);
+	prWiphy->n_cipher_suites = 5;
+	prWiphy->cipher_suites = (const u32 *)cipher_suites;
 	prWiphy->flags = WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL | WIPHY_FLAG_HAVE_AP_SME;
-	prWiphy->regulatory_flags = REGULATORY_CUSTOM_REG;
 	prWiphy->ap_sme_capa = 1;
 
 	prWiphy->max_scan_ssids = MAX_SCAN_LIST_NUM;
 	prWiphy->max_scan_ie_len = MAX_SCAN_IE_LEN;
 	prWiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
-	prWiphy->vendor_commands = mtk_p2p_vendor_ops;
-	prWiphy->n_vendor_commands = sizeof(mtk_p2p_vendor_ops) / sizeof(struct wiphy_vendor_command);
-
 #ifdef CONFIG_PM
-	prWiphy->wowlan = &mtk_p2p_wowlan_support;
+	kalMemCopy(&(prWiphy->wowlan), &mtk_p2p_wowlan_support, sizeof(struct wiphy_wowlan_support));
 #endif
-
 	/* 2.1 set priv as pointer to glue structure */
 	*((P_GLUE_INFO_T *) wiphy_priv(prWiphy)) = prGlueInfo;
 	/* Here are functions which need rtnl_lock */
@@ -892,7 +1672,7 @@ free_wdev:
 	return FALSE;
 }
 
-void glP2pDestroyWirelessDevice(void)
+void glP2pDestroyWirelessDevice()
 {
 #if CFG_ENABLE_WIFI_DIRECT_CFG_80211
 	wiphy_unregister(gprP2pWdev->wiphy);
@@ -1067,11 +1847,7 @@ static int p2pStop(IN struct net_device *prDev)
 {
 	P_GLUE_INFO_T prGlueInfo = NULL;
 	P_ADAPTER_T prAdapter = NULL;
-	struct cfg80211_scan_request *prScanRequest = NULL;
-	P_GL_P2P_INFO_T prGlueP2pInfo = (P_GL_P2P_INFO_T) NULL;
 /* P_MSG_P2P_FUNCTION_SWITCH_T prFuncSwitch; */
-
-	GLUE_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prDev);
 
@@ -1080,17 +1856,6 @@ static int p2pStop(IN struct net_device *prDev)
 
 	prAdapter = prGlueInfo->prAdapter;
 	ASSERT(prAdapter);
-	prGlueP2pInfo = prGlueInfo->prP2PInfo;
-	/* CFG80211 down */
-	GLUE_ACQUIRE_SPIN_LOCK(prGlueInfo, SPIN_LOCK_NET_DEV);
-	if (prGlueP2pInfo->prScanRequest != NULL) {
-		prScanRequest = prGlueP2pInfo->prScanRequest;
-		prGlueP2pInfo->prScanRequest = NULL;
-	} else
-		DBGLOG(P2P, WARN, "[p2p] scan complete but cfg80211 scan request is NULL\n");
-	GLUE_RELEASE_SPIN_LOCK(prGlueInfo, SPIN_LOCK_NET_DEV);
-	if (prScanRequest)
-		cfg80211_scan_done(prScanRequest, TRUE);
 
 	/* 1. stop TX queue */
 	netif_tx_stop_all_queues(prDev);
@@ -1144,7 +1909,7 @@ static void p2pSetMulticastList(IN struct net_device *prDev)
 {
 	P_GLUE_INFO_T prGlueInfo = (P_GLUE_INFO_T) NULL;
 
-	prGlueInfo = (prDev != NULL) ? *((P_GLUE_INFO_T *) netdev_priv(prDev)) : NULL;
+	prGlueInfo = (NULL != prDev) ? *((P_GLUE_INFO_T *) netdev_priv(prDev)) : NULL;
 
 	ASSERT(prDev);
 	ASSERT(prGlueInfo);
@@ -1163,24 +1928,6 @@ static void p2pSetMulticastList(IN struct net_device *prDev)
 
 }				/* p2pSetMulticastList */
 
-/*
- * FIXME: Since we cannot sleep in the wlanSetMulticastList, we arrange
- * another workqueue for sleeping. We don't want to block
- * tx_thread, so we can't let tx_thread to do this
- */
-
-void p2pSetMulticastListWorkQueueWrapper(P_GLUE_INFO_T prGlueInfo)
-{
-	if (!prGlueInfo) {
-		DBGLOG(INIT, ERROR, "prGlueInfo is NULL\n");
-		return;
-	}
-#if CFG_ENABLE_WIFI_DIRECT
-	if (prGlueInfo->prAdapter->fgIsP2PRegistered)
-		mtk_p2p_wext_set_Multicastlist(prGlueInfo);
-#endif
-}				/* end of p2pSetMulticastListWorkQueueWrapper() */
-
 /*----------------------------------------------------------------------------*/
 /*!
  * \brief This function is to set multicast list and set rx mode.
@@ -1196,7 +1943,7 @@ void mtk_p2p_wext_set_Multicastlist(P_GLUE_INFO_T prGlueInfo)
 	UINT_32 u4McCount;
 	struct net_device *prDev = g_P2pPrDev;
 
-	prGlueInfo = (prDev != NULL) ? *((P_GLUE_INFO_T *) netdev_priv(prDev)) : NULL;
+	prGlueInfo = (NULL != prDev) ? *((P_GLUE_INFO_T *) netdev_priv(prDev)) : NULL;
 
 	ASSERT(prDev);
 	ASSERT(prGlueInfo);
@@ -1241,24 +1988,24 @@ void mtk_p2p_wext_set_Multicastlist(P_GLUE_INFO_T prGlueInfo)
 
 	}
 
-}				/* end of mtk_p2p_wext_set_Multicastlist() */
+	return;
+}				/* end of p2pSetMulticastList() */
 
 /*----------------------------------------------------------------------------*/
 /*!
- * \brief This function is TX entry point of NET DEVICE.
- *
- * \param[in] prSkb  Pointer of the sk_buff to be sent
- * \param[in] prDev  Pointer to struct net_device
- *
- * \retval NETDEV_TX_OK - on success.
- * \retval NETDEV_TX_BUSY - on failure, packet will be discarded by upper layer.
- */
+ * * \brief This function is TX entry point of NET DEVICE.
+ * *
+ * * \param[in] prSkb  Pointer of the sk_buff to be sent
+ * * \param[in] prDev  Pointer to struct net_device
+ * *
+ * * \retval NETDEV_TX_OK - on success.
+ * * \retval NETDEV_TX_BUSY - on failure, packet will be discarded by upper layer.
+ * */
 /*----------------------------------------------------------------------------*/
 int p2pHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDev)
 {
 	P_NETDEV_PRIVATE_GLUE_INFO prNetDevPrivate = (P_NETDEV_PRIVATE_GLUE_INFO) NULL;
 	P_GLUE_INFO_T prGlueInfo = NULL;
-	P_BSS_INFO_T prP2pBssInfo = NULL;
 	UINT_8 ucBssIndex;
 
 	ASSERT(prSkb);
@@ -1267,16 +2014,10 @@ int p2pHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDev)
 	prNetDevPrivate = (P_NETDEV_PRIVATE_GLUE_INFO) netdev_priv(prDev);
 	prGlueInfo = prNetDevPrivate->prGlueInfo;
 	ucBssIndex = prNetDevPrivate->ucBssIdx;
-	prGlueInfo->u8SkbToDriver++;
 
 	kalResetPacket(prGlueInfo, (P_NATIVE_PACKET) prSkb);
 
 	kalHardStartXmit(prSkb, prDev, prGlueInfo, ucBssIndex);
-
-	prP2pBssInfo = GET_BSS_INFO_BY_INDEX(prGlueInfo->prAdapter, ucBssIndex);
-	if ((prP2pBssInfo->eConnectionState == PARAM_MEDIA_STATE_CONNECTED) ||
-		(prP2pBssInfo->rStaRecOfClientList.u4NumElem > 0))
-		kalPerMonStart(prGlueInfo);
 
 	return NETDEV_TX_OK;
 }				/* end of p2pHardStartXmit() */
@@ -1290,42 +2031,44 @@ int p2pHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDev)
  *
  * \param[in] prDev      Linux kernel netdevice
  *
- * \param[in] prIfReq    Our private ioctl request structure, typed for the generic
+ * \param[in] prIFReq    Our private ioctl request structure, typed for the generic
  *                       struct ifreq so we can use ptr to function
  *
  * \param[in] cmd        Command ID
  *
- * \retval 0  The IOCTL command is executed successfully.
- * \retval <0 The execution of IOCTL command is failed.
+ * \retval WLAN_STATUS_SUCCESS The IOCTL command is executed successfully.
+ * \retval OTHER The execution of IOCTL command is failed.
  */
 /*----------------------------------------------------------------------------*/
-int p2pDoIOCTL(struct net_device *prDev, struct ifreq *prIfReq, int i4Cmd)
+int p2pDoIOCTL(struct net_device *prDev, struct ifreq *prIFReq, int i4Cmd)
 {
 	P_GLUE_INFO_T prGlueInfo = NULL;
 	int ret = 0;
 	/* char *prExtraBuf = NULL; */
 	/* UINT_32 u4ExtraSize = 0; */
-	/* struct iwreq *prIwReq = (struct iwreq *)prIfReq; */
+	/* struct iwreq *prIwReq = (struct iwreq *)prIFReq; */
 	/* struct iw_request_info rIwReqInfo; */
 
-	ASSERT(prDev && prIfReq);
+	ASSERT(prDev);
 
 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
+
+	ASSERT(prGlueInfo);
 	if (!prGlueInfo) {
-		DBGLOG(P2P, ERROR, "prGlueInfo is NULL\n");
+		DBGLOG(INIT, WARN, "%s No glue info\n", __func__);
 		return -EFAULT;
 	}
 
 	if (prGlueInfo->u4ReadyFlag == 0) {
-		DBGLOG(P2P, ERROR, "Adapter is not ready\n");
+		/* adapter not ready yet */
 		return -EINVAL;
 	}
 
 	if (i4Cmd == SIOCDEVPRIVATE + 1) {
-		ret = priv_support_driver_cmd(prDev, prIfReq, i4Cmd);
+		ret = priv_support_driver_cmd(prDev, prIFReq, i4Cmd);
 
 	} else {
-		DBGLOG(INIT, WARN, "Unexpected ioctl command: 0x%04x\n", i4Cmd);
+		DBGLOG(INIT, WARN, "Unexpected ioctl command on p2p0 %s: 0x%04x\n", __func__, i4Cmd);
 		ret = -1;
 	}
 
@@ -1339,6 +2082,10 @@ int p2pDoIOCTL(struct net_device *prDev, struct ifreq *prIfReq, int i4Cmd)
 		/* Set Encryption Material after 4-way handshaking is done */
 		if (prIwReq->u.encoding.pointer) {
 			u4ExtraSize = prIwReq->u.encoding.length;
+			if (u4ExtraSize > sizeof(struct iw_encode_ext)) {
+				ret = -EINVAL;
+				break;
+			}
 			prExtraBuf = kalMemAlloc(u4ExtraSize, VIR_MEM_TYPE);
 
 			if (!prExtraBuf) {
@@ -1346,9 +2093,9 @@ int p2pDoIOCTL(struct net_device *prDev, struct ifreq *prIfReq, int i4Cmd)
 				break;
 			}
 
-			if (copy_from_user(prExtraBuf, prIwReq->u.encoding.pointer, prIwReq->u.encoding.length))
+			if (copy_from_user(prExtraBuf, prIwReq->u.encoding.pointer, u4ExtraSize))
 				ret = -EFAULT;
-		} else if (prIwReq->u.encoding.length != 0) {
+		} else {
 			ret = -EINVAL;
 			break;
 		}
@@ -1411,12 +2158,10 @@ int p2pDoIOCTL(struct net_device *prDev, struct ifreq *prIfReq, int i4Cmd)
 	case IOC_P2P_GET_STRUCT:
 	case IOC_P2P_SET_STRUCT:
 	case IOC_P2P_GET_REQ_DEVICE_INFO:
-		/*
-		 * ret = rP2PIwPrivHandler[i4Cmd - SIOCIWFIRSTPRIV](prDev,
-		 *                        &rIwReqInfo,
-		 *                        &(prIwReq->u),
-		 *                        (char *)&(prIwReq->u));
-		 */
+		/* ret = rP2PIwPrivHandler[i4Cmd - SIOCIWFIRSTPRIV](prDev,
+									&rIwReqInfo,
+									&(prIwReq->u),
+									(char *)&(prIwReq->u)); */
 		break;
 #if CFG_SUPPORT_P2P_RSSI_QUERY
 	case SIOCGIWSTATS:
@@ -1464,14 +2209,13 @@ int p2pSetMACAddress(IN struct net_device *prDev, void *addr)
 #if 0
 /*----------------------------------------------------------------------------*/
 /*!
- * \brief To report the iw private args table to user space.
+ * \brief To report the private supported IOCTLs table to user space.
  *
  * \param[in] prDev Net device requested.
- * \param[in] info Pointer to iw_request_info.
- * \param[inout] wrqu Pointer to iwreq_data.
- * \param[inout] extra
+ * \param[out] prIfReq Pointer to ifreq structure, content is copied back to
+ *                  user space buffer in gl_iwpriv_table.
  *
- * \retval 0  For success.
+ * \retval 0 For success.
  * \retval -E2BIG For user's buffer size is too small.
  * \retval -EFAULT For fail.
  *
@@ -1482,10 +2226,15 @@ mtk_p2p_wext_get_priv(IN struct net_device *prDev,
 		      IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
 	struct iw_point *prData = (struct iw_point *)&wrqu->data;
-	UINT_16 u2BufferSize = prData->length;
+	UINT_16 u2BufferSize = 0;
 
-	/* Update our private args table size */
-	prData->length = (__u16)sizeof(rP2PIwPrivTable);
+	ASSERT(prDev);
+
+	u2BufferSize = prData->length;
+
+	/* update our private table size */
+	prData->length = (__u16) sizeof(rP2PIwPrivTable) / sizeof(struct iw_priv_args);
+
 	if (u2BufferSize < prData->length)
 		return -E2BIG;
 
@@ -1921,6 +2670,7 @@ mtk_p2p_wext_invitation_abort(IN struct net_device *prDev,
 
 		if (prAdapter == NULL) {
 			i4Status = -EINVAL;
+			break;
 		} else {
 			P_MSG_P2P_INVITATION_REQUEST_T prMsgP2PInvitationAbort = (P_MSG_P2P_INVITATION_REQUEST_T) NULL;
 
@@ -1977,7 +2727,7 @@ mtk_p2p_wext_set_auth(IN struct net_device *prDev,
 
 	ASSERT(prDev);
 	ASSERT(prAuth);
-	if (GLUE_CHK_PR2(prDev, prAuth) == FALSE)
+	if (FALSE == GLUE_CHK_PR2(prDev, prAuth))
 		return -EINVAL;
 
 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
@@ -2042,6 +2792,10 @@ mtk_p2p_wext_set_key(IN struct net_device *prDev,
 	do {
 		if (wrqu->encoding.pointer) {
 			u4ExtraSize = wrqu->encoding.length;
+			if (u4ExtraSize > sizeof(struct iw_encode_ext)) {
+				ret = -EINVAL;
+				break;
+			}
 			prExtraBuf = kalMemAlloc(u4ExtraSize, VIR_MEM_TYPE);
 
 			if (!prExtraBuf) {
@@ -2049,11 +2803,11 @@ mtk_p2p_wext_set_key(IN struct net_device *prDev,
 				break;
 			}
 
-			if (copy_from_user(prExtraBuf, wrqu->encoding.pointer, wrqu->encoding.length)) {
+			if (copy_from_user(prExtraBuf, wrqu->encoding.pointer, u4ExtraSize)) {
 				ret = -EFAULT;
 				break;
 			}
-		} else if (wrqu->encoding.length != 0) {
+		} else {
 			ret = -EINVAL;
 			break;
 		}
@@ -2156,6 +2910,7 @@ int
 mtk_p2p_wext_set_powermode(IN struct net_device *prNetDev,
 			   IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
+	/* printk("set_powermode = %d, value = %d\n", wrqu->power.disabled, wrqu->power.value); */
 	struct iw_param *prPower = (struct iw_param *)&wrqu->power;
 #if 1
 	PARAM_POWER_MODE ePowerMode;
@@ -2167,10 +2922,11 @@ mtk_p2p_wext_set_powermode(IN struct net_device *prNetDev,
 
 	ASSERT(prNetDev);
 	ASSERT(prPower);
-	if (GLUE_CHK_PR2(prNetDev, prPower) == FALSE)
+	if (FALSE == GLUE_CHK_PR2(prNetDev, prPower))
 		return -EINVAL;
 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prNetDev));
 
+	/* printk(KERN_INFO "wext_set_power value(%d) disabled(%d) flag(0x%x)\n", */
 	/* prPower->value, prPower->disabled, prPower->flags); */
 
 	if (prPower->disabled) {
@@ -2225,6 +2981,7 @@ int
 mtk_p2p_wext_get_powermode(IN struct net_device *prNetDev,
 			   IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
+	/* printk("mtk_p2p_wext_get_powermode\n"); */
 	/* wrqu->power.disabled = 0; */
 	/* wrqu->power.value = 1; */
 
@@ -2237,7 +2994,7 @@ mtk_p2p_wext_get_powermode(IN struct net_device *prNetDev,
 
 	ASSERT(prNetDev);
 	ASSERT(prPower);
-	if (GLUE_CHK_PR2(prNetDev, prPower) == FALSE)
+	if (FALSE == GLUE_CHK_PR2(prNetDev, prPower))
 		return -EINVAL;
 
 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prNetDev));
@@ -2379,137 +3136,6 @@ int
 mtk_p2p_wext_discovery_results(IN struct net_device *prDev,
 			       IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-	struct iw_event iwe;
-	char *current_ev = extra;
-	UINT_32 i;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	P_ADAPTER_T prAdapter = NULL;
-	P_P2P_INFO_T prP2PInfo = (P_P2P_INFO_T) NULL;
-	P_EVENT_P2P_DEV_DISCOVER_RESULT_T prTargetResult = (P_EVENT_P2P_DEV_DISCOVER_RESULT_T) NULL;
-	P_PARAM_VARIABLE_IE_T prDesiredIE = NULL;
-
-	ASSERT(prDev);
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	prAdapter = prGlueInfo->prAdapter;
-	ASSERT(prAdapter);
-
-	prP2PInfo = prAdapter->prP2pInfo;
-
-	for (i = 0; i < prP2PInfo->u4DeviceNum; i++) {
-		prTargetResult = &prP2PInfo->arP2pDiscoverResult[i];
-
-		/* SIOCGIWAP */
-		iwe.cmd = SIOCGIWAP;
-		iwe.u.ap_addr.sa_family = ARPHRD_ETHER;
-		memcpy(iwe.u.ap_addr.sa_data, prTargetResult->aucInterfaceAddr, 6);
-
-		current_ev = iwe_stream_add_event(info, current_ev, extra + IW_SCAN_MAX_DATA, &iwe, IW_EV_ADDR_LEN);
-
-		/* SIOCGIWESSID */
-		iwe.cmd = SIOCGIWESSID;
-		iwe.u.data.flags = 1;
-		iwe.u.data.length = prTargetResult->u2NameLength;
-
-		current_ev = iwe_stream_add_point(info, current_ev,
-						  extra + IW_SCAN_MAX_DATA, &iwe, prTargetResult->aucName);
-
-		/* IWEVGENIE for WPA IE */
-		if (prTargetResult->u2IELength <= 600
-		    && wextSrchDesiredWPAIE(prTargetResult->pucIeBuf, prTargetResult->u2IELength,
-					    0xDD, (PUINT_8 *) &prDesiredIE)) {
-
-			iwe.cmd = IWEVGENIE;
-			iwe.u.data.flags = 1;
-			iwe.u.data.length = 2 + (__u16) prDesiredIE->ucLength;
-
-			current_ev = iwe_stream_add_point(info, current_ev,
-							  extra + IW_SCAN_MAX_DATA, &iwe, (char *)prDesiredIE);
-		}
-#if CFG_SUPPORT_WPS
-
-		/* IWEVGENIE for WPS IE */
-		if ((prTargetResult->u2IELength <= 600)
-		    && wextSrchDesiredWPSIE(prTargetResult->pucIeBuf, prTargetResult->u2IELength,
-					    0xDD, (PUINT_8 *) &prDesiredIE)) {
-
-			iwe.cmd = IWEVGENIE;
-			iwe.u.data.flags = 1;
-			iwe.u.data.length = 2 + (__u16) prDesiredIE->ucLength;
-
-			current_ev = iwe_stream_add_point(info, current_ev,
-							  extra + IW_SCAN_MAX_DATA, &iwe, (char *)prDesiredIE);
-		}
-#endif
-
-		/* IWEVGENIE for RSN IE */
-		if ((prTargetResult->u2IELength <= 600)
-		    && wextSrchDesiredWPAIE(prTargetResult->pucIeBuf, prTargetResult->u2IELength,
-					    0x30, (PUINT_8 *) &prDesiredIE)) {
-
-			iwe.cmd = IWEVGENIE;
-			iwe.u.data.flags = 1;
-			iwe.u.data.length = 2 + (__u16) prDesiredIE->ucLength;
-
-			current_ev = iwe_stream_add_point(info, current_ev,
-							  extra + IW_SCAN_MAX_DATA, &iwe, (char *)prDesiredIE);
-		}
-
-		/* IOC_P2P_GO_WSC_IE */
-#if 1
-		/* device capability */
-		if (1) {
-			UINT_8 data[40];
-
-			iwe.cmd = IWEVCUSTOM;
-			iwe.u.data.flags = 0;
-			iwe.u.data.length = 8 + sizeof("p2p_cap=");
-
-			snprintf(data, iwe.u.data.length, "p2p_cap=%02x%02x%02x%02x%c",
-				 prTargetResult->ucDeviceCapabilityBitmap,
-				 prTargetResult->ucGroupCapabilityBitmap,
-				 (UINT_8) prTargetResult->u2ConfigMethod,
-				 (UINT_8) (prTargetResult->u2ConfigMethod >> 8), '\0');
-			current_ev =
-			    iwe_stream_add_point(info, current_ev, extra + IW_SCAN_MAX_DATA, &iwe, (char *)data);
-
-			kalMemZero(data, 40);
-
-			iwe.cmd = IWEVCUSTOM;
-			iwe.u.data.flags = 0;
-			iwe.u.data.length = 12 + sizeof("p2p_dev_type=");
-
-			snprintf(data, iwe.u.data.length, "p2p_dev_type=%02x%02x%02x%02x%02x%02x%c",
-				 (UINT_8) prTargetResult->rPriDevType.u2CategoryID,
-				 (UINT_8) prTargetResult->rPriDevType.u2SubCategoryID,
-				 (UINT_8) prTargetResult->arSecDevType[0].u2CategoryID,
-				 (UINT_8) prTargetResult->arSecDevType[0].u2SubCategoryID,
-				 (UINT_8) prTargetResult->arSecDevType[1].u2CategoryID,
-				 (UINT_8) prTargetResult->arSecDevType[1].u2SubCategoryID, '\0');
-			current_ev =
-			    iwe_stream_add_point(info, current_ev, extra + IW_SCAN_MAX_DATA, &iwe, (char *)data);
-
-			kalMemZero(data, 40);
-
-			iwe.cmd = IWEVCUSTOM;
-			iwe.u.data.flags = 0;
-			iwe.u.data.length = 17 + sizeof("p2p_grp_bssid=");
-
-			snprintf(data, iwe.u.data.length, "p2p_grp_bssid=" MACSTR "%c",
-				 MAC2STR(prTargetResult->aucBSSID), '\0');
-			current_ev = iwe_stream_add_point(info, current_ev,
-							  extra + IW_SCAN_MAX_DATA, &iwe, (char *)data);
-
-		}
-#endif
-	}
-
-	/* Length of data */
-	wrqu->data.length = (current_ev - extra);
-	wrqu->data.flags = 0;
-
 	return 0;
 }				/* end of mtk_p2p_wext_discovery_results() */
 
@@ -2531,42 +3157,6 @@ int
 mtk_p2p_wext_wsc_ie(IN struct net_device *prDev,
 		    IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-#if 0				/* Marked for MT6630 (New ucBssIndex) */
-	P_ADAPTER_T prAdapter = NULL;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	P_IW_P2P_HOSTAPD_PARAM prHostapdParam = (P_IW_P2P_HOSTAPD_PARAM) extra;
-
-	ASSERT(prDev);
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	if (prHostapdParam->len > 0) {
-		if (prHostapdParam->len <= MAX_WSC_IE_LENGTH) {
-			if (copy_from_user
-			    (prGlueInfo->prP2PInfo->aucWSCIE[0], prHostapdParam->data, prHostapdParam->len)) {
-				return -EFAULT;
-			}
-			if (copy_from_user
-			    (prGlueInfo->prP2PInfo->aucWSCIE[2], prHostapdParam->data, prHostapdParam->len)) {
-				return -EFAULT;
-			}
-		} else {
-			return -E2BIG;
-		}
-	}
-
-	prGlueInfo->prP2PInfo->u2WSCIELen[0] = prHostapdParam->len;
-	prGlueInfo->prP2PInfo->u2WSCIELen[2] = prHostapdParam->len;
-
-	prAdapter = prGlueInfo->prAdapter;
-	ASSERT(prAdapter);
-
-	bssUpdateBeaconContent(prAdapter, NETWORK_TYPE_P2P_INDEX);
-
-	/* @TODO: send message to P2P-FSM */
-#endif
-
 	return 0;
 }				/* end of mtk_p2p_wext_wsc_ie() */
 
@@ -2588,58 +3178,6 @@ int
 mtk_p2p_wext_connect_disconnect(IN struct net_device *prDev,
 				IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-	P_ADAPTER_T prAdapter = NULL;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	struct iw_point *prData = (struct iw_point *)&wrqu->data;
-/* P_IW_P2P_CONNECT_DEVICE prConnectDevice = (P_IW_P2P_CONNECT_DEVICE)extra; */
-/* P_MSG_HDR_T prMsgHdr; */
-/* P_MSG_P2P_CONNECTION_REQUEST_T prMsgP2PConnReq; */
-/* P_MSG_P2P_CONNECTION_ABORT_T prMsgP2PConnAbt; */
-/* UINT_8 aucBCAddr[] = BC_MAC_ADDR; */
-
-	ASSERT(prDev);
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	prAdapter = prGlueInfo->prAdapter;
-	ASSERT(prAdapter);
-
-	if (prData->flags == P2P_CONNECT) {
-#if 0
-		/* indicate P2P-FSM with MID_MNY_P2P_CONNECTION_REQ */
-		prMsgP2PConnReq = (P_MSG_P2P_CONNECTION_REQUEST_T) cnmMemAlloc(prAdapter,
-									       RAM_TYPE_MSG,
-									       sizeof(MSG_P2P_CONNECTION_REQUEST_T));
-
-		if (!prMsgP2PConnReq) {
-			ASSERT(0);	/* Can't trigger P2P FSM */
-			return -ENOMEM;
-		}
-
-		mboxSendMsg(prAdapter, MBOX_ID_0, (P_MSG_HDR_T) prMsgP2PConnReq, MSG_SEND_METHOD_BUF);
-#endif
-	} else if (prData->flags == P2P_DISCONNECT) {
-#if 0
-		/* indicate P2P-FSM with MID_MNY_P2P_CONNECTION_ABORT */
-		prMsgP2PConnAbt = (P_MSG_HDR_T) cnmMemAlloc(prAdapter,
-							    RAM_TYPE_MSG, sizeof(MSG_P2P_CONNECTION_ABORT_T));
-
-		if (!prMsgP2PConnAbt) {
-			ASSERT(0);	/* Can't trigger P2P FSM */
-			return -ENOMEM;
-		}
-
-		COPY_MAC_ADDR(prMsgP2PConnAbt->aucTargetID, prConnectDevice->sta_addr);
-
-		prMsgP2PConnAbt->rMsgHdr.eMsgId = MID_MNY_P2P_CONNECTION_ABORT;
-
-		mboxSendMsg(prAdapter, MBOX_ID_0, (P_MSG_HDR_T) prMsgP2PConnAbt, MSG_SEND_METHOD_BUF);
-#endif
-	} else {
-		return -EINVAL;
-	}
-
 	return 0;
 }				/* end of mtk_p2p_wext_connect_disconnect() */
 
@@ -2661,66 +3199,6 @@ int
 mtk_p2p_wext_password_ready(IN struct net_device *prDev,
 			    IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-	P_ADAPTER_T prAdapter = NULL;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	P_IW_P2P_PASSWORD_READY prPasswordReady = (P_IW_P2P_PASSWORD_READY) extra;
-	P_P2P_CONNECTION_SETTINGS_T prConnSettings;
-
-	ASSERT(prDev);
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	prAdapter = prGlueInfo->prAdapter;
-	ASSERT(prAdapter);
-
-	prConnSettings = prAdapter->rWifiVar.prP2PConnSettings;
-
-	/* retrieve IE for Probe Request */
-	if (prPasswordReady->probe_req_len > 0) {
-		if (prPasswordReady->probe_req_len <= MAX_WSC_IE_LENGTH) {
-			if (copy_from_user
-			    (prGlueInfo->prP2PInfo->aucWSCIE[1], prPasswordReady->probe_req_ie,
-			     prPasswordReady->probe_req_len)) {
-				return -EFAULT;
-			}
-		} else {
-			return -E2BIG;
-		}
-	}
-
-	prGlueInfo->prP2PInfo->u2WSCIELen[1] = prPasswordReady->probe_req_len;
-
-	/* retrieve IE for Probe Response */
-	if (prPasswordReady->probe_rsp_len > 0) {
-		if (prPasswordReady->probe_rsp_len <= MAX_WSC_IE_LENGTH) {
-			if (copy_from_user
-			    (prGlueInfo->prP2PInfo->aucWSCIE[2], prPasswordReady->probe_rsp_ie,
-			     prPasswordReady->probe_rsp_len)) {
-				return -EFAULT;
-			}
-		} else {
-			return -E2BIG;
-		}
-	}
-
-	prGlueInfo->prP2PInfo->u2WSCIELen[2] = prPasswordReady->probe_rsp_len;
-
-	switch (prPasswordReady->active_config_method) {
-	case 1:
-		prConnSettings->u2LocalConfigMethod = WPS_ATTRI_CFG_METHOD_PUSH_BUTTON;
-		break;
-	case 2:
-		prConnSettings->u2LocalConfigMethod = WPS_ATTRI_CFG_METHOD_KEYPAD;
-		break;
-	case 3:
-		prConnSettings->u2LocalConfigMethod = WPS_ATTRI_CFG_METHOD_DISPLAY;
-		break;
-	default:
-		break;
-	}
-
-	prConnSettings->fgIsPasswordIDRdy = TRUE;
 	return 0;
 }				/* end of mtk_p2p_wext_password_ready() */
 
@@ -2742,31 +3220,6 @@ int
 mtk_p2p_wext_request_dev_info(IN struct net_device *prDev,
 			      IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-	P_ADAPTER_T prAdapter = NULL;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	P_IW_P2P_DEVICE_REQ prDeviceReq = (P_IW_P2P_DEVICE_REQ) extra;
-
-	ASSERT(prDev);
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	prAdapter = prGlueInfo->prAdapter;
-	ASSERT(prAdapter);
-
-	/* specify data length */
-	wrqu->data.length = sizeof(IW_P2P_DEVICE_REQ);
-
-	/* copy to upper-layer supplied buffer */
-	kalMemCopy(prDeviceReq->name, prGlueInfo->prP2PInfo->aucConnReqDevName,
-		   prGlueInfo->prP2PInfo->u4ConnReqNameLength);
-	prDeviceReq->name_len = prGlueInfo->prP2PInfo->u4ConnReqNameLength;
-	prDeviceReq->name[prDeviceReq->name_len] = '\0';
-	COPY_MAC_ADDR(prDeviceReq->device_addr, prGlueInfo->prP2PInfo->rConnReqPeerAddr);
-	prDeviceReq->device_type = prGlueInfo->prP2PInfo->ucConnReqDevType;
-	prDeviceReq->config_method = prGlueInfo->prP2PInfo->i4ConnReqConfigMethod;
-	prDeviceReq->active_config_method = prGlueInfo->prP2PInfo->i4ConnReqActiveConfigMethod;
-
 	return 0;
 }				/* end of mtk_p2p_wext_request_dev_info() */
 
@@ -3034,130 +3487,7 @@ int
 mtk_p2p_wext_set_int(IN struct net_device *prDev,
 		     IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-	int status = 0;
-	UINT_32 u4SubCmd = 0;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	UINT_32 index;
-	INT_32 value;
-	PUINT_32 pu4IntBuf;
-	P_P2P_SPECIFIC_BSS_INFO_T prP2pSpecificBssInfo = (P_P2P_SPECIFIC_BSS_INFO_T) NULL;
-	P_P2P_CONNECTION_SETTINGS_T prP2pConnSettings = (P_P2P_CONNECTION_SETTINGS_T) NULL;
-	P_P2P_FSM_INFO_T prP2pFsmInfo = (P_P2P_FSM_INFO_T) NULL;
-	UINT_32 u4Leng;
-
-	ASSERT(prDev);
-	ASSERT(wrqu);
-
-	pu4IntBuf = (PUINT_32) extra;
-
-	if (GLUE_CHK_PR2(prDev, wrqu) == FALSE)
-		return -EINVAL;
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	prP2pSpecificBssInfo = prGlueInfo->prAdapter->rWifiVar.prP2pSpecificBssInfo;
-	prP2pConnSettings = prGlueInfo->prAdapter->rWifiVar.prP2PConnSettings;
-	prP2pFsmInfo = prGlueInfo->prAdapter->rWifiVar.prP2pFsmInfo;
-
-	u4SubCmd = (UINT_32) wrqu->mode;
-	index = pu4IntBuf[1];
-	value = pu4IntBuf[2];
-
-	DBGLOG(INIT, WARN,
-		"set parameter, u4SubCmd=%d idx=%d value=%lu\n", (INT_16) u4SubCmd, (INT_16) index, value);
-
-	switch (u4SubCmd) {
-	case PRIV_CMD_INT_P2P_SET:
-		switch (index) {
-		case 0:	/* Listen CH */
-			{
-				UINT_8 ucSuggestChnl = 0;
-
-				prP2pConnSettings->ucListenChnl = value;
-
-				/* 20110920 - frog: User configurations are placed in ConnSettings. */
-				if (rlmFuncFindAvailableChannel
-				    (prGlueInfo->prAdapter, value, &ucSuggestChnl, TRUE, TRUE)) {
-					prP2pSpecificBssInfo->ucListenChannel = value;
-				} else {
-					prP2pSpecificBssInfo->ucListenChannel = ucSuggestChnl;
-				}
-
-				break;
-			}
-		case 1:	/* P2p mode */
-			break;
-		case 4:	/* Noa duration */
-			prP2pSpecificBssInfo->rNoaParam.u4NoaDurationMs = value;
-			/* only to apply setting when setting NOA count */
-			/*
-			 * status = mtk_p2p_wext_set_noa_param(prDev,
-			 *                                      info,
-			 *                                      wrqu,
-			 *                                      (char *)&prP2pSpecificBssInfo->rNoaParam);
-			 */
-			break;
-		case 5:	/* Noa interval */
-			prP2pSpecificBssInfo->rNoaParam.u4NoaIntervalMs = value;
-			/* only to apply setting when setting NOA count */
-			/*
-			 * status = mtk_p2p_wext_set_noa_param(prDev,
-			 *                                      info,
-			 *                                      wrqu,
-			 *                                      (char *)&prP2pSpecificBssInfo->rNoaParam);
-			 */
-			break;
-		case 6:	/* Noa count */
-			prP2pSpecificBssInfo->rNoaParam.u4NoaCount = value;
-			status =
-			    mtk_p2p_wext_set_noa_param(prDev, info, wrqu, (char *)&prP2pSpecificBssInfo->rNoaParam);
-			break;
-		case 100:	/* Oper CH */
-			/* 20110920 - frog: User configurations are placed in ConnSettings. */
-			prP2pConnSettings->ucOperatingChnl = value;
-			break;
-		case 101:	/* Local config Method, for P2P SDK */
-			/* prP2pConnSettings->u2LocalConfigMethod; */
-			break;
-		case 102:	/* Sigma P2p reset */
-			kalMemZero(prP2pConnSettings->aucTargetDevAddr, MAC_ADDR_LEN);
-			/* prP2pConnSettings->eConnectionPolicy = ENUM_P2P_CONNECTION_POLICY_AUTO; */
-			break;
-		case 103:	/* WPS MODE */
-			kalP2PSetWscMode(prGlueInfo, value);
-			break;
-		case 104:	/* P2p send persence, duration */
-			break;
-		case 105:	/* P2p send persence, interval */
-			break;
-		case 106:	/* P2P set sleep  */
-			value = 1;
-			kalIoctl(prGlueInfo,
-				 wlanoidSetP2pPowerSaveProfile,
-				 &value, sizeof(value), FALSE, FALSE, TRUE, TRUE, &u4Leng);
-			break;
-		case 107:	/* P2P set opps, CTWindowl */
-			prP2pSpecificBssInfo->rOppPsParam.u4CTwindowMs = value;
-			status =
-			    mtk_p2p_wext_set_oppps_param(prDev, info, wrqu, (char *)&prP2pSpecificBssInfo->rOppPsParam);
-			break;
-		case 108:	/* p2p_set_power_save */
-			kalIoctl(prGlueInfo,
-				 wlanoidSetP2pPowerSaveProfile,
-				 &value, sizeof(value), FALSE, FALSE, TRUE, TRUE, &u4Leng);
-
-			break;
-
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-
-	return status;
+	return 0;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -3178,134 +3508,7 @@ int
 mtk_p2p_wext_set_struct(IN struct net_device *prDev,
 			IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-	int status = 0;
-	UINT_32 u4SubCmd = 0;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	P_IW_P2P_TRANSPORT_STRUCT prP2PReq = NULL;
-
-	ASSERT(prDev);
-	ASSERT(wrqu);
-
-	if (GLUE_CHK_PR2(prDev, wrqu) == FALSE)
-		return -EINVAL;
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	u4SubCmd = (UINT_32) wrqu->data.flags;
-
-	kalMemZero(&prGlueInfo->prP2PInfo->aucOidBuf[0], sizeof(prGlueInfo->prP2PInfo->aucOidBuf));
-
-	switch (u4SubCmd) {
-	case PRIV_CMD_OID:
-		if (copy_from_user(&(prGlueInfo->prP2PInfo->aucOidBuf[0]), wrqu->data.pointer, wrqu->data.length)) {
-			status = -EFAULT;
-			break;
-		}
-
-		if (!kalMemCmp(&(prGlueInfo->prP2PInfo->aucOidBuf[0]), extra, wrqu->data.length))
-			DBGLOG(INIT, WARN, "extra buffer is valid\n");
-		else
-			DBGLOG(INIT, WARN, "extra 0x%p\n", extra);
-
-		prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT) (&(prGlueInfo->prP2PInfo->aucOidBuf[0]));
-		switch (prP2PReq->u4CmdId) {
-		case P2P_CMD_ID_SEND_SD_RESPONSE:
-			status = mtk_p2p_wext_send_service_discovery_response(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-
-		case P2P_CMD_ID_SEND_SD_REQUEST:
-			status = mtk_p2p_wext_send_service_discovery_request(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-
-		case P2P_CMD_ID_TERMINATE_SD_PHASE:
-			status = mtk_p2p_wext_terminate_service_discovery_phase(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-
-		case P2P_CMD_ID_INVITATION:
-			if (prP2PReq->inBufferLength == sizeof(IW_P2P_IOCTL_INVITATION_STRUCT)) {
-				/*
-				 * status = mtk_p2p_wext_invitation_request(prDev,
-				 *                                     info,
-				 *                                     wrqu,
-				 *                                     (char *)(prP2PReq->aucBuffer));
-				 */
-			}
-			break;
-
-		case P2P_CMD_ID_INVITATION_ABORT:
-			if (prP2PReq->inBufferLength == sizeof(IW_P2P_IOCTL_ABORT_INVITATION)) {
-				/*
-				 * status = mtk_p2p_wext_invitation_abort(prDev,
-				 *                                      info,
-				 *                                      wrqu,
-				 *                                      (char *)(prP2PReq->aucBuffer));
-				 */
-			}
-			break;
-
-		case P2P_CMD_ID_START_FORMATION:
-			if (prP2PReq->inBufferLength == sizeof(IW_P2P_IOCTL_START_FORMATION))
-				status = mtk_p2p_wext_start_formation(prDev, info, wrqu, (char *)(prP2PReq->aucBuffer));
-			break;
-		default:
-			status = -EOPNOTSUPP;
-		}
-
-		break;
-#if CFG_SUPPORT_ANTI_PIRACY
-	case PRIV_SEC_CHECK_OID:
-		if (wrqu->data.length > 256) {
-			status = -EOPNOTSUPP;
-			break;
-		}
-		if (copy_from_user(&(prGlueInfo->prP2PInfo->aucSecCheck[0]), wrqu->data.pointer, wrqu->data.length)) {
-			status = -EFAULT;
-			break;
-		}
-
-		if (!kalMemCmp(&(prGlueInfo->prP2PInfo->aucSecCheck[0]), extra, wrqu->data.length))
-			DBGLOG(INIT, WARN, "extra buffer is valid\n");
-		else
-			DBGLOG(INIT, WARN, "extra 0x%p\n", extra);
-		prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT) (&(prGlueInfo->prP2PInfo->aucSecCheck[0]));
-
-		switch (prP2PReq->u4CmdId) {
-		case P2P_CMD_ID_SEC_CHECK:
-			status = mtk_p2p_wext_set_sec_check_request(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-		default:
-			status = -EOPNOTSUPP;
-		}
-		break;
-#endif
-	case PRIV_CMD_P2P_VERSION:
-		if (copy_from_user(&(prGlueInfo->prP2PInfo->aucOidBuf[0]), wrqu->data.pointer, wrqu->data.length)) {
-			status = -EFAULT;
-			break;
-		}
-
-		if (!kalMemCmp(&(prGlueInfo->prP2PInfo->aucOidBuf[0]), extra, wrqu->data.length))
-			DBGLOG(INIT, WARN, "extra buffer is valid\n");
-		else
-			DBGLOG(INIT, WARN, "extra 0x%p\n", extra);
-
-		prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT) (&(prGlueInfo->prP2PInfo->aucOidBuf[0]));
-		switch (prP2PReq->u4CmdId) {
-		case P2P_CMD_ID_P2P_VERSION:
-			status = mtk_p2p_wext_set_p2p_version(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-		default:
-			status = -EOPNOTSUPP;
-			break;
-		}
-		break;
-	default:
-		status = -EOPNOTSUPP;
-		break;
-	}
-
-	return status;
+	return 0;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -3326,206 +3529,7 @@ int
 mtk_p2p_wext_get_struct(IN struct net_device *prDev,
 			IN struct iw_request_info *info, IN OUT union iwreq_data *wrqu, IN OUT char *extra)
 {
-	int status = 0;
-	UINT_32 u4SubCmd = 0;
-	P_GLUE_INFO_T prGlueInfo = NULL;
-	P_IW_P2P_TRANSPORT_STRUCT prP2PReq = NULL;
-
-	ASSERT(prDev);
-	ASSERT(wrqu);
-
-	if (!prDev || !wrqu) {
-		DBGLOG(INIT, WARN, "%s(): invalid param(0x%p, 0x%p)\n", __func__, prDev, wrqu);
-		return -EINVAL;
-	}
-
-	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
-	ASSERT(prGlueInfo);
-
-	u4SubCmd = (UINT_32) wrqu->data.flags;
-
-	kalMemZero(&(prGlueInfo->prP2PInfo->aucOidBuf[0]), sizeof(prGlueInfo->prP2PInfo->aucOidBuf));
-
-	switch (u4SubCmd) {
-	case PRIV_CMD_OID:
-		if (copy_from_user(&(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-				   wrqu->data.pointer, sizeof(IW_P2P_TRANSPORT_STRUCT))) {
-			DBGLOG(INIT, WARN, "%s() copy_from_user oidBuf fail\n", __func__);
-			return -EFAULT;
-		}
-
-		prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT) (&(prGlueInfo->prP2PInfo->aucOidBuf[0]));
-
-		switch (prP2PReq->u4CmdId) {
-		case P2P_CMD_ID_GET_SD_REQUEST:
-			status = mtk_p2p_wext_get_service_discovery_request(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-
-		case P2P_CMD_ID_GET_SD_RESPONSE:
-			status = mtk_p2p_wext_get_service_discovery_response(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-
-		case P2P_CMD_ID_INVITATION_INDICATE:
-			{
-				status =
-				    mtk_p2p_wext_invitation_indicate(prDev, info, wrqu, (char *)(prP2PReq->aucBuffer));
-				prP2PReq->outBufferLength = wrqu->data.length;
-				if (copy_to_user(wrqu->data.pointer,
-						 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-						 wrqu->data.length + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-					DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-					return -EIO;
-				} else {
-					return 0;
-				}
-				break;
-			}
-		case P2P_CMD_ID_INVITATION_STATUS:
-			{
-				status =
-				    mtk_p2p_wext_invitation_status(prDev, info, wrqu, (char *)(prP2PReq->aucBuffer));
-				prP2PReq->outBufferLength = wrqu->data.length;
-				if (copy_to_user(wrqu->data.pointer,
-						 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-						 wrqu->data.length + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-					DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-					return -EIO;
-				} else {
-					return 0;
-				}
-				break;
-			}
-		case P2P_CMD_ID_GET_CH_LIST:
-			{
-				UINT_16 i;
-				UINT_8 NumOfChannel = 50;
-				RF_CHANNEL_INFO_T aucChannelList[50];
-				UINT_8 ucMaxChannelNum = 50;
-				PUINT_8 pucChnlList = (PUINT_8) prP2PReq->aucBuffer;
-
-				kalGetChnlList(prGlueInfo, BAND_NULL, ucMaxChannelNum, &NumOfChannel, aucChannelList);
-				if (NumOfChannel > 50)
-					NumOfChannel = 50;
-				prP2PReq->outBufferLength = NumOfChannel;
-
-				for (i = 0; i < NumOfChannel; i++) {
-#if 0
-					/* 20120208 frog: modify to avoid clockwork warning. */
-					prP2PReq->aucBuffer[i] = aucChannelList[i].ucChannelNum;
-#else
-					*pucChnlList = aucChannelList[i].ucChannelNum;
-					pucChnlList++;
-#endif
-				}
-				if (copy_to_user(wrqu->data.pointer,
-						 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-						 NumOfChannel + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-					DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-					return -EIO;
-				} else {
-					return 0;
-				}
-				break;
-			}
-
-		case P2P_CMD_ID_GET_OP_CH:
-			{
-				prP2PReq->inBufferLength = 4;
-
-				status = wlanoidQueryP2pOpChannel(prGlueInfo->prAdapter,
-								  prP2PReq->aucBuffer,
-								  prP2PReq->inBufferLength, &prP2PReq->outBufferLength);
-
-				if (status == 0) {	/* WLAN_STATUS_SUCCESS */
-					if (copy_to_user(wrqu->data.pointer,
-							 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-							 prP2PReq->outBufferLength +
-							 OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-						DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-						return -EIO;
-					}
-				} else {
-					if (copy_to_user(wrqu->data.pointer,
-							 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-							 OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-						DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-						return -EIO;
-					}
-				}
-				break;
-			}
-
-		default:
-			status = -EOPNOTSUPP;
-		}
-
-		break;
-#if CFG_SUPPORT_ANTI_PIRACY
-	case PRIV_SEC_CHECK_OID:
-		if (wrqu->data.length > 256) {
-			status = -EOPNOTSUPP;
-			break;
-		}
-		if (copy_from_user(&(prGlueInfo->prP2PInfo->aucSecCheck[0]),
-				   wrqu->data.pointer, sizeof(IW_P2P_TRANSPORT_STRUCT))) {
-			DBGLOG(INIT, WARN, "%s() copy_from_user oidBuf fail\n", __func__);
-			return -EFAULT;
-		}
-
-		prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT) (&(prGlueInfo->prP2PInfo->aucSecCheck[0]));
-
-		switch (prP2PReq->u4CmdId) {
-		case P2P_CMD_ID_SEC_CHECK:
-			status = mtk_p2p_wext_get_sec_check_response(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-		default:
-			status = -EOPNOTSUPP;
-		}
-		break;
-#endif
-	case PRIV_CMD_P2P_VERSION:
-		if (copy_from_user(&(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-				   wrqu->data.pointer, sizeof(IW_P2P_TRANSPORT_STRUCT))) {
-			DBGLOG(INIT, WARN, "%s() copy_from_user oidBuf fail\n", __func__);
-			return -EFAULT;
-		}
-
-		prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT) (&(prGlueInfo->prP2PInfo->aucOidBuf[0]));
-
-		switch (prP2PReq->u4CmdId) {
-		case P2P_CMD_ID_P2P_VERSION:
-			status = mtk_p2p_wext_get_p2p_version(prDev, info, wrqu, (char *)prP2PReq);
-			break;
-		default:
-			status = -EOPNOTSUPP;
-			break;
-		}
-
-		/* Copy queried data to user. */
-		if (status == 0) {	/* WLAN_STATUS_SUCCESS */
-			if (copy_to_user(wrqu->data.pointer,
-					 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-					 prP2PReq->outBufferLength + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-				DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-				return -EIO;
-			}
-		}
-
-		else {
-			if (copy_to_user(wrqu->data.pointer,
-					 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-					 OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-				DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-				return -EIO;
-			}
-		}
-
-		break;
-	default:
-		return -EOPNOTSUPP;
-	}
-
-	return status;
+	return 0;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -3562,18 +3566,19 @@ mtk_p2p_wext_get_service_discovery_request(IN struct net_device *prDev,
 			   wlanoidGetP2PSDRequest,
 			   prP2PReq->aucBuffer, prP2PReq->outBufferLength, TRUE, FALSE, TRUE, TRUE, &u4QueryInfoLen);
 
-	if (rStatus != WLAN_STATUS_SUCCESS)
+	if (rStatus != WLAN_STATUS_SUCCESS) {
 		return -EFAULT;
-
-	prP2PReq->outBufferLength = u4QueryInfoLen;
-
-	if (copy_to_user(wrqu->data.pointer,
-			 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-			 u4QueryInfoLen + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-		DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-		return -EIO;
 	} else {
-		return 0;
+		prP2PReq->outBufferLength = u4QueryInfoLen;
+
+		if (copy_to_user(wrqu->data.pointer,
+				 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
+				 u4QueryInfoLen + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
+			DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
+			return -EIO;
+		} else {
+			return 0;
+		}
 	}
 }
 
@@ -3611,18 +3616,19 @@ mtk_p2p_wext_get_service_discovery_response(IN struct net_device *prDev,
 			   wlanoidGetP2PSDResponse,
 			   prP2PReq->aucBuffer, prP2PReq->outBufferLength, TRUE, FALSE, TRUE, TRUE, &u4QueryInfoLen);
 
-	if (rStatus != WLAN_STATUS_SUCCESS)
+	if (rStatus != WLAN_STATUS_SUCCESS) {
 		return -EFAULT;
-
-	prP2PReq->outBufferLength = u4QueryInfoLen;
-
-	if (copy_to_user(wrqu->data.pointer,
-			 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
-			 u4QueryInfoLen + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-		DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-		return -EIO;
 	} else {
-		return 0;
+		prP2PReq->outBufferLength = u4QueryInfoLen;
+
+		if (copy_to_user(wrqu->data.pointer,
+				 &(prGlueInfo->prP2PInfo->aucOidBuf[0]),
+				 u4QueryInfoLen + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
+			DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
+			return -EIO;
+		} else {
+			return 0;
+		}
 	}
 }
 
@@ -3778,17 +3784,18 @@ mtk_p2p_wext_get_sec_check_response(IN struct net_device *prDev,
 			   wlanoidGetSecCheckResponse,
 			   prP2PReq->aucBuffer, prP2PReq->outBufferLength, TRUE, FALSE, TRUE, TRUE, &u4QueryInfoLen);
 
-	if (rStatus != WLAN_STATUS_SUCCESS)
+	if (rStatus != WLAN_STATUS_SUCCESS) {
 		return -EFAULT;
-
-	prP2PReq->outBufferLength = u4QueryInfoLen;
-
-	if (copy_to_user(wrqu->data.pointer,
-			 prP2PReq->aucBuffer, u4QueryInfoLen + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
-		DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
-		return -EIO;
 	} else {
-		return 0;
+		prP2PReq->outBufferLength = u4QueryInfoLen;
+
+		if (copy_to_user(wrqu->data.pointer,
+				 prP2PReq->aucBuffer, u4QueryInfoLen + OFFSET_OF(IW_P2P_TRANSPORT_STRUCT, aucBuffer))) {
+			DBGLOG(INIT, WARN, "%s() copy_to_user() fail\n", __func__);
+			return -EIO;
+		} else {
+			return 0;
+		}
 	}
 }
 #endif
@@ -3854,7 +3861,7 @@ mtk_p2p_wext_set_noa_param(IN struct net_device *prDev,
 	WLAN_STATUS rStatus = WLAN_STATUS_SUCCESS;
 	UINT_32 u4SetInfoLen;
 	/* P_IW_P2P_TRANSPORT_STRUCT   prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT)extra; */
-	P_PARAM_CUSTOM_NOA_PARAM_STRUCT_T prNoaParam = (P_PARAM_CUSTOM_NOA_PARAM_STRUCT_T) extra;
+	P_PARAM_CUSTOM_NOA_PARAM_STRUC_T prNoaParam = (P_PARAM_CUSTOM_NOA_PARAM_STRUC_T) extra;
 	P_GLUE_INFO_T prGlueInfo = NULL;
 
 	ASSERT(prDev);
@@ -3865,7 +3872,7 @@ mtk_p2p_wext_set_noa_param(IN struct net_device *prDev,
 	DBGLOG(INIT, INFO, "mtk_p2p_wext_set_noa_param\n");
 
 	rStatus = kalIoctl(prGlueInfo, wlanoidSetNoaParam, prNoaParam,	/* prP2PReq->aucBuffer, */
-			   sizeof(PARAM_CUSTOM_NOA_PARAM_STRUCT_T),	/* prP2PReq->inBufferLength, */
+			   sizeof(PARAM_CUSTOM_NOA_PARAM_STRUC_T),	/* prP2PReq->inBufferLength, */
 			   FALSE, FALSE, TRUE, TRUE, &u4SetInfoLen);
 
 	if (rStatus != WLAN_STATUS_SUCCESS)
@@ -3895,7 +3902,7 @@ mtk_p2p_wext_set_oppps_param(IN struct net_device *prDev,
 	WLAN_STATUS rStatus = WLAN_STATUS_SUCCESS;
 	UINT_32 u4SetInfoLen;
 /* P_IW_P2P_TRANSPORT_STRUCT   prP2PReq = (P_IW_P2P_TRANSPORT_STRUCT)extra; */
-	P_PARAM_CUSTOM_OPPPS_PARAM_STRUCT_T prOppPsParam = (P_PARAM_CUSTOM_OPPPS_PARAM_STRUCT_T) extra;
+	P_PARAM_CUSTOM_OPPPS_PARAM_STRUC_T prOppPsParam = (P_PARAM_CUSTOM_OPPPS_PARAM_STRUC_T) extra;
 	P_GLUE_INFO_T prGlueInfo = NULL;
 
 	ASSERT(prDev);
@@ -3906,7 +3913,7 @@ mtk_p2p_wext_set_oppps_param(IN struct net_device *prDev,
 	DBGLOG(INIT, INFO, "mtk_p2p_wext_set_oppps_param\n");
 
 	rStatus = kalIoctl(prGlueInfo, wlanoidSetOppPsParam, prOppPsParam,	/* prP2PReq->aucBuffer, */
-			   sizeof(PARAM_CUSTOM_OPPPS_PARAM_STRUCT_T),	/* prP2PReq->inBufferLength, */
+			   sizeof(PARAM_CUSTOM_OPPPS_PARAM_STRUC_T),	/* prP2PReq->inBufferLength, */
 			   FALSE, FALSE, TRUE, TRUE, &u4SetInfoLen);
 
 	if (rStatus != WLAN_STATUS_SUCCESS)

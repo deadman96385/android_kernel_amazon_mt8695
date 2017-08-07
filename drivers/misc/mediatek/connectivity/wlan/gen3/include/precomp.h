@@ -1,28 +1,13 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/precomp.h#2
 */
 
-/*
- * ! \file   precomp.h
- *  \brief  Collection of most compiler flags are described here.
- *
- *   In this file we collect all compiler flags and detail the driver behavior if
- *   enable/disable such switch or adjust numeric parameters.
- */
+/*! \file   precomp.h
+    \brief  Collection of most compiler flags are described here.
+
+    In this file we collect all compiler flags and detail the driver behavior if
+    enable/disable such switch or adjust numeric parameters.
+*/
 
 #ifndef _PRECOMP_H
 #define _PRECOMP_H
@@ -47,6 +32,8 @@
 #if CFG_ENABLE_WIFI_DIRECT
 #include "gl_p2p_os.h"
 #endif
+
+#include "debug.h"
 
 #include "link.h"
 #include "queue.h"
@@ -120,7 +107,9 @@
 
 #include "hal.h"
 
+#if defined(MT6630)
 #include "mt6630_reg.h"
+#endif
 
 #include "rlm.h"
 #include "rlm_domain.h"
@@ -143,10 +132,6 @@
 #endif
 
 #include "pwr_mgt.h"
-
-#if (CFG_SUPPORT_STATISTICS == 1)
-#include "stats.h"
-#endif /* CFG_SUPPORT_STATISTICS */
 
 #include "cnm.h"
 /* Dependency:  aa_fsm.h (ENUM_AA_STATE_T), p2p_fsm.h (WPS_ATTRI_MAX_LEN_DEVICE_NAME) */
@@ -199,10 +184,6 @@
  */
 #include "CFG_Wifi_File.h"
 
-/*------------------------------------------------------------------------------
- * Others
- *------------------------------------------------------------------------------
- */
 #if CFG_ENABLE_WIFI_DIRECT
 #include "gl_p2p_kal.h"
 #endif
@@ -211,12 +192,7 @@
 #include "tdls.h"
 #endif
 
-#if CFG_SUPPORT_QA_TOOL
-#include "gl_qa_agent.h"
-#endif
-
 extern BOOLEAN fgIsResetting;
-#include "gl_rst.h"
 
 /*******************************************************************************
 *                              C O N S T A N T S

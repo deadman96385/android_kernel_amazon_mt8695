@@ -1,25 +1,56 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
+** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/hif/sdio/include/hif_sdio.h#2
+*/
+
+/*! \file   "hif_sdio.h"
+    \brief
+
+
 */
 
 /*
- * Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/hif/sdio/include/hif_sdio.h#2
- */
+** Log:
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+ *
+ * 06 13 2012 yuche.tsai
+ * NULL
+ * Update maintrunk driver.
+ * Add support for driver compose assoc request frame.
+ *
+ * 05 02 2012 terry.wu
+ * NULL
+ * Fix build error if HAVE_AEE_FEATURE = n
+ *
+ * 04 12 2012 terry.wu
+ * NULL
+ * Add AEE message support
+ * 1) Show AEE warning(red screen) if SDIO access error occurs
 
-/*
- * ! \file   "hif_sdio.h"
- * \brief
- */
+ *
+ * 03 02 2012 terry.wu
+ * NULL
+ * Enable CFG80211 Support.
+ *
+ * 08 18 2010 jeffrey.chang
+ * NULL
+ * support multi-function sdio
+ *
+ * 07 25 2010 george.kuo
+ *
+ * Move hif_sdio driver to linux directory.
+ *
+ * 07 23 2010 george.kuo
+ *
+ * Add MT6620 driver source tree
+ * , including char device driver (wmt, bt, gps), stp driver,
+ * interface driver (tty ldisc and hif_sdio), and bt hci driver.
+**
+**
+*/
 
 #ifndef _HIF_SDIO_H
 #define _HIF_SDIO_H
@@ -27,7 +58,7 @@
 *                         C O M P I L E R   F L A G S
 ********************************************************************************
 */
-#define HIF_SDIO_DEBUG  (0)	/* 0:turn off debug msg and assert, 1:turn off debug msg and assert */
+#define HIF_SDIO_DEBUG  (0)	/* 0:trun off debug msg and assert, 1:trun off debug msg and assert */
 
 /*******************************************************************************
 *                    E X T E R N A L   R E F E R E N C E S
@@ -56,7 +87,7 @@ typedef struct _MTK_WCN_HIF_SDIO_FUNCINFO MTK_WCN_HIF_SDIO_FUNCINFO;
 typedef ULONG MTK_WCN_HIF_SDIO_CLTCTX;
 
 /* Callback functions provided by client driver */
-typedef INT_32(*MTK_WCN_HIF_SDIO_PROBE)(MTK_WCN_HIF_SDIO_CLTCTX, const MTK_WCN_HIF_SDIO_FUNCINFO *prFuncInfo);
+typedef INT_32(*MTK_WCN_HIF_SDIO_PROBE)(MTK_WCN_HIF_SDIO_CLTCTX, const MTK_WCN_HIF_SDIO_FUNCINFO * prFuncInfo);
 typedef INT_32(*MTK_WCN_HIF_SDIO_REMOVE)(MTK_WCN_HIF_SDIO_CLTCTX);
 typedef INT_32(*MTK_WCN_HIF_SDIO_IRQ)(MTK_WCN_HIF_SDIO_CLTCTX);
 
@@ -158,7 +189,7 @@ typedef enum {
 		if (!(expr)) { \
 			LOG_FUNC("assertion failed! %s[%d]: %s\n",\
 				__func__, __LINE__, #expr); \
-			panic("assert failed\n");\
+			BUG_ON(!(expr));\
 		} \
 	}
 #else

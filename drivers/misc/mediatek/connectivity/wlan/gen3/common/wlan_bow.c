@@ -1,26 +1,343 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
+** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/common/wlan_bow.c#1
+*/
+
+/*! \file wlan_bow.c
+    \brief This file contains the 802.11 PAL commands processing routines for
+	   MediaTek Inc. 802.11 Wireless LAN Adapters.
 */
 
 /*
- * Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/common/wlan_bow.c#1
- */
-
-/*
- * ! \file wlan_bow.c
- *   \brief This file contains the 802.11 PAL commands processing routines for
- *       MediaTek Inc. 802.11 Wireless LAN Adapters.
- */
+** Log: wlan_bow.c
+**
+** 07 26 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** 1. Reduce extra Tx frame header parsing
+** 2. Add TX port control
+** 3. Add net interface to BSS binding
+**
+** 02 27 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Fix compiling warning of undefined symbol
+**
+** 02 22 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Del compiling warning for undefined symbol (bow, sec)
+**
+** 02 18 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** New feature to remove all sta records by BssIndex
+**
+** 01 21 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** 1. Create rP2pDevInfo structure
+** 2. Support 80/160 MHz channel bandwidth for channel privilege
+**
+** 11 21 2012 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** [Driver] Fix linux drvier build error.
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+ *
+ * 03 02 2012 terry.wu
+ * NULL
+ * Sync CFG80211 modification from branch 2,2.
+ *
+ * 01 16 2012 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Support BOW for 5GHz band.
+ *
+ * 01 09 2012 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * [ALPS00110632] [Rose][LCA42][Cross Feature][Bluetooth]The "KE" pops up after the device reboots automatically.(once)
+ *
+ * Fix bow link disconnected event dereference.
+ *
+ * 09 29 2011 cm.chang
+ * NULL
+ * Change the function prototype of rlmDomainGetChnlList()
+ *
+ * 07 06 2011 terry.wu
+ * [WCXRP00000735] [MT6620 Wi-Fi][BoW][FW/Driver] Protect BoW connection establishment
+ * Improve BoW connection establishment speed.
+ *
+ * 06 23 2011 cp.wu
+ * [WCXRP00000798] [MT6620 Wi-Fi][Firmware] Follow-ups for WAPI frequency offset workaround in firmware SCN module
+ * change parameter name from PeerAddr to BSSID
+ *
+ * 06 21 2011 terry.wu
+ * NULL
+ * Fix BoW KE.
+ *
+ * 06 20 2011 terry.wu
+ * NULL
+ * Add BoW Rate Limitation.
+ *
+ * 06 20 2011 cp.wu
+ * [WCXRP00000798] [MT6620 Wi-Fi][Firmware] Follow-ups for WAPI frequency offset workaround in firmware SCN module
+ * 1. specify target's BSSID when requesting channel privilege.
+ * 2. pass BSSID information to firmware domain
+ *
+ * 06 17 2011 terry.wu
+ * NULL
+ * Add BoW 11N support.
+ *
+ * 06 07 2011 cp.wu
+ * [WCXRP00000681] [MT5931][Firmware] HIF code size reduction
+ * aware more compile options.
+ *
+ * 05 25 2011 terry.wu
+ * [WCXRP00000735] [MT6620 Wi-Fi][BoW][FW/Driver] Protect BoW connection establishment
+ * Add BoW Cancel Scan Request and Turn On deactive network function.
+ *
+ * 05 23 2011 terry.wu
+ * [WCXRP00000735] [MT6620 Wi-Fi][BoW][FW/Driver] Protect BoW connection establishment
+ * Add some BoW error handling.
+ *
+ * 05 22 2011 terry.wu
+ * [WCXRP00000735] [MT6620 Wi-Fi][BoW][FW/Driver] Protect BoW connection establishment
+ * .
+ *
+ * 05 22 2011 terry.wu
+ * [WCXRP00000735] [MT6620 Wi-Fi][BoW][FW/Driver] Protect BoW connection establishment
+ * Only reply probe response to its peer or mached SSID for BoW AP.
+ *
+ * 05 22 2011 terry.wu
+ * [WCXRP00000735] [MT6620 Wi-Fi][BoW][FW/Driver] Protect BoW connection establishment
+ * Add BoW SAA retry and disable disconnect event when AAA fail .
+ *
+ * 05 21 2011 terry.wu
+ * [WCXRP00000735] [MT6620 Wi-Fi][BoW][FW/Driver] Protect BoW connection establishment
+ * Protect BoW connection establishment.
+ *
+ * 05 17 2011 terry.wu
+ * [WCXRP00000730] [MT6620 Wi-Fi][BoW] Send deauth while disconnecting
+ * Send deauth while disconnecting BoW link.
+ *
+ * 05 17 2011 terry.wu
+ * [WCXRP00000707] [MT6620 Wi-Fi][Driver] Fix BoW Multiple Physical Link connect/disconnect issue
+ * Fix wrong StaRec state of BoW .
+ *
+ * 05 06 2011 terry.wu
+ * [WCXRP00000707] [MT6620 Wi-Fi][Driver] Fix BoW Multiple Physical Link connect/disconnect issue
+ * Fix BoW Multiple Physical Link connect/disconnect issue.
+ *
+ * 05 03 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Use kalMemAlloc to allocate event buffer for kalIndicateBOWEvent.
+ *
+ * 04 15 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Fix prAssocRspSwRfb casting.
+ *
+ * 04 15 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Add BOW short range mode.
+ *
+ * 04 12 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Add WMM IE for BOW initiator data.
+ *
+ * 04 10 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Change Link disconnection event procedure for hotspot and change skb length check to 1514 bytes.
+ *
+ * 04 09 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Change Link connection event procedure and change skb length check to 1512 bytes.
+ *
+ * 03 28 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Simplify link disconnected routine, remove link disconnected other routine.
+ *
+ * 03 27 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Support multiple physical link.
+ *
+ * 03 27 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Add new feature - multiple physical link support.
+ *
+ * 02 22 2011 wh.su
+ * [WCXRP00000486] [MT6620 Wi-Fi][BOW] Fixed the bow send frame but not encrypted issue
+ * fixed the BOW packet sending without encrypted issue.
+ *
+ * 02 21 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Fix BOW link disconnection bug.
+ *
+ * 02 16 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Add bowNotifyAllLinkDisconnected  interface and change channel grant procedure for bow starting.
+ *
+ * 02 11 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Update BOW channel granted function.
+ *
+ * 02 10 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Fix kernel API change issue.
+ * Before ALPS 2.2 (2.2 included), kfifo_alloc() is
+ * struct kfifo *kfifo_alloc(unsigned int size, gfp_t gfp_mask, spinlock_t *lock);
+ * After ALPS 2.3, kfifo_alloc() is changed to
+ * int kfifo_alloc(struct kfifo *fifo, unsigned int size, gfp_t gfp_mask);
+ *
+ * 02 09 2011 cp.wu
+ * [WCXRP00000430] [MT6620 Wi-Fi][Firmware][Driver] Create V1.2 branch for MT6620E1 and MT6620E3
+ * create V1.2 driver branch based on label MT6620_WIFI_DRIVER_V1_2_110209_1031
+ * with BOW and P2P enabled as default
+ *
+ * 02 08 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Replace kfifo_get and kfifo_put with kfifo_out and kfifo_in.
+ * Update BOW get MAC status, remove returning event for AIS network type.
+ *
+ * 01 26 2011 cm.chang
+ * [WCXRP00000395] [MT6620 Wi-Fi][Driver][FW] Search STA_REC with additional net type index argument
+ * .
+ *
+ * 01 11 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Update BOW Activity Report structure and bug fix.
+ *
+ * 01 10 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Update BOW to support multiple physical link.
+ *
+ * 12 08 2010 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Support concurrent networks.
+ *
+ * 12 07 2010 cm.chang
+ * [WCXRP00000239] MT6620 Wi-Fi][Driver][FW] Merge concurrent branch back to maintrunk
+ * 1. BSSINFO include RLM parameter
+ * 2. free all sta records when network is disconnected
+ *
+ * 11 11 2010 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Fix BoW timer assert issue.
+ *
+ * 10 18 2010 chinghwa.yu
+ * [WCXRP00000110] [MT6620 Wi-Fi] [Driver] Fix BoW Connected event size
+ * Fix for event returnning Band.
+ *
+ * 10 18 2010 chinghwa.yu
+ * [WCXRP00000110] [MT6620 Wi-Fi] [Driver] Fix BoW Connected event size
+ * Fix wrong BoW event size.
+ *
+ * 10 04 2010 cp.wu
+ * [WCXRP00000077] [MT6620 Wi-Fi][Driver][FW] Eliminate use of ENUM_NETWORK_TYPE_T and replaced
+ * by ENUM_NETWORK_TYPE_INDEX_T only remove ENUM_NETWORK_TYPE_T definitions
+ *
+ * 09 27 2010 chinghwa.yu
+ * [WCXRP00000063] Update BCM CoEx design and settings[WCXRP00000065] Update BoW design and settings
+ * Update BCM/BoW design and settings.
+ *
+ * 09 16 2010 chinghwa.yu
+ * NULL
+ * Fix bowResponderScanDone error when prBssDesc is NULL.
+ *
+ * 09 14 2010 chinghwa.yu
+ * NULL
+ * Add bowRunEventAAAComplete.
+ *
+ * 09 14 2010 cp.wu
+ * NULL
+ * indicate correct AIS network information for PAL.
+ *
+ * 09 03 2010 kevin.huang
+ * NULL
+ * Refine #include sequence and solve recursive/nested #include issue
+ *
+ * 08 24 2010 cm.chang
+ * NULL
+ * Support RLM initail channel of Ad-hoc, P2P and BOW
+ *
+ * 08 24 2010 chinghwa.yu
+ * NULL
+ * Initialize nicActivateNetwork(prAdapter as soon as bow is starting..
+ *
+ * 08 24 2010 chinghwa.yu
+ * NULL
+ * Update BOW for the 1st time.
+ *
+ * 08 23 2010 cp.wu
+ * NULL
+ * revise constant definitions to be matched with implementation (original cmd-event definition is deprecated)
+ *
+ * 07 30 2010 cp.wu
+ * NULL
+ * 1) BoW wrapper: use definitions instead of hard-coded constant for error code
+ * 2) AIS-FSM: eliminate use of desired RF parameters, use prTargetBssDesc instead
+ * 3) add handling for RX_PKT_DESTINATION_HOST_WITH_FORWARD for GO-broadcast frames
+ *
+ * 07 15 2010 cp.wu
+ *
+ * sync. bluetooth-over-Wi-Fi interface to driver interface document v0.2.6.
+ *
+ * 07 08 2010 cp.wu
+ *
+ * [WPD00003833] [MT6620 and MT5931] Driver migration - move to new repository.
+ *
+ * 06 25 2010 cp.wu
+ * [WPD00003833][MT6620 and MT5931] Driver migration
+ * add API in que_mgt to retrieve sta-rec index for security frames.
+ *
+ * 06 24 2010 cp.wu
+ * [WPD00003833][MT6620 and MT5931] Driver migration
+ * 802.1x and bluetooth-over-Wi-Fi security frames are now delievered to firmware via command path instead of data path.
+ *
+ * 06 11 2010 cp.wu
+ * [WPD00003833][MT6620 and MT5931] Driver migration
+ * 1) migrate assoc.c.
+ * 2) add ucTxSeqNum for tracking frames which needs TX-DONE awareness
+ * 3) add configuration options for CNM_MEM and RSN modules
+ * 4) add data path for management frames
+ * 5) eliminate rPacketInfo of MSDU_INFO_T
+ *
+ * 06 06 2010 kevin.huang
+ * [WPD00003832][MT6620 5931] Create driver base
+ * [MT6620 5931] Create driver base
+ *
+ * 05 17 2010 cp.wu
+ * [WPD00003831][MT6620 Wi-Fi] Add framework for Wi-Fi Direct support
+ * 1) add timeout handler mechanism for pending command packets
+ * 2) add p2p add/removal key
+ *
+ * 05 13 2010 cp.wu
+ * [WPD00001943]Create WiFi test driver framework on WinXP
+ * add NULL OID implementation for WOL-related OIDs.
+ *
+ * 05 13 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * 1) all BT physical handles shares the same RSSI/Link Quality.
+ * 2) simplify BT command composing
+ *
+ * 04 28 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * change prefix for data structure used to communicate with 802.11 PAL
+ * to avoid ambiguous naming with firmware interface
+ *
+ * 04 27 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * add multiple physical link support
+ *
+ * 04 14 2010 cp.wu
+ * [WPD00001943]Create WiFi test driver framework on WinXP
+ * information buffer for query oid/ioctl is now buffered in prCmdInfo
+ * instead of glue-layer variable to improve multiple oid/ioctl capability
+ *
+ * 04 13 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * add framework for BT-over-Wi-Fi support.
+ *  * 1) prPendingCmdInfo is replaced by queue for multiple handler capability
+ *  * 2) command sequence number is now increased atomically
+ *  * 3) private data could be hold and taken use for other purpose
+**
+*/
 
 /******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -270,11 +587,12 @@ WLAN_STATUS bowCmdGetMacStatus(IN P_ADAPTER_T prAdapter, IN P_AMPC_COMMAND prCmd
 		DBGLOG(BOW, EVENT,
 		       "bowCmdGetMacStatus, Get channel list. Current number of channel, %d.\n", ucNumOfChannel);
 
-		rlmDomainGetChnlList(prAdapter, BAND_2G4, FALSE, MAX_BOW_NUMBER_OF_CHANNEL_2G4,
+		rlmDomainGetChnlList(prAdapter, BAND_2G4, MAX_BOW_NUMBER_OF_CHANNEL_2G4,
 				     &ucNumOfChannel, aucChannelList);
 
 		if (ucNumOfChannel > 0) {
-			for (idx = 0; idx < ucNumOfChannel; idx++) {
+			for (idx = 0; idx < ucNumOfChannel /*MAX_BOW_NUMBER_OF_CHANNEL_2G4 */;
+			     idx++) {
 				prMacStatus->arChannelList[idx].ucChannelBand = aucChannelList[idx].eBand;
 				prMacStatus->arChannelList[idx].ucChannelNum = aucChannelList[idx].ucChannelNum;
 			}
@@ -282,11 +600,11 @@ WLAN_STATUS bowCmdGetMacStatus(IN P_ADAPTER_T prAdapter, IN P_AMPC_COMMAND prCmd
 			prMacStatus->ucNumOfChannel = ucNumOfChannel;
 		}
 
-		rlmDomainGetChnlList(prAdapter, BAND_5G, FALSE, MAX_BOW_NUMBER_OF_CHANNEL_5G,
-				     &ucNumOfChannel, aucChannelList);
+		rlmDomainGetChnlList(prAdapter, BAND_5G, MAX_BOW_NUMBER_OF_CHANNEL_5G, &ucNumOfChannel, aucChannelList);
 
 		if (ucNumOfChannel > 0) {
-			for (idx = 0; idx < ucNumOfChannel; idx++) {
+			for (idx = 0; idx < ucNumOfChannel /*MAX_BOW_NUMBER_OF_CHANNEL_5G */;
+			     idx++) {
 				prMacStatus->arChannelList[prMacStatus->ucNumOfChannel +
 							   idx].ucChannelBand = aucChannelList[idx].eBand;
 				prMacStatus->arChannelList[prMacStatus->ucNumOfChannel +
@@ -606,7 +924,7 @@ WLAN_STATUS bowCmdDestroyConnection(IN P_ADAPTER_T prAdapter, IN P_AMPC_COMMAND 
 					 wlanbowCmdEventLinkDisconnected,
 					 wlanbowCmdTimeoutHandler,
 					 sizeof(CMD_BT_OVER_WIFI),
-					 (PUINT_8)&rCmdBtOverWifi, prCmd->rHeader.ucSeqNumber);
+					 (PUINT_8) & rCmdBtOverWifi, prCmd->rHeader.ucSeqNumber);
 
 #else
 	return 0;
@@ -711,7 +1029,7 @@ WLAN_STATUS bowCmdSetPTK(IN P_ADAPTER_T prAdapter, IN P_AMPC_COMMAND prCmd)
 					 FALSE,
 					 wlanbowCmdEventSetCommon,
 					 wlanbowCmdTimeoutHandler,
-					 sizeof(CMD_802_11_KEY), (PUINT_8)&rCmdKey, prCmd->rHeader.ucSeqNumber);
+					 sizeof(CMD_802_11_KEY), (PUINT_8) & rCmdKey, prCmd->rHeader.ucSeqNumber);
 #else
 	return 0;
 #endif
@@ -888,14 +1206,15 @@ WLAN_STATUS bowCmdShortRangeMode(IN P_ADAPTER_T prAdapter, IN P_AMPC_COMMAND prC
 	rTxPwrParam.cTxPwr5GHT40_MCS6 = (prBowShortRangeMode->cTxPower << 1);
 	rTxPwrParam.cTxPwr5GHT40_MCS7 = (prBowShortRangeMode->cTxPower << 1);
 
-	if (nicUpdateTxPower(prAdapter, &rTxPwrParam) != WLAN_STATUS_SUCCESS) {
+	if (nicUpdateTxPower(prAdapter, &rTxPwrParam) == WLAN_STATUS_SUCCESS) {
+		DBGLOG(BOW, EVENT, "bowCmdShortRangeMode, %x.\n", WLAN_STATUS_SUCCESS);
+		wlanbowCmdEventSetStatus(prAdapter, prCmd, BOWCMD_STATUS_SUCCESS);
+		return WLAN_STATUS_SUCCESS;
+	} else {
 		wlanbowCmdEventSetStatus(prAdapter, prCmd, BOWCMD_STATUS_FAILURE);
 		return WLAN_STATUS_FAILURE;
 	}
 
-	DBGLOG(BOW, EVENT, "bowCmdShortRangeMode, %x.\n", WLAN_STATUS_SUCCESS);
-	wlanbowCmdEventSetStatus(prAdapter, prCmd, BOWCMD_STATUS_SUCCESS);
-	return WLAN_STATUS_SUCCESS;
 #else
 	return 0;
 #endif
@@ -1373,6 +1692,8 @@ VOID wlanbowCmdTimeoutHandler(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInf
 	kalIndicateBOWEvent(prAdapter->prGlueInfo, prEvent);
 
 	kalMemFree(prEvent, VIR_MEM_TYPE, (sizeof(AMPC_EVENT) + sizeof(BOW_COMMAND_STATUS)));
+
+	return;
 }
 
 /* Bruce, 20140224 */
@@ -1467,6 +1788,7 @@ VOID bowStopping(IN P_ADAPTER_T prAdapter)
 
 	}
 
+	return;
 }
 
 VOID bowStarting(IN P_ADAPTER_T prAdapter)
@@ -1618,7 +1940,6 @@ VOID bowStarting(IN P_ADAPTER_T prAdapter)
 #if 0
 		{
 			UINT_32 u4RxFilter;
-
 			if (halMacRxGetRxFilters(&u4RxFilter) == HAL_STATUS_SUCCESS) {
 
 				u4RxFilter &= ~BIT(RXFILTER_DROP_PROBE_REQ);
@@ -1650,13 +1971,13 @@ VOID bowStarting(IN P_ADAPTER_T prAdapter)
 		bowResponderScan(prAdapter);
 	}
 	/*Initiator: Request channel, wait for responder */
-	/*
-	 * else
-	 *     bowRequestCh(prAdapter);
-	 */
+	/* else
+		 bowRequestCh(prAdapter); */
 #endif
 
 	/* wlanBindBssIdxToNetInterface(prAdapter->prGlueInfo, NET_DEV_BOW_IDX, prBssInfo->ucBssIndex); */
+
+	return;
 }
 
 VOID bowAssignSsid(IN PUINT_8 pucSsid, IN PUINT_8 puOwnMacAddr)
@@ -1678,6 +1999,8 @@ VOID bowAssignSsid(IN PUINT_8 pucSsid, IN PUINT_8 puOwnMacAddr)
 		else
 			pucSsid[(3 * i) + 5] = (*(puOwnMacAddr + i) & 0x0F) + 0x57;
 	}
+
+	return;
 }
 
 #endif /* Marked for MT6630 */
@@ -1726,7 +2049,7 @@ BOOLEAN bowValidateProbeReq(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, OUT
 	pucIE = (PUINT_8) (((ULONG) prSwRfb->pvHeader) + prSwRfb->u2HeaderLen);
 
 	IE_FOR_EACH(pucIE, u2IELength, u2Offset) {
-		if (IE_ID(pucIE) == ELEM_ID_SSID) {
+		if (ELEM_ID_SSID == IE_ID(pucIE)) {
 			if ((!prIeSsid) && (IE_LEN(pucIE) <= ELEM_MAX_LEN_SSID))
 				prIeSsid = (P_IE_SSID_T) pucIE;
 			break;
@@ -1734,7 +2057,7 @@ BOOLEAN bowValidateProbeReq(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, OUT
 	}			/* end of IE_FOR_EACH */
 
 	IE_FOR_EACH(pucIE, u2IELength, u2Offset) {
-		if (IE_ID(pucIE) == ELEM_ID_SSID) {
+		if (ELEM_ID_SSID == IE_ID(pucIE)) {
 			if ((!prIeSsid) && (IE_LEN(pucIE) <= ELEM_MAX_LEN_SSID))
 				prIeSsid = (P_IE_SSID_T) pucIE;
 			break;
@@ -1847,6 +2170,8 @@ VOID bowResponderScan(IN P_ADAPTER_T prAdapter)
 	bowSetBowTableState(prAdapter, prBowFsmInfo->aucPeerAddress, BOW_DEVICE_STATE_SCANNING);
 
 	/* prBowFsmInfo->fgTryScan = FALSE; *//* Will enable background sleep for infrastructure */
+
+	return;
 }
 
 #endif /* Marked for MT6630 */
@@ -1901,8 +2226,10 @@ VOID bowResponderScanDone(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 		return;
 	} else if (eFsmState == BOW_DEVICE_STATE_DISCONNECTED) {
 		/* bowDisconnectLink(prAdapter, NULL, TX_RESULT_SUCCESS); */
+		return;
 	} else if (ucSeqNumOfCompMsg != prBowFsmInfo->ucSeqNumOfScanReq) {
 		DBGLOG(BOW, EVENT, "Sequence no. of BOW Responder scan done is not matched.\n");
+		return;
 	} else {
 		prConnSettings->fgIsScanReqIssued = FALSE;
 		prBssDesc = scanSearchBssDescByBssid(prAdapter, prBowFsmInfo->aucPeerAddress);
@@ -1940,6 +2267,8 @@ VOID bowResponderScanDone(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 #endif
 		}
 	}
+
+	return;
 #endif /* Marked for MT6630 */
 }
 
@@ -2078,6 +2407,8 @@ VOID bowResponderJoin(IN P_ADAPTER_T prAdapter, IN P_BSS_DESC_T prBssDesc)
 	DBGLOG(BOW, EVENT, "BoW trigger SAA [" MACSTR "]\n", MAC2STR(prStaRec->aucMacAddr));
 
 	mboxSendMsg(prAdapter, MBOX_ID_0, (P_MSG_HDR_T) prJoinReqMsg, MSG_SEND_METHOD_BUF);
+
+	return;
 }
 
 #endif /* Marked for MT6630 */
@@ -2144,10 +2475,9 @@ VOID bowFsmRunEventJoinComplete(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHd
 			/* 4 <1.2>Update Rate Set */
 			/*Limit Rate Set to 24M,  48M, 54M */
 			prStaRec->u2DesiredNonHTRateSet &= (RATE_SET_BIT_24M | RATE_SET_BIT_48M | RATE_SET_BIT_54M);
-			/*If peer cannot support the above rate set, fix on the available highest rate */
+			/*If peer cannot support the above rate set, fix on the avaliable highest rate */
 			if (prStaRec->u2DesiredNonHTRateSet == 0) {
 				UINT_8 ucHighestRateIndex;
-
 				if (rateGetHighestRateIndexFromRateSet
 				    (prBowBssInfo->u2OperationalRateSet, &ucHighestRateIndex)) {
 					prStaRec->u2DesiredNonHTRateSet = BIT(ucHighestRateIndex);
@@ -2312,13 +2642,15 @@ bowIndicationOfMediaStateToHost(IN P_ADAPTER_T prAdapter,
 				   &prBowFsmInfo->rIndicationOfDisconnectTimer,
 				   SEC_TO_MSEC(prConnSettings->ucDelayTimeOfDisconnectEvent));
 	}
+
+	return;
 }
 
 #endif /* Marked for MT6630 */
 
 /*----------------------------------------------------------------------------*/
 /*!
-* @brief This function will indicate the Event of Tx Fail of AAA Module.
+* @brief This function will indiate the Event of Tx Fail of AAA Module.
 *
 * @param[in] prAdapter          Pointer to the Adapter structure.
 * @param[in] prStaRec           Pointer to the STA_RECORD_T
@@ -2341,12 +2673,14 @@ VOID bowRunEventAAATxFail(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec)
 	prBowFsmInfo = &(prAdapter->rWifiVar.rBowFsmInfo);
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prBowFsmInfo->ucBssIndex);
 	bssRemoveClient(prAdapter, prBssInfo, prStaRec);
+
+	return;
 #endif
 }
 
 /*----------------------------------------------------------------------------*/
 /*!
-* @brief This function will indicate the Event of Successful Completion of AAA Module.
+* @brief This function will indiate the Event of Successful Completion of AAA Module.
 *
 * @param[in] prAdapter          Pointer to the Adapter structure.
 * @param[in] prStaRec           Pointer to the STA_RECORD_T
@@ -2423,7 +2757,7 @@ WLAN_STATUS bowRunEventRxDeAuth(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSt
 
 	if (prStaRec->ucStaState > STA_STATE_1) {
 
-		if (prStaRec->ucStaState == STA_STATE_3) {
+		if (STA_STATE_3 == prStaRec->ucStaState) {
 			/* P_MSG_AIS_ABORT_T prAisAbortMsg; */
 
 			/* NOTE(Kevin): Change state immediately to avoid starvation of
@@ -2568,14 +2902,13 @@ BOOLEAN bowValidateAssocReq(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, OUT
 #if CFG_BOW_RATE_LIMITATION
 		/*Limit Rate Set to 24M,  48M, 54M */
 		prStaRec->u2DesiredNonHTRateSet &= (RATE_SET_BIT_24M | RATE_SET_BIT_48M | RATE_SET_BIT_54M);
-		/*If peer cannot support the above rate set, fix on the available highest rate */
+		/*If peer cannot support the above rate set, fix on the avaliable highest rate */
 		if (prStaRec->u2DesiredNonHTRateSet == 0) {
 			UINT_8 ucHighestRateIndex;
-
 			if (rateGetHighestRateIndexFromRateSet(prBowBssInfo->u2OperationalRateSet, &ucHighestRateIndex))
 				prStaRec->u2DesiredNonHTRateSet = BIT(ucHighestRateIndex);
 			else {
-				/*If no available rate is found, DECLINE the association */
+				/*If no avaliable rate is found, DECLINE the association */
 				*pu2StatusCode = STATUS_CODE_ASSOC_DENIED_RATE_NOT_SUPPORTED;
 				break;
 			}
@@ -2638,11 +2971,10 @@ bowValidateAuth(IN P_ADAPTER_T prAdapter,
 	OS_SYSTIME rCurrentTime;
 	static OS_SYSTIME rLastRejectAuthTime;
 
-	/*
-	 * TODO(Kevin): Call BoW functions to check ..
-	 * 1. Check we are BoW now.
-	 * 2. Check we can accept connection from thsi peer
-	 * 3. Check Black List here.
+	/* TODO(Kevin): Call BoW functions to check ..
+	   1. Check we are BoW now.
+	   2. Check we can accept connection from thsi peer
+	   3. Check Black List here.
 	 */
 
 	prBowFsmInfo = &(prAdapter->rWifiVar.rBowFsmInfo);
@@ -2896,6 +3228,8 @@ VOID bowReleaseCh(IN P_ADAPTER_T prAdapter)
 
 		mboxSendMsg(prAdapter, MBOX_ID_0, (P_MSG_HDR_T) prMsgChAbort, MSG_SEND_METHOD_BUF);
 	}
+
+	return;
 }				/* end of aisFsmReleaseCh() */
 
 /*----------------------------------------------------------------------------*/

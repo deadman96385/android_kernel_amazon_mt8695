@@ -1,25 +1,66 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
+** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/mgmt/rlm_domain.h#1
+*/
+
+/*! \file   "rlm_domain.h"
+    \brief
 */
 
 /*
- * Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/mgmt/rlm_domain.h#1
- */
-
-/*
- *  ! \file   "rlm_domain.h"
- *   \brief
- */
+** Log: rlm_domain.h
+**
+** 01 23 2013 eason.tsai
+** [BORA00002255] [MT6630 Wi-Fi][Driver] develop
+** Rollback //BORA/DEV/MT6630WIFI_DRV/include/mgmt/rlm_domain.h to revision 1
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+ *
+ * 09 29 2011 cm.chang
+ * NULL
+ * Change the function prototype of rlmDomainGetChnlList()
+ *
+ * 09 08 2011 cm.chang
+ * [WCXRP00000969] [MT6620 Wi-Fi][Driver][FW] Channel list for 5G band based on country code
+ * Use new fields ucChannelListMap and ucChannelListIndex in NVRAM
+ *
+ * 08 31 2011 cm.chang
+ * [WCXRP00000969] [MT6620 Wi-Fi][Driver][FW] Channel list for 5G band based on country code
+ * .
+ *
+ * 06 01 2011 cm.chang
+ * [WCXRP00000756] [MT6620 Wi-Fi][Driver] 1. AIS follow channel of BOW 2. Provide legal channel function
+ * Provide legal channel function based on domain
+ *
+ * 12 07 2010 cm.chang
+ * [WCXRP00000238] MT6620 Wi-Fi][Driver][FW] Support regulation domain setting from NVRAM and supplicant
+ * 1. Country code is from NVRAM or supplicant
+ * 2. Change band definition in CMD/EVENT.
+ *
+ * 07 08 2010 cp.wu
+ *
+ * [WPD00003833] [MT6620 and MT5931] Driver migration - move to new repository.
+ *
+ * 06 28 2010 cm.chang
+ * [WPD00003841][LITE Driver] Migrate RLM/CNM to host driver
+ * 1st draft code for RLM module
+ *
+ * 02 23 2010 kevin.huang
+ * [BORA00000603][WIFISYS] [New Feature] AAA Module Support
+ * Add support scan channel 1~14 and update scan result's frequency infou1rwduu`wvpghlqg|n`slk+mpdkb
+ *
+ * 01 13 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Provide query function about full channle list.
+ *
+ * Dec 1 2009 mtk01104
+ * [BORA00000018] Integrate WIFI part into BORA for the 1st time
+ * Declare public rDomainInfo
+ *
+**
+*/
 
 #ifndef _RLM_DOMAIN_H
 #define _RLM_DOMAIN_H
@@ -177,10 +218,8 @@
 #define COUNTRY_CODE_MC (((UINT_16) 'M' << 8) | (UINT_16) 'C')	/* Monaco                              */
 #define COUNTRY_CODE_MD (((UINT_16) 'M' << 8) | (UINT_16) 'D')	/* Moldova                             */
 #define COUNTRY_CODE_ME (((UINT_16) 'M' << 8) | (UINT_16) 'E')	/* Montenegro                          */
-#define COUNTRY_CODE_MF (((UINT_16) 'M' << 8) | (UINT_16) 'F')	/*
-								 * Saint Martin / Sint Marteen
-								 * (Added on window's list)
-								 */
+#define COUNTRY_CODE_MF (((UINT_16) 'M' << 8) | (UINT_16) 'F')	/* Saint Martin / Sint Marteen
+								(Added on window's list)               */
 #define COUNTRY_CODE_MG (((UINT_16) 'M' << 8) | (UINT_16) 'G')	/* Madagascar                          */
 #define COUNTRY_CODE_MH (((UINT_16) 'M' << 8) | (UINT_16) 'H')	/* Marshall Islands                    */
 #define COUNTRY_CODE_MK (((UINT_16) 'M' << 8) | (UINT_16) 'K')	/* Macedonia                           */
@@ -188,10 +227,8 @@
 #define COUNTRY_CODE_MM (((UINT_16) 'M' << 8) | (UINT_16) 'M')	/* Myanmar                             */
 #define COUNTRY_CODE_MN (((UINT_16) 'M' << 8) | (UINT_16) 'N')	/* Mongolia                            */
 #define COUNTRY_CODE_MO (((UINT_16) 'M' << 8) | (UINT_16) 'O')	/* Macao                               */
-#define COUNTRY_CODE_MP (((UINT_16) 'M' << 8) | (UINT_16) 'P')	/*
-								 * Northern Mariana Islands (Rota Island.
-								 * Saipan and Tinian Island)
-								 */
+#define COUNTRY_CODE_MP (((UINT_16) 'M' << 8) | (UINT_16) 'P')	/* Northern Mariana Islands (Rota Island.
+								Saipan and Tinian Island)              */
 #define COUNTRY_CODE_MQ (((UINT_16) 'M' << 8) | (UINT_16) 'Q')	/* Martinique (France)                 */
 #define COUNTRY_CODE_MR (((UINT_16) 'M' << 8) | (UINT_16) 'R')	/* Mauritania                          */
 #define COUNTRY_CODE_MS (((UINT_16) 'M' << 8) | (UINT_16) 'S')	/* Montserrat (UK)                     */
@@ -288,8 +325,6 @@
 #define COUNTRY_CODE_ZM (((UINT_16) 'Z' << 8) | (UINT_16) 'M')	/* Zambia                              */
 #define COUNTRY_CODE_ZW (((UINT_16) 'Z' << 8) | (UINT_16) 'W')	/* Zimbabwe                            */
 
-#define COUNTRY_CODE_DF (((UINT_16) 'D' << 8) | (UINT_16) 'F')	/* Default country domain              */
-
 /* dot11RegDomainsSupportValue */
 #define MIB_REG_DOMAIN_FCC              0x10	/* FCC (US) */
 #define MIB_REG_DOMAIN_IC               0x20	/* IC or DOC (Canada) */
@@ -299,10 +334,10 @@
 #define MIB_REG_DOMAIN_JAPAN            0x40	/* MPHPT (Japan) */
 #define MIB_REG_DOMAIN_OTHER            0x00	/* other */
 
-/* 2.4G */
+/*2.4G*/
 #define BAND_2G4_LOWER_BOUND 1
 #define BAND_2G4_UPPER_BOUND 14
-/* 5G SubBand FCC spec */
+/*5G SubBand FCC spec*/
 #define UNII1_LOWER_BOUND    36
 #define UNII1_UPPER_BOUND    48
 #define UNII2A_LOWER_BOUND   52
@@ -315,9 +350,9 @@
 #if CFG_SUPPORT_PWR_LIMIT_COUNTRY
 
 #define POWER_LIMIT_TABLE_NULL			0xFFFF
-#define MAX_TX_POWER				63
-#define MIN_TX_POWER				-64
-#define MAX_CMD_SUPPORT_CHANNEL_NUM		64
+#define MAX_TX_POWER					63
+#define MIN_TX_POWER					-64
+#define MAX_CMD_SUPPORT_CHANNEL_NUM	64
 
 #endif
 
@@ -364,6 +399,35 @@ typedef enum _ENUM_CHNL_BW_T {
 	CHNL_BW_5
 } ENUM_CHNL_BW_T, *P_ENUM_CHNL_BW_T;
 
+#if 0
+/* If channel width is CHNL_BW_20_40, the first channel will be SCA and
+ * the second channel is SCB, then iteratively.
+ * Note the final channel will not be SCA.
+ */
+typedef struct _DOMAIN_SUBBAND_INFO {
+	UINT_8 ucRegClass;
+	ENUM_BAND_T eBand;
+	ENUM_CHNL_SPAN_T eChannelSpan;
+	UINT_8 ucFirstChannelNum;
+	UINT_8 ucNumChannels;
+	ENUM_CHNL_BW_T eChannelBw;
+	BOOLEAN fgDfsNeeded;
+	BOOLEAN fgIbssProhibited;
+} DOMAIN_SUBBAND_INFO, *P_DOMAIN_SUBBAND_INFO;
+
+/* Use it as all available channel list for STA */
+typedef struct _DOMAIN_INFO_ENTRY {
+	UINT_16 u2CountryCode;
+	UINT_16 u2MibRegDomainValue;
+
+	/* If different attributes, put them into different rSubBands.
+	 * For example, DFS shall be used or not.
+	 */
+	DOMAIN_SUBBAND_INFO rSubBand[MAX_SUBBAND_NUM];
+} DOMAIN_INFO_ENTRY, *P_DOMAIN_INFO_ENTRY;
+
+#else /* New definition 20110830 */
+
 /* In all bands, the first channel will be SCA and the second channel is SCB,
  * then iteratively.
  * Note the final channel will not be SCA.
@@ -380,7 +444,7 @@ typedef struct _DOMAIN_SUBBAND_INFO {
 	UINT_8 ucChannelSpan;	/* Type: ENUM_CHNL_SPAN_T */
 	UINT_8 ucFirstChannelNum;
 	UINT_8 ucNumChannels;
-	UINT_8 fgDfs;		/* Type: BOOLEAN */
+	UINT_8 ucReserved;	/* Type: BOOLEAN (fgDfsNeeded) */
 } DOMAIN_SUBBAND_INFO, *P_DOMAIN_SUBBAND_INFO;
 
 /* Use it as all available channel list for STA */
@@ -393,7 +457,52 @@ typedef struct _DOMAIN_INFO_ENTRY {
 	 */
 	DOMAIN_SUBBAND_INFO rSubBand[MAX_SUBBAND_NUM];
 } DOMAIN_INFO_ENTRY, *P_DOMAIN_INFO_ENTRY;
+#endif
 
+/* The following definitions are not used yet */
+typedef enum _ENUM_CH_SET_2G4_T {
+	CH_SET_2G4_NA,
+	CH_SET_2G4_1_11,
+	CH_SET_2G4_1_13,
+	CH_SET_2G4_1_14,
+	CH_SET_2G4_NUM
+} ENUM_CH_SET_2G4_T, *P_ENUM_CH_SET_2G4_T;
+
+typedef enum _ENUM_CH_SET_UNII_LOW_T {
+	CH_SET_UNII_LOW_NA,
+	CH_SET_UNII_LOW_36_48,
+	CH_SET_UNII_LOW_NUM
+} ENUM_CH_SET_UNII_LOW_T, *P_ENUM_CH_SET_UNII_LOW_T;
+
+typedef enum _ENUM_CH_SET_UNII_MID_T {
+	CH_SET_UNII_MID_NA,
+	CH_SET_UNII_MID_52_64,
+	CH_SET_UNII_MID_NUM
+} ENUM_CH_SET_UNII_MID_T, *P_ENUM_CH_SET_UNII_MID_T;
+
+typedef enum _ENUM_CH_SET_UNII_WW_T {
+	CH_SET_UNII_WW_NA,
+	CH_SET_UNII_WW_100_128,
+	CH_SET_UNII_WW_100_140,
+	CH_SET_UNII_WW_100_116_132_140,
+	CH_SET_UNII_WW_NUM
+} ENUM_CH_SET_UNII_WW_T, *P_ENUM_CH_SET_UNII_WW_T;
+
+typedef enum _ENUM_CH_SET_UNII_UPPER_T {
+	CH_SET_UNII_UPPER_NA,
+	CH_SET_UNII_UPPER_149_161,
+	CH_SET_UNII_UPPER_149_165,
+	CH_SET_UNII_UPPER_149_173,
+	CH_SET_UNII_UPPER_NUM
+} ENUM_CH_SET_UNII_UPPER_T, *P_ENUM_CH_SET_UNII_UPPER_T;
+
+typedef struct _COUNTRY_CH_SET_T {
+	ENUM_CH_SET_2G4_T e2G4;
+	ENUM_CH_SET_UNII_LOW_T eUniiLow;
+	ENUM_CH_SET_UNII_MID_T eUniiMid;
+	ENUM_CH_SET_UNII_WW_T eUniiWw;
+	ENUM_CH_SET_UNII_UPPER_T eUniiUpper;
+} COUNTRY_CH_SET_T, *P_COUNTRY_CH_SET_T;
 
 #if CFG_SUPPORT_PWR_LIMIT_COUNTRY
 
@@ -433,10 +542,8 @@ typedef struct _COUNTRY_POWER_LIMIT_TABLE_DEFAULT {
 	UINT_8 aucCountryCode[2];
 	/* 0: ch 1 ~14 , 1: ch 36 ~48, 2: ch 52 ~64, 3: ch 100 ~144, 4: ch 149 ~165 */
 	INT_8 aucPwrLimitSubBand[POWER_LIMIT_SUBAND_NUM];
-	/*
-	 * bit0: cPwrLimit2G4, bit1: cPwrLimitUnii1; bit2: cPwrLimitUnii2A;
-	 * bit3: cPwrLimitUnii2C; bit4: cPwrLimitUnii3; mW: 0, mW\MHz : 1
-	 */
+	/* bit0: cPwrLimit2G4, bit1: cPwrLimitUnii1; bit2: cPwrLimitUnii2A;
+	 * bit3: cPwrLimitUnii2C; bit4: cPwrLimitUnii3; mW: 0, mW\MHz : 1 */
 	UINT_8 ucPwrUnit;
 } COUNTRY_POWER_LIMIT_TABLE_DEFAULT, *P_COUNTRY_POWER_LIMIT_TABLE_DEFAULT;
 
@@ -481,18 +588,14 @@ typedef struct _SUBBAND_CHANNEL_T {
 */
 P_DOMAIN_INFO_ENTRY rlmDomainGetDomainInfo(P_ADAPTER_T prAdapter);
 
-VOID rlmDomainGetChnlList(P_ADAPTER_T prAdapter,
-			  ENUM_BAND_T eSpecificBand, BOOLEAN fgNoDfs,
-			  UINT_8 ucMaxChannelNum, PUINT_8 pucNumOfChannel, P_RF_CHANNEL_INFO_T paucChannelList);
+VOID
+rlmDomainGetChnlList(P_ADAPTER_T prAdapter,
+		     ENUM_BAND_T eSpecificBand,
+		     UINT_8 ucMaxChannelNum, PUINT_8 pucNumOfChannel, P_RF_CHANNEL_INFO_T paucChannelList);
 
-VOID rlmDomainGetDfsChnls(P_ADAPTER_T prAdapter,
-			  UINT_8 ucMaxChannelNum, PUINT_8 pucNumOfChannel, P_RF_CHANNEL_INFO_T paucChannelList);
+VOID rlmDomainSendCmd(P_ADAPTER_T prAdapter, BOOLEAN fgIsOid);
 
-VOID rlmDomainSendCmd(P_ADAPTER_T prAdapter);
-
-VOID rlmDomainSendDomainInfoCmd(P_ADAPTER_T prAdapter);
-
-VOID rlmDomainSendPassiveScanInfoCmd(P_ADAPTER_T prAdapter);
+VOID rlmDomainPassiveScanSendCmd(P_ADAPTER_T prAdapter, BOOLEAN fgIsOid);
 
 BOOLEAN rlmDomainIsLegalChannel(P_ADAPTER_T prAdapter, ENUM_BAND_T eBand, UINT_8 ucChannel);
 
@@ -519,6 +622,9 @@ UINT_16 rlmDomainPwrLimitDefaultTableDecision(P_ADAPTER_T prAdapter, UINT_16 u2C
 
 VOID rlmDomainSendPwrLimitCmd(P_ADAPTER_T prAdapter);
 #endif
+
+BOOLEAN rlmDomainGetHostCountryCode(PUINT_16 countrycode);
+VOID rlmDomainSetHostCountryCode(UINT_16 countrycode);
 
 /*******************************************************************************
 *                              F U N C T I O N S

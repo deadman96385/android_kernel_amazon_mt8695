@@ -1,28 +1,221 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
+** Id: @(#) gl_bow.c@@
+*/
+
+/*! \file   gl_bow.c
+    \brief  Main routines of Linux driver interface for 802.11 PAL (BT 3.0 + HS)
+
+    This file contains the main routines of Linux driver for MediaTek Inc. 802.11
+    Wireless LAN Adapters.
 */
 
 /*
- * Id: @(#) gl_bow.c@@
- */
-
-/*
- * ! \file   gl_bow.c
- *  \brief  Main routines of Linux driver interface for 802.11 PAL (BT 3.0 + HS)
+** Log: gl_bow.c
+**
+** 07 30 2013 yuche.tsai
+** [BORA00002398] [MT6630][Volunteer Patch] P2P Driver Re-Design for Multiple BSS support
+** Temp fix Hot-spot data path issue.
+**
+** 07 26 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** 1. Reduce extra Tx frame header parsing
+** 2. Add TX port control
+** 3. Add net interface to BSS binding
+**
+** 01 23 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** Refine net dev implementation
+**
+** 01 21 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** Update TX path based on new ucBssIndex modifications.
+**
+** 01 17 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Use ucBssIndex to replace eNetworkTypeIndex
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+**
+** 07 24 2012 yuche.tsai
+** NULL
+** Bug fix for JB.
  *
- *  This file contains the main routines of Linux driver for MediaTek Inc. 802.11
- *  Wireless LAN Adapters.
- */
+ * 02 16 2012 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * [ALPS00235223] [Rose][ICS][Cross Feature][AEE-IPANIC]The device reboot automatically and then the "KE" pops up
+ * after you turn on the "Airplane mode".(once)
+ *
+ * [Root Cause]
+ * PAL operates BOW char dev poll after BOW char dev is registered.
+ *
+ * [Solution]
+ * Rejects PAL char device operation after BOW is unregistered or when wlan GLUE_FLAG_HALT is set.
+ *
+ * This is a workaround for BOW driver robustness, happens only in ICS.
+ *
+ * Root cause should be fixed by CR [ALPS00231570]
+ *
+ * 02 03 2012 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * [ALPS00118114] [Rose][ICS][Free Test][Bluetooth]The "KE" pops up after you turn on the airplane mode.(5/5)
+ *
+ * [Root Cause]
+ * PAL operates BOW char dev poll after BOW char dev is registered.
+ *
+ * [Solution]
+ * Rejects PAL char device operation after BOW is unregistered.
+ *
+ * Happens only in ICS.
+ *
+ * Notified PAL owener to reivew MTKBT/PAL closing BOW char dev procedure.
+ *
+ * [Side Effect]
+ * None.
+ *
+ * 01 16 2012 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Support BOW for 5GHz band.
+ *
+ * 11 10 2011 cp.wu
+ * [WCXRP00001098] [MT6620 Wi-Fi][Driver] Replace printk by DBG LOG macros in linux porting layer
+ * 1. eliminaite direct calls to printk in porting layer.
+ * 2. replaced by DBGLOG, which would be XLOG on ALPS platforms.
+ *
+ * 10 25 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Modify ampc0 char device for major number 151 for all MT6575 projects.
+ *
+ * 07 28 2011 cp.wu
+ * [WCXRP00000884] [MT6620 Wi-Fi][Driver] Deprecate ioctl interface by unlocked ioctl
+ * unlocked_ioctl returns as long instead of int.
+ *
+ * 07 28 2011 cp.wu
+ * [WCXRP00000884] [MT6620 Wi-Fi][Driver] Deprecate ioctl interface by unlocked ioctl
+ * migrate to unlocked ioctl interface
+ *
+ * 04 12 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Add WMM IE for BOW initiator data.
+ *
+ * 04 10 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Change Link disconnection event procedure for hotspot and change skb length check to 1514 bytes.
+ *
+ * 04 09 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Change Link connection event procedure and change skb length check to 1512 bytes.
+ *
+ * 03 27 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Support multiple physical link.
+ *
+ * 03 06 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Sync BOW Driver to latest person development branch version..
+ *
+ * 03 03 2011 jeffrey.chang
+ * [WCXRP00000512] [MT6620 Wi-Fi][Driver] modify the net device relative functions to support the H/W multiple queue
+ * support concurrent network
+ *
+ * 03 03 2011 jeffrey.chang
+ * [WCXRP00000512] [MT6620 Wi-Fi][Driver] modify the net device relative functions to support the H/W multiple queue
+ * replace alloc_netdev to alloc_netdev_mq for BoW
+ *
+ * 03 03 2011 jeffrey.chang
+ * [WCXRP00000512] [MT6620 Wi-Fi][Driver] modify the net device relative functions to support the H/W multiple queue
+ * modify net device relative functions to support multiple H/W queues
+ *
+ * 02 15 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Update net register and BOW for concurrent features.
+ *
+ * 02 10 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Fix kernel API change issue.
+ * Before ALPS 2.2 (2.2 included), kfifo_alloc() is
+ * struct kfifo *kfifo_alloc(unsigned int size, gfp_t gfp_mask, spinlock_t *lock);
+ * After ALPS 2.3, kfifo_alloc() is changed to
+ * int kfifo_alloc(struct kfifo *fifo, unsigned int size, gfp_t gfp_mask);
+ *
+ * 02 09 2011 cp.wu
+ * [WCXRP00000430] [MT6620 Wi-Fi][Firmware][Driver] Create V1.2 branch for MT6620E1 and MT6620E3
+ * create V1.2 driver branch based on label MT6620_WIFI_DRIVER_V1_2_110209_1031
+ * with BOW and P2P enabled as default
+ *
+ * 02 08 2011 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Replace kfifo_get and kfifo_put with kfifo_out and kfifo_in.
+ * Update BOW get MAC status, remove returning event for AIS network type.
+ *
+ * 01 12 2011 cp.wu
+ * [WCXRP00000357] [MT6620 Wi-Fi][Driver][Bluetooth over Wi-Fi] add another net device interface for BT AMP
+ * implementation of separate BT_OVER_WIFI data path.
+ *
+ * 01 12 2011 cp.wu
+ * [WCXRP00000356] [MT6620 Wi-Fi][Driver] fill mac header length for security frames 'cause hardware header translation
+ * needs such information
+ * fill mac header length information for 802.1x frames.
+ *
+ * 11 11 2010 chinghwa.yu
+ * [WCXRP00000065] Update BoW design and settings
+ * Fix BoW timer assert issue.
+ *
+ * 09 14 2010 chinghwa.yu
+ * NULL
+ * Add bowRunEventAAAComplete.
+ *
+ * 09 14 2010 cp.wu
+ * NULL
+ * correct typo: POLLOUT instead of POLL_OUT
+ *
+ * 09 13 2010 cp.wu
+ * NULL
+ * add waitq for poll() and read().
+ *
+ * 08 24 2010 chinghwa.yu
+ * NULL
+ * Update BOW for the 1st time.
+ *
+ * 07 08 2010 cp.wu
+ *
+ * [WPD00003833] [MT6620 and MT5931] Driver migration - move to new repository.
+ *
+ * 06 06 2010 kevin.huang
+ * [WPD00003832][MT6620 5931] Create driver base
+ * [MT6620 5931] Create driver base
+ *
+ * 05 05 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * change variable names for multiple physical link to match with coding convention
+ *
+ * 05 05 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * multiple BoW interfaces need to compare with peer address
+ *
+ * 04 28 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * change prefix for data structure used to communicate with 802.11 PAL
+ * to avoid ambiguous naming with firmware interface
+ *
+ * 04 28 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * fix kalIndicateBOWEvent.
+ *
+ * 04 27 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * add multiple physical link support
+ *
+ * 04 13 2010 cp.wu
+ * [WPD00003823][MT6620 Wi-Fi] Add Bluetooth-over-Wi-Fi support
+ * add framework for BT-over-Wi-Fi support.
+ *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  * 1) prPendingCmdInfo is replaced by queue for multiple handler capability
+ *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  * 2) command sequence number is now increased atomically
+ *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  * 3) private data could be hold and taken use for other purpose
+**
+*/
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -34,6 +227,7 @@
 ********************************************************************************
 */
 #include "gl_os.h"
+#include "debug.h"
 #include "wlan_lib.h"
 #include "gl_wext.h"
 #include "precomp.h"
@@ -59,8 +253,8 @@
 ********************************************************************************
 */
 
-UINT_32 g_u4PrevSysTime;
-UINT_32 g_u4CurrentSysTime;
+UINT_32 g_u4PrevSysTime = 0;
+UINT_32 g_u4CurrentSysTime = 0;
 UINT_32 g_arBowRevPalPacketTime[32];
 
 /*******************************************************************************
@@ -121,11 +315,11 @@ BOOLEAN glRegisterAmpc(IN P_GLUE_INFO_T prGlueInfo)
 {
 	ASSERT(prGlueInfo);
 
-	DBGLOG(BOW, TRACE, "Register for character device to communicate with 802.11 PAL.\n");
+	DBGLOG(BOW, INFO, "Register for character device to communicate with 802.11 PAL.\n");
 
-	if (prGlueInfo->rBowInfo.fgIsRegistered == TRUE)
+	if (prGlueInfo->rBowInfo.fgIsRegistered == TRUE) {
 		return FALSE;
-
+	} else {
 #if 0
 		/* 1. allocate major number dynamically */
 
@@ -154,15 +348,13 @@ BOOLEAN glRegisterAmpc(IN P_GLUE_INFO_T prGlueInfo)
 		/* spin_lock_init(&(prGlueInfo->rBowInfo.rSpinLock)); */
 
 		/* 3. initialize kfifo */
-		/*
-		 * prGlueInfo->rBowInfo.prKfifo = kfifo_alloc(GLUE_BOW_KFIFO_DEPTH,
-		 *      GFP_KERNEL,
-		 *      &(prGlueInfo->rBowInfo.rSpinLock));
-		 */
+/*        prGlueInfo->rBowInfo.prKfifo = kfifo_alloc(GLUE_BOW_KFIFO_DEPTH,
+		GFP_KERNEL,
+		&(prGlueInfo->rBowInfo.rSpinLock));*/
 		if ((kfifo_alloc((struct kfifo *)&(prGlueInfo->rBowInfo.rKfifo), GLUE_BOW_KFIFO_DEPTH, GFP_KERNEL)))
 			goto fail_kfifo_alloc;
 
-		/* if(prGlueInfo->rBowInfo.prKfifo == NULL) */
+/* if(prGlueInfo->rBowInfo.prKfifo == NULL) */
 		if (&(prGlueInfo->rBowInfo.rKfifo) == NULL)
 			goto fail_kfifo_alloc;
 
@@ -188,6 +380,7 @@ fail_cdev_add:
 fail_kfifo_alloc:
 		unregister_chrdev_region(prGlueInfo->rBowInfo.u4DeviceNumber, 1);
 		return FALSE;
+	}
 }				/* end of glRegisterAmpc */
 
 /*----------------------------------------------------------------------------*/
@@ -206,29 +399,30 @@ BOOLEAN glUnregisterAmpc(IN P_GLUE_INFO_T prGlueInfo)
 
 	DBGLOG(BOW, INFO, "Unregister character device for communicating with 802.11 PAL.\n");
 
-	if (prGlueInfo->rBowInfo.fgIsRegistered == FALSE)
+	if (prGlueInfo->rBowInfo.fgIsRegistered == FALSE) {
 		return FALSE;
+	} else {
+		prGlueInfo->rBowInfo.fgIsRegistered = FALSE;
 
-	prGlueInfo->rBowInfo.fgIsRegistered = FALSE;
-
-	/* 1. free netdev if necessary */
+		/* 1. free netdev if necessary */
 #if CFG_BOW_SEPARATE_DATA_PATH
-	kalUninitBowDevice(prGlueInfo);
+		kalUninitBowDevice(prGlueInfo);
 #endif
 
-	/* 2. removal of character device */
-	cdev_del(&(prGlueInfo->rBowInfo.cdev));
+		/* 2. removal of character device */
+		cdev_del(&(prGlueInfo->rBowInfo.cdev));
 
-	/* 3. free kfifo */
+		/* 3. free kfifo */
 /* kfifo_free(prGlueInfo->rBowInfo.prKfifo); */
-	kfifo_free(&(prGlueInfo->rBowInfo.rKfifo));
+		kfifo_free(&(prGlueInfo->rBowInfo.rKfifo));
 /* prGlueInfo->rBowInfo.prKfifo = NULL; */
 /* prGlueInfo->rBowInfo.rKfifo = NULL; */
 
-	/* 4. free device number */
-	unregister_chrdev_region(prGlueInfo->rBowInfo.u4DeviceNumber, 1);
+		/* 4. free device number */
+		unregister_chrdev_region(prGlueInfo->rBowInfo.u4DeviceNumber, 1);
 
-	return TRUE;
+		return TRUE;
+	}
 }				/* end of glUnregisterAmpc */
 
 /*----------------------------------------------------------------------------*/
@@ -247,7 +441,6 @@ static ssize_t bow_ampc_read(IN struct file *filp, IN char __user *buf, IN size_
 	ssize_t retval;
 
 	P_GLUE_INFO_T prGlueInfo;
-
 	prGlueInfo = (P_GLUE_INFO_T) (filp->private_data);
 
 	ASSERT(prGlueInfo);
@@ -344,7 +537,6 @@ static long bow_ampc_ioctl(IN struct file *filp, IN unsigned int cmd, IN OUT uns
 {
 	int err = 0;
 	P_GLUE_INFO_T prGlueInfo;
-
 	prGlueInfo = (P_GLUE_INFO_T) (filp->private_data);
 
 	ASSERT(prGlueInfo);
@@ -377,7 +569,6 @@ static unsigned int bow_ampc_poll(IN struct file *filp, IN poll_table * wait)
 {
 	unsigned int retval;
 	P_GLUE_INFO_T prGlueInfo;
-
 	prGlueInfo = (P_GLUE_INFO_T) (filp->private_data);
 
 	ASSERT(prGlueInfo);
@@ -444,7 +635,6 @@ static int bow_ampc_open(IN struct inode *inodep, IN struct file *filp)
 static int bow_ampc_release(IN struct inode *inodep, IN struct file *filp)
 {
 	P_GLUE_INFO_T prGlueInfo;
-
 	prGlueInfo = (P_GLUE_INFO_T) (filp->private_data);
 
 	DBGLOG(BOW, INFO, "in %s\n", __func__);
@@ -476,10 +666,8 @@ VOID kalIndicateBOWEvent(IN P_GLUE_INFO_T prGlueInfo, IN P_AMPC_EVENT prEvent)
 	if ((prGlueInfo->rBowInfo.fgIsRegistered == FALSE) || (prGlueInfo->ulFlag & GLUE_FLAG_HALT))
 		return;
 
-	/*
-	 * u4AvailSize =
-	 * GLUE_BOW_KFIFO_DEPTH - kfifo_len(prGlueInfo->rBowInfo.prKfifo);
-	 */
+/*    u4AvailSize =
+	GLUE_BOW_KFIFO_DEPTH - kfifo_len(prGlueInfo->rBowInfo.prKfifo);*/
 
 	u4AvailSize = GLUE_BOW_KFIFO_DEPTH - kfifo_len(&(prGlueInfo->rBowInfo.rKfifo));
 
@@ -491,10 +679,12 @@ VOID kalIndicateBOWEvent(IN P_GLUE_INFO_T prGlueInfo, IN P_AMPC_EVENT prEvent)
 		return;
 	}
 	/* queue into kfifo */
-	/* kfifo_put(prGlueInfo->rBowInfo.prKfifo, (PUINT_8)prEvent, u4EventSize); */
-	/* kfifo_in(prGlueInfo->rBowInfo.prKfifo, (PUINT_8)prEvent, u4EventSize); */
+/* kfifo_put(prGlueInfo->rBowInfo.prKfifo, (PUINT_8)prEvent, u4EventSize); */
+/* kfifo_in(prGlueInfo->rBowInfo.prKfifo, (PUINT_8)prEvent, u4EventSize); */
 	kfifo_in(&(prGlueInfo->rBowInfo.rKfifo), (PUINT_8) prEvent, u4EventSize);
 	wake_up_interruptible(&(prGlueInfo->rBowInfo.outq));
+
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -552,28 +742,32 @@ BOOLEAN kalSetBowState(IN P_GLUE_INFO_T prGlueInfo, IN ENUM_BOW_DEVICE_STATE eBo
 
 	ASSERT(prGlueInfo);
 
+	DBGLOG(BOW, EVENT, "kalSetBowState.\n");
 #if 0 /* fix me for 32bit project build error */
-	DBGLOG(BOW, EVENT, "prGlueInfo->rBowInfo.arPeerAddr, %x:%x:%x:%x:%x:%x\n",
-	       prGlueInfo->rBowInfo.arPeerAddr[0], prGlueInfo->rBowInfo.arPeerAddr[1],
-	       prGlueInfo->rBowInfo.arPeerAddr[2], prGlueInfo->rBowInfo.arPeerAddr[3],
-	       prGlueInfo->rBowInfo.arPeerAddr[4], prGlueInfo->rBowInfo.arPeerAddr[5]);
+	DBGLOG(BOW, EVENT, "kalSetBowState, prGlueInfo->rBowInfo.arPeerAddr, %x:%x:%x:%x:%x:%x.\n",
+			    prGlueInfo->rBowInfo.arPeerAddr[0],
+			    prGlueInfo->rBowInfo.arPeerAddr[1],
+			    prGlueInfo->rBowInfo.arPeerAddr[2],
+			    prGlueInfo->rBowInfo.arPeerAddr[3],
+			    prGlueInfo->rBowInfo.arPeerAddr[4], prGlueInfo->rBowInfo.arPeerAddr[5]);
 #endif
-
-	DBGLOG(BOW, EVENT, "aucPeerAddress, %x:%x:%x:%x:%x:%x\n",
-	       aucPeerAddress[0], aucPeerAddress[1],
-	       aucPeerAddress[2], aucPeerAddress[3],
-	       aucPeerAddress[4], aucPeerAddress[5]);
+	DBGLOG(BOW, EVENT, "kalSetBowState, aucPeerAddress, %x:%x:%x:%x:%x:%x.\n",
+			    aucPeerAddress[0],
+			    aucPeerAddress[1],
+			    aucPeerAddress[2], aucPeerAddress[3], aucPeerAddress[4], aucPeerAddress[5]);
 
 	for (i = 0; i < CFG_BOW_PHYSICAL_LINK_NUM; i++) {
 		if (EQUAL_MAC_ADDR(prGlueInfo->rBowInfo.arPeerAddr, aucPeerAddress) == 0) {
 			prGlueInfo->rBowInfo.aeState[i] = eBowState;
 
-			DBGLOG(BOW, EVENT, "aucPeerAddress %x, %x:%x:%x:%x:%x:%x\n", i,
-			       aucPeerAddress[0], aucPeerAddress[1], aucPeerAddress[2],
-			       aucPeerAddress[3], aucPeerAddress[4], aucPeerAddress[5]);
+			DBGLOG(BOW, EVENT,
+			       "kalSetBowState, aucPeerAddress %x, %x:%x:%x:%x:%x:%x.\n", i,
+				aucPeerAddress[0], aucPeerAddress[1], aucPeerAddress[2],
+				aucPeerAddress[3], aucPeerAddress[4], aucPeerAddress[5]);
 
-			DBGLOG(BOW, EVENT, "prGlueInfo->rBowInfo.aeState %x, %x.\n", i,
-			       prGlueInfo->rBowInfo.aeState[i]);
+			DBGLOG(BOW, EVENT,
+			       "kalSetBowState, prGlueInfo->rBowInfo.aeState %x, %x.\n", i,
+				prGlueInfo->rBowInfo.aeState[i]);
 
 			return TRUE;
 		}
@@ -979,7 +1173,6 @@ static int bowHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDe
 #endif
 
 	kalResetPacket(prGlueInfo, (P_NATIVE_PACKET) prSkb);
-	prGlueInfo->u8SkbToDriver++;
 
 	/* Discard frames not generated by PAL */
 	/* Parsing BOW frame info */
@@ -987,7 +1180,6 @@ static int bowHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDe
 		/* Cannot extract packet */
 		DBGLOG(BOW, INFO, "Invalid BOW frame, skip Tx\n");
 		dev_kfree_skb(prSkb);
-		prGlueInfo->u8SkbFreed++;
 		return NETDEV_TX_OK;
 	}
 
@@ -1043,46 +1235,49 @@ BOOLEAN kalInitBowDevice(IN P_GLUE_INFO_T prGlueInfo, IN const char *prDevName)
 	if (prGlueInfo->rBowInfo.fgIsNetRegistered == FALSE) {
 		prGlueInfo->rBowInfo.prDevHandler =
 		    alloc_netdev_mq(sizeof(P_GLUE_INFO_T), prDevName,
-		    NET_NAME_PREDICTABLE, ether_setup, CFG_MAX_TXQ_NUM);
+						    NET_NAME_PREDICTABLE,
+						    ether_setup,
+						    CFG_MAX_TXQ_NUM);
 
-		if (!prGlueInfo->rBowInfo.prDevHandler)
+		if (!prGlueInfo->rBowInfo.prDevHandler) {
 			return FALSE;
+		} else {
+			/* 1. setup netdev */
+			/* 1.1 Point to shared glue structure */
+			/* *((P_GLUE_INFO_T *) netdev_priv(prGlueInfo->rBowInfo.prDevHandler)) = prGlueInfo; */
+			prNetDevPriv = (P_NETDEV_PRIVATE_GLUE_INFO) netdev_priv(prGlueInfo->rBowInfo.prDevHandler);
+			prNetDevPriv->prGlueInfo = prGlueInfo;
 
-		/* 1. setup netdev */
-		/* 1.1 Point to shared glue structure */
-		/* *((P_GLUE_INFO_T *) netdev_priv(prGlueInfo->rBowInfo.prDevHandler)) = prGlueInfo; */
-		prNetDevPriv = (P_NETDEV_PRIVATE_GLUE_INFO) netdev_priv(prGlueInfo->rBowInfo.prDevHandler);
-		prNetDevPriv->prGlueInfo = prGlueInfo;
+			/* 1.2 fill hardware address */
+			COPY_MAC_ADDR(rMacAddr, prAdapter->rMyMacAddr);
+			rMacAddr[0] |= 0x2;	/* change to local administrated address */
+			memcpy(prGlueInfo->rBowInfo.prDevHandler->dev_addr, rMacAddr, ETH_ALEN);
+			memcpy(prGlueInfo->rBowInfo.prDevHandler->perm_addr,
+			       prGlueInfo->rBowInfo.prDevHandler->dev_addr, ETH_ALEN);
 
-		/* 1.2 fill hardware address */
-		COPY_MAC_ADDR(rMacAddr, prAdapter->rMyMacAddr);
-		rMacAddr[0] |= 0x2;	/* change to local administrated address */
-		ether_addr_copy(prGlueInfo->rBowInfo.prDevHandler->dev_addr, rMacAddr);
-		ether_addr_copy(prGlueInfo->rBowInfo.prDevHandler->perm_addr,
-		       prGlueInfo->rBowInfo.prDevHandler->dev_addr);
-
-		/* 1.3 register callback functions */
-		prGlueInfo->rBowInfo.prDevHandler->netdev_ops = &bow_netdev_ops;
+			/* 1.3 register callback functions */
+			prGlueInfo->rBowInfo.prDevHandler->netdev_ops = &bow_netdev_ops;
 
 #if (MTK_WCN_HIF_SDIO == 0)
-		SET_NETDEV_DEV(prGlueInfo->rBowInfo.prDevHandler, prHif->Dev);
+			SET_NETDEV_DEV(prGlueInfo->rBowInfo.prDevHandler, &(prHif->func->dev));
 #endif
 
-		register_netdev(prGlueInfo->rBowInfo.prDevHandler);
+			register_netdev(prGlueInfo->rBowInfo.prDevHandler);
 
-		/* 2. net device initialize */
-		netif_carrier_off(prGlueInfo->rBowInfo.prDevHandler);
-		netif_tx_stop_all_queues(prGlueInfo->rBowInfo.prDevHandler);
+			/* 2. net device initialize */
+			netif_carrier_off(prGlueInfo->rBowInfo.prDevHandler);
+			netif_tx_stop_all_queues(prGlueInfo->rBowInfo.prDevHandler);
 
-		/* 2.1 bind NetDev pointer to NetDev index */
-		wlanBindBssIdxToNetInterface(prGlueInfo, bowInit(prAdapter),
-					     (PVOID) prGlueInfo->rBowInfo.prDevHandler);
-		prNetDevPriv->ucBssIdx = prAdapter->rWifiVar.rBowFsmInfo.ucBssIndex;
-		/* wlanBindNetInterface(prGlueInfo, NET_DEV_BOW_IDX, */
-		/* (PVOID)prGlueInfo->rBowInfo.prDevHandler); */
+			/* 2.1 bind NetDev pointer to NetDev index */
+			wlanBindBssIdxToNetInterface(prGlueInfo, bowInit(prAdapter),
+						     (PVOID) prGlueInfo->rBowInfo.prDevHandler);
+			prNetDevPriv->ucBssIdx = prAdapter->rWifiVar.rBowFsmInfo.ucBssIndex;
+			/* wlanBindNetInterface(prGlueInfo, NET_DEV_BOW_IDX, */
+			/* (PVOID)prGlueInfo->rBowInfo.prDevHandler); */
 
-		/* 3. finish */
-		prGlueInfo->rBowInfo.fgIsNetRegistered = TRUE;
+			/* 3. finish */
+			prGlueInfo->rBowInfo.fgIsNetRegistered = TRUE;
+		}
 	}
 
 	return TRUE;

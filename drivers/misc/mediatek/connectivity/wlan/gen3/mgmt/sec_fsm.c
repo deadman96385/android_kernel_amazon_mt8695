@@ -1,28 +1,164 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/mgmt/sec_fsm.c#1
 */
 
+/*! \file   "sec_fsm.c"
+    \brief  This is the file implement security check state machine.
+
+    In security module, do the port control check after success join to an AP,
+    and the path to NORMAL TR, the state machine handle these state transition.
+*/
+
 /*
- * ! \file   "sec_fsm.c"
- *  \brief  This is the file implement security check state machine.
+** Log: sec_fsm.c
+**
+** 03 27 2013 wh.su
+** [BORA00002446] [MT6630] [Wi-Fi] [Driver] Update the security function code
+** add default ket handler
+**
+** 01 22 2013 cp.wu
+** [BORA00002253] [MT6630 Wi-Fi][Driver][Firmware] Add NLO and timeout mechanism to SCN module
+** modification for ucBssIndex migration
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
  *
- *  In security module, do the port control check after success join to an AP,
- *  and the path to NORMAL TR, the state machine handle these state transition.
- */
+ * 11 24 2011 wh.su
+ * [WCXRP00001078] [MT6620 Wi-Fi][Driver] Adding the mediatek log improment support : XLOG
+ * Adjust code for DBG and CONFIG_XLOG.
+ *
+ * 11 11 2011 wh.su
+ * [WCXRP00001078] [MT6620 Wi-Fi][Driver] Adding the mediatek log improment support : XLOG
+ * modify the xlog related code.
+ *
+ * 11 10 2011 wh.su
+ * [WCXRP00001078] [MT6620 Wi-Fi][Driver] Adding the mediatek log improment support : XLOG
+ * change the debug module level.
+ *
+ * 11 02 2011 wh.su
+ * [WCXRP00001078] [MT6620 Wi-Fi][Driver] Adding the mediatek log improment support : XLOG
+ * adding the code for XLOG.
+ *
+ * 03 29 2011 wh.su
+ * [WCXRP00000248] [MT6620 Wi-Fi][FW]Fixed the Klockwork error
+ * fixed the kclocwork error.
+ *
+ * 01 26 2011 yuche.tsai
+ * [WCXRP00000388] [Volunteer Patch][MT6620][Driver/Fw] change Station Type in station record.
+ * .
+ *
+ * 01 25 2011 yuche.tsai
+ * [WCXRP00000388] [Volunteer Patch][MT6620][Driver/Fw] change Station Type in station record.
+ * Fix Compile Error when DBG is disabled.
+ *
+ * 01 25 2011 yuche.tsai
+ * [WCXRP00000388] [Volunteer Patch][MT6620][Driver/Fw] change Station Type in station record.
+ * Change Station Type in Station Record, Modify MACRO definition for getting station type & network type index & Role.
+ *
+ * 09 29 2010 wh.su
+ * [WCXRP00000072] [MT6620 Wi-Fi][Driver] Fix TKIP Counter Measure EAPoL callback register issue
+ * [MT6620 Wi-Fi][Driver] Fix TKIP Counter Measure EAPoL callback register issue.
+ *
+ * 09 24 2010 wh.su
+ * NULL
+ * [WCXRP00005002][MT6620 Wi-Fi][Driver] Eliminate Linux Compile Warning.
+ *
+ * 09 03 2010 kevin.huang
+ * NULL
+ * Refine #include sequence and solve recursive/nested #include issue
+ *
+ * 08 20 2010 wh.su
+ * NULL
+ * adding the eapol callback setting.
+ *
+ * 08 19 2010 wh.su
+ * NULL
+ * adding the tx pkt call back handle for countermeasure.
+ *
+ * 07 19 2010 wh.su
+ *
+ * fixed the compilng error at debug mode.
+ *
+ * 07 08 2010 cp.wu
+ *
+ * [WPD00003833] [MT6620 and MT5931] Driver migration - move to new repository.
+ *
+ * 06 21 2010 wh.su
+ * [WPD00003840][MT6620 5931] Security migration
+ * modify some code for concurrent network.
+ *
+ * 06 19 2010 wh.su
+ * [WPD00003840][MT6620 5931] Security migration
+ * consdier the concurrent network setting.
+ *
+ * 05 28 2010 wh.su
+ * [BORA00000626][MT6620] Refine the remove key flow for WHQL testing
+ * fixed the ad-hoc wpa-none send non-encrypted frame issue.
+ *
+ * 05 24 2010 kevin.huang
+ * [BORA00000794][WIFISYS][New Feature]Power Management Support
+ * Refine authSendAuthFrame() for NULL STA_RECORD_T case and minimum deauth interval.
+ *
+ * 04 24 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * g_aprBssInfo[] depends on CFG_SUPPORT_P2P and CFG_SUPPORT_BOW
+ *
+ * 04 13 2010 wh.su
+ * [BORA00000680][MT6620] Support the statistic for Microsoft os query
+ * fixed the Klocwork error and refine the class error message.
+ *
+ * 03 03 2010 wh.su
+ * [BORA00000637][MT6620 Wi-Fi] [Bug] WPA2 pre-authentication timer not correctly initialize
+ * move the AIS specific variable for security to AIS specific structure.
+ *
+ * 03 03 2010 wh.su
+ * [BORA00000637][MT6620 Wi-Fi] [Bug] WPA2 pre-authentication timer not correctly initialize
+ * Fixed the pre-authentication timer not correctly init issue,
+ * and modify the security related callback function prototype.
+ *
+ * 03 01 2010 wh.su
+ * [BORA00000605][WIFISYS] Phase3 Integration
+ * Refine the variable and parameter for security.
+ *
+ * 01 27 2010 wh.su
+ * [BORA00000476][Wi-Fi][firmware] Add the security module initialize code
+ * add and fixed some security function.
+ *
+ * 01 13 2010 wh.su
+ * [BORA00000476][Wi-Fi][firmware] Add the security module initialize code
+ * fixed the compiling warning
+ *
+ * 12 18 2009 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * .
+ *
+ * Dec 7 2009 mtk01088
+ * [BORA00000476] [Wi-Fi][firmware] Add the security module initialize code
+ * refine some code
+ *
+ * Dec 4 2009 mtk01088
+ * [BORA00000476] [Wi-Fi][firmware] Add the security module initialize code
+ * refine the code
+ *
+ * Dec 1 2009 mtk01088
+ * [BORA00000476] [Wi-Fi][firmware] Add the security module initialize code
+ * code refine
+ *
+ * Nov 23 2009 mtk01088
+ * [BORA00000476] [Wi-Fi][firmware] Add the security module initialize code
+ * adjust the function name
+ *
+ * Nov 19 2009 mtk01088
+ * [BORA00000476] [Wi-Fi][firmware] Add the security module initialize code
+ * adjust the state machine, to meet the firmware security design v1.1
+ *
+ * Nov 18 2009 mtk01088
+ * [BORA00000476] [Wi-Fi][firmware] Add the security module initialize code
+ *
+**
+*/
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -129,6 +265,7 @@ VOID secFsmInit(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 				  (PFN_MGMT_TIMEOUT_FUNC) secFsmEventEndOfCounterMeasure, (ULONG) prSta);
 
 	}
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -175,6 +312,8 @@ secFsmUnInit(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 __KAL_INLINE__ VOID secFsmTrans_INIT_to_CHECK_OK(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 {
 	secSetPortBlocked(prAdapter, prSta, FALSE);
+
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -189,6 +328,8 @@ __KAL_INLINE__ VOID secFsmTrans_INIT_to_CHECK_OK(IN P_ADAPTER_T prAdapter, IN P_
 /*----------------------------------------------------------------------------*/
 __KAL_INLINE__ VOID secFsmTrans_INIT_to_INITIATOR_PORT_BLOCKED(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 {
+
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -203,6 +344,7 @@ __KAL_INLINE__ VOID secFsmTrans_INIT_to_INITIATOR_PORT_BLOCKED(IN P_ADAPTER_T pr
 /*----------------------------------------------------------------------------*/
 __KAL_INLINE__ VOID secFsmTrans_INIT_to_RESPONDER_PORT_BLOCKED(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 {
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -218,6 +360,7 @@ __KAL_INLINE__ VOID secFsmTrans_INIT_to_RESPONDER_PORT_BLOCKED(IN P_ADAPTER_T pr
 __KAL_INLINE__ VOID secFsmTrans_INITIATOR_PORT_BLOCKED_to_CHECK_OK(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 {
 	secSetPortBlocked(prAdapter, prSta, FALSE);
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -233,6 +376,7 @@ __KAL_INLINE__ VOID secFsmTrans_INITIATOR_PORT_BLOCKED_to_CHECK_OK(IN P_ADAPTER_
 __KAL_INLINE__ VOID secFsmTrans_RESPONDER_PORT_BLOCKED_to_CHECK_OK(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 {
 	secSetPortBlocked(prAdapter, prSta, FALSE);
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -270,6 +414,7 @@ __KAL_INLINE__ VOID secFsmTrans_CHECK_OK_to_SEND_EAPOL(IN P_ADAPTER_T prAdapter,
 	/* &prAisBssInfo->rRsnaEAPoLReportTimeoutTimer, */
 	/* SEC_TO_MSEC(EAPOL_REPORT_SEND_TIMEOUT_INTERVAL_SEC)); */
 
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -324,6 +469,7 @@ __KAL_INLINE__ VOID secFsmTrans_SEND_DEAUTH_to_COUNTERMEASURE(IN P_ADAPTER_T prA
 	cnmTimerStartTimer(prAdapter,
 			   &prAdapter->rWifiVar.rAisSpecificBssInfo.rRsnaBlockTrafficTimer,
 			   SEC_TO_MSEC(COUNTER_MEASURE_TIMEOUT_INTERVAL_SEC));
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -340,6 +486,7 @@ __KAL_INLINE__ VOID secFsmTrans_COUNTERMEASURE_to_INIT(IN P_ADAPTER_T prAdapter,
 {
 
 	/* Clear the counter measure flag */
+	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -374,8 +521,7 @@ VOID secFsmSteps(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta, IN ENUM_SEC_
 				    apucDebugSecState[prSecInfo->eCurrentState], apucDebugSecState[eNextState];
 #else
 		DBGLOG(RSN, STATE, "\n" MACSTR " [%d] TRANSITION: [%d] -> [%d]\n\n",
-				    MAC2STR(prSta->aucMacAddr),
-				    DBG_RSN_IDX, prSecInfo->eCurrentState, eNextState;
+				    MAC2STR(prSta->aucMacAddr), DBG_RSN_IDX, prSecInfo->eCurrentState, eNextState;
 #endif
 		prSecInfo->eCurrentState = eNextState;
 
@@ -435,8 +581,7 @@ VOID secFsmEventStart(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 		return;
 
 	DBGLOG(RSN, TRACE, "secFsmRunEventStart for sta " MACSTR " bss %d\n",
-			    MAC2STR(prSta->aucMacAddr),
-			    prSta->ucBssIndex;
+			    MAC2STR(prSta->aucMacAddr), prSta->ucBssIndex;
 
 	prSecInfo = (P_SEC_INFO_T) &prSta->rSecInfo;
 
@@ -480,6 +625,7 @@ VOID secFsmEventStart(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 	if (prSecInfo->eCurrentState != eNextState)
 		secFsmSteps(prAdapter, prSta, eNextState);
 
+	return;
 }				/* secFsmRunEventStart */
 
 /*----------------------------------------------------------------------------*/
@@ -498,8 +644,7 @@ VOID secFsmEventAbort(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 	P_SEC_INFO_T prSecInfo;
 
 	DBGLOG(RSN, TRACE, "secFsmEventAbort for sta " MACSTR " bss %d\n",
-			    MAC2STR(prSta->aucMacAddr),
-			    prSta->ucBssIndex;
+			    MAC2STR(prSta->aucMacAddr), prSta->ucBssIndex;
 
 	ASSERT(prSta;
 
@@ -525,10 +670,8 @@ VOID secFsmEventAbort(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 		if (prSecInfo->eCurrentState == SEC_STATE_SEND_EAPOL) {
 			if (prAdapter->rWifiVar.rAisSpecificBssInfo.fgCheckEAPoLTxDone == FALSE) {
 				DBGLOG(RSN, TRACE, "EAPOL STATE not match the flag\n");
-				/*
-				 * cnmTimerStopTimer(prAdapter,
-				 * &prAdapter->rWifiVar.rAisSpecificBssInfo.rRsnaEAPoLReportTimeoutTimer);
-				 */
+				/* cnmTimerStopTimer(prAdapter,
+				 * &prAdapter->rWifiVar.rAisSpecificBssInfo.rRsnaEAPoLReportTimeoutTimer); */
 			}
 		}
 	}
@@ -561,8 +704,7 @@ VOID secFsmEvent2ndEapolTx(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n", MAC2STR(prSta->aucMacAddr),
 			    apucDebugSecState[prSecInfo->eCurrentState]);
 #else
-	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr),
-		prSecInfo->eCurrentState);
+	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr), prSecInfo->eCurrentState);
 #endif
 
 	switch (prSecInfo->eCurrentState) {
@@ -610,12 +752,10 @@ VOID secFsmEvent4ndEapolTxDone(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta
 	eNextState = prSecInfo->eCurrentState;
 
 #if DBG
-	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n",
-				MAC2STR(prSta->aucMacAddr),
+	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n", MAC2STR(prSta->aucMacAddr),
 			    apucDebugSecState[prSecInfo->eCurrentState]);
 #else
-	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr),
-		prSecInfo->eCurrentState);
+	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr), prSecInfo->eCurrentState);
 #endif
 
 	switch (prSecInfo->eCurrentState) {
@@ -680,8 +820,7 @@ BOOLEAN secFsmEventPTKInstalled(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSt
 	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n", MAC2STR(prSta->aucMacAddr),
 			    apucDebugSecState[prSecInfo->eCurrentState]);
 #else
-	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr),
-			prSecInfo->eCurrentState);
+	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr), prSecInfo->eCurrentState);
 #endif
 
 	eNextState = prSecInfo->eCurrentState;
@@ -748,8 +887,7 @@ VOID secFsmEventStartCounterMeasure(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T 
 	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n", MAC2STR(prSta->aucMacAddr),
 			    apucDebugSecState[prSecInfo->eCurrentState]);
 #else
-	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr),
-			prSecInfo->eCurrentState);
+	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr), prSecInfo->eCurrentState);
 #endif
 
 	prAdapter->rWifiVar.rAisSpecificBssInfo.u4RsnaLastMICFailTime = 0;
@@ -820,8 +958,7 @@ secFsmEventEapolTxDone(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec, IN 
 	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n", MAC2STR(prStaRec->aucMacAddr),
 			    apucDebugSecState[prSecInfo->eCurrentState]);
 #else
-	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prStaRec->aucMacAddr),
-			prSecInfo->eCurrentState);
+	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prStaRec->aucMacAddr), prSecInfo->eCurrentState);
 #endif
 
 	switch (prSecInfo->eCurrentState) {
@@ -888,8 +1025,7 @@ secFsmEventDeauthTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, I
 	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n", MAC2STR(prStaRec->aucMacAddr),
 			    apucDebugSecState[prSecInfo->eCurrentState]);
 #else
-	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prStaRec->aucMacAddr),
-			prSecInfo->eCurrentState);
+	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prStaRec->aucMacAddr), prSecInfo->eCurrentState);
 #endif
 
 	switch (prSecInfo->eCurrentState) {
@@ -906,6 +1042,7 @@ secFsmEventDeauthTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, I
 		break;
 	}
 
+	return;
 }				/* secFsmRunEventDeauthTxDone */
 
 /*----------------------------------------------------------------------------*/
@@ -929,6 +1066,8 @@ VOID secFsmEventEapolTxTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParamPtr)
 
 	/* Todo:: How to handle the Eapol Error fail to send case? */
 	ASSERT(0);
+
+	return;
 
 }				/* secFsmEventEapolTxTimeout */
 
@@ -967,8 +1106,7 @@ VOID secFsmEventEndOfCounterMeasure(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr)
 	DBGLOG(RSN, TRACE, MACSTR " Sec state %s\n", MAC2STR(prSta->aucMacAddr),
 			    apucDebugSecState[prSecInfo->eCurrentState]);
 #else
-	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr),
-			prSecInfo->eCurrentState);
+	DBGLOG(RSN, TRACE, MACSTR " Sec state [%d]\n", MAC2STR(prSta->aucMacAddr), prSecInfo->eCurrentState);
 #endif
 
 	switch (prSecInfo->eCurrentState) {
@@ -988,4 +1126,5 @@ VOID secFsmEventEndOfCounterMeasure(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr)
 	if (prSecInfo->eCurrentState != eNextState)
 		secFsmSteps(prAdapter, prSta, eNextState);
 
+	return;
 }				/* end of secFsmRunEventEndOfCounterMeasure */

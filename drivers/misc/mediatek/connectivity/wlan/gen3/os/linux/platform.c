@@ -1,30 +1,106 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/platform.c#3
 */
 
-/*
- * ! \file   "platform.c"
- *   \brief  This file including the protocol layer privacy function.
- *
- *   This file provided the macros and functions library support for the
- *   protocol layer security setting from wlan_oid.c and for parse.c and
- *   rsn.c and nic_privacy.c
- */
+/*! \file   "platform.c"
+    \brief  This file including the protocol layer privacy function.
 
+    This file provided the macros and functions library support for the
+    protocol layer security setting from wlan_oid.c and for parse.c and
+    rsn.c and nic_privacy.c
+
+*/
+
+/*
+** Log: platform.c
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+**
+** 08 24 2012 cp.wu
+** [WCXRP00001269] [MT6620 Wi-Fi][Driver] cfg80211 porting merge back to DaVinci
+** .
+ *
+ * 11 14 2011 cm.chang
+ * NULL
+ * Fix compiling warning
+ *
+ * 11 10 2011 cp.wu
+ * [WCXRP00001098] [MT6620 Wi-Fi][Driver] Replace printk by DBG LOG macros in linux porting layer
+ * 1. eliminaite direct calls to printk in porting layer.
+ * 2. replaced by DBGLOG, which would be XLOG on ALPS platforms.
+ *
+ * 09 13 2011 jeffrey.chang
+ * [WCXRP00000983] [MT6620][Wi-Fi Driver] invalid pointer casting causes kernel panic during p2p connection
+ * fix the pointer casting
+ *
+ * 06 29 2011 george.huang
+ * [WCXRP00000818] [MT6620 Wi-Fi][Driver] Remove unused code segment regarding CONFIG_IPV6
+ * .
+ *
+ * 06 28 2011 george.huang
+ * [WCXRP00000818] [MT6620 Wi-Fi][Driver] Remove unused code segment regarding CONFIG_IPV6
+ * remove un-used code
+ *
+ * 05 11 2011 jeffrey.chang
+ * NULL
+ * fix build error
+ *
+ * 05 09 2011 jeffrey.chang
+ * [WCXRP00000710] [MT6620 Wi-Fi] Support pattern filter update function on IP address change
+ * support ARP filter through kernel notifier
+ *
+ * 04 08 2011 pat.lu
+ * [WCXRP00000623] [MT6620 Wi-Fi][Driver] use ARCH define to distinguish PC Linux driver
+ * Use CONFIG_X86 instead of PC_LINUX_DRIVER_USE option to have proper compile settting for PC Linux driver
+ *
+ * 03 22 2011 pat.lu
+ * [WCXRP00000592] [MT6620 Wi-Fi][Driver] Support PC Linux Environment Driver Build
+ * Add a compiler option "PC_LINUX_DRIVER_USE" for building driver in PC Linux environment.
+ *
+ * 03 21 2011 cp.wu
+ * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
+ * improve portability for awareness of early version of linux kernel and wireless extension.
+ *
+ * 03 18 2011 jeffrey.chang
+ * [WCXRP00000512] [MT6620 Wi-Fi][Driver] modify the net device relative functions to support the H/W multiple queue
+ * remove early suspend functions
+ *
+ * 03 03 2011 jeffrey.chang
+ * NULL
+ * add the ARP filter callback
+ *
+ * 02 15 2011 jeffrey.chang
+ * NULL
+ * to support early suspend in android
+ *
+ * 02 01 2011 cp.wu
+ * [WCXRP00000413] [MT6620 Wi-Fi][Driver] Merge 1103 changes on NVRAM file path change to DaVinci main trunk and V1.1
+ * branch
+ * upon Jason Zhang(NVRAM owner)'s change, ALPS has modified its NVRAM storage from /nvram/... to /data/nvram/...
+ *
+ * 11 01 2010 cp.wu
+ * [WCXRP00000056] [MT6620 Wi-Fi][Driver] NVRAM implementation with Version Check[WCXRP00000150] [MT6620 Wi-Fi][Driver]
+ * Add implementation for querying current TX rate from firmware auto rate module
+ * 1) Query link speed (TX rate) from firmware directly with buffering mechanism to reduce overhead
+ * 2) Remove CNM CH-RECOVER event handling
+ * 3) cfg read/write API renamed with kal prefix for unified naming rules.
+ *
+ * 10 18 2010 cp.wu
+ * [WCXRP00000056] [MT6620 Wi-Fi][Driver] NVRAM implementation with Version Check[WCXRP00000086] [MT6620 Wi-Fi][Driver]
+ * The mac address is all zero at android
+ * complete implementation of Android NVRAM access
+ *
+ * 10 05 2010 cp.wu
+ * [WCXRP00000056] [MT6620 Wi-Fi][Driver] NVRAM implementation with Version Check
+ * 1) add NVRAM access API
+ * 2) fake scanning result when NVRAM doesn't exist and/or version mismatch. (off by compiler option)
+ * 3) add OID implementation for NVRAM read/write service
+ *
+**
+*/
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
 ********************************************************************************
@@ -52,8 +128,6 @@
 *                              C O N S T A N T S
 ********************************************************************************
 */
-#define WIFI_NVRAM_FILE_NAME   "/data/nvram/APCFG/APRDEB/WIFI"
-#define WIFI_NVRAM_CUSTOM_NAME "/data/nvram/APCFG/APRDEB/WIFI_CUSTOM"
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -102,7 +176,7 @@ static int netdev_event(struct notifier_block *nb, unsigned long notification, v
 	}
 #if 0				/* CFG_SUPPORT_PASSPOINT */
 	{
-		/* DBGLOG(REQ, INFO, "[netdev_event] IPV4_DAD is unlock now!!\n"); */
+		/* printk(KERN_INFO "[netdev_event] IPV4_DAD is unlock now!!\n"); */
 		prGlueInfo->fgIsDad = FALSE;
 	}
 #endif /* CFG_SUPPORT_PASSPOINT */
@@ -114,10 +188,8 @@ static int netdev_event(struct notifier_block *nb, unsigned long notification, v
 	}
 
 	if (prGlueInfo->fgIsInSuspendMode == FALSE) {
-		/*
-		 * DBGLOG(REQ, INFO,
-		 * ("netdev_event: PARAM_MEDIA_STATE_DISCONNECTED. (%d)\n", prGlueInfo->eParamMediaStateIndicated));
-		 */
+		/* DBGLOG(REQ, INFO,
+		("netdev_event: PARAM_MEDIA_STATE_DISCONNECTED. (%d)\n", prGlueInfo->eParamMediaStateIndicated)); */
 		return NOTIFY_DONE;
 	}
 
@@ -156,7 +228,7 @@ static int net6dev_event(struct notifier_block *nb, unsigned long notification, 
 		DBGLOG(REQ, INFO, "netdev_event: prGlueInfo is empty.\n");
 		return NOTIFY_DONE;
 	}
-	/* DBGLOG(REQ, INFO, "[net6dev_event] IPV6_DAD is unlock now!!\n"); */
+	/* printk(KERN_INFO "[net6dev_event] IPV6_DAD is unlock now!!\n"); */
 	prGlueInfo->fgIs6Dad = FALSE;
 
 	return NOTIFY_DONE;
@@ -206,14 +278,14 @@ int glRegisterEarlySuspend(struct early_suspend *prDesc,
 {
 	int ret = 0;
 
-	if (wlanSuspend != NULL)
+	if (NULL != wlanSuspend)
 		prDesc->suspend = wlanSuspend;
 	else {
 		DBGLOG(REQ, INFO, "glRegisterEarlySuspend wlanSuspend ERROR.\n");
 		ret = -1;
 	}
 
-	if (wlanResume != NULL)
+	if (NULL != wlanResume)
 		prDesc->resume = wlanResume;
 	else {
 		DBGLOG(REQ, INFO, "glRegisterEarlySuspend wlanResume ERROR.\n");
@@ -245,195 +317,3 @@ int glUnregisterEarlySuspend(struct early_suspend *prDesc)
 }
 #endif
 
-/*----------------------------------------------------------------------------*/
-/*!
-* \brief Utility function for reading data from files on NVRAM-FS
-*
-* \param[in]
-*           filename
-*           len
-*           offset
-* \param[out]
-*           buf
-* \return
-*           actual length of data being read
-*/
-/*----------------------------------------------------------------------------*/
-static int nvram_read(char *filename, char *buf, ssize_t len, int offset)
-{
-#if CFG_SUPPORT_NVRAM
-	struct file *fd;
-	int retLen = -1;
-	loff_t pos;
-	char __user *p;
-
-	mm_segment_t old_fs = get_fs();
-
-	set_fs(KERNEL_DS);
-
-	fd = filp_open(filename, O_RDONLY, 0644);
-
-	if (IS_ERR(fd)) {
-		DBGLOG(INIT, INFO, "[nvram_read] : failed to open!!\n");
-		return -1;
-	}
-
-	do {
-		if (fd->f_op == NULL) {
-			DBGLOG(INIT, INFO, "[nvram_read] : f_op is NULL!!\n");
-			break;
-		}
-
-		if (fd->f_pos != offset) {
-			if (fd->f_op->llseek) {
-				if (fd->f_op->llseek(fd, offset, 0) != offset) {
-					DBGLOG(INIT, INFO, "[nvram_read] : failed to seek!!\n");
-					break;
-				}
-			} else {
-				fd->f_pos = offset;
-			}
-		}
-
-		p = (__force char __user *)buf;
-		pos = (loff_t)offset;
-
-		retLen = __vfs_read(fd, p, len, &pos);
-		if (retLen < 0)
-			DBGLOG(INIT, ERROR, "[nvram_read] : read failed!! Error code: %d\n", retLen);
-
-	} while (FALSE);
-
-	filp_close(fd, NULL);
-
-	set_fs(old_fs);
-
-	return retLen;
-
-#else /* !CFG_SUPPORT_NVRAM */
-
-	return -EIO;
-
-#endif
-}
-
-/*----------------------------------------------------------------------------*/
-/*!
-* \brief Utility function for writing data to files on NVRAM-FS
-*
-* \param[in]
-*           filename
-*           buf
-*           len
-*           offset
-* \return
-*           actual length of data being written
-*/
-/*----------------------------------------------------------------------------*/
-static int nvram_write(char *filename, char *buf, ssize_t len, int offset)
-{
-#if CFG_SUPPORT_NVRAM
-	struct file *fd;
-	int retLen = -1;
-	loff_t pos;
-	char __user *p;
-
-	mm_segment_t old_fs = get_fs();
-
-	set_fs(KERNEL_DS);
-
-	fd = filp_open(filename, O_WRONLY | O_CREAT, 0644);
-
-	if (IS_ERR(fd)) {
-		DBGLOG(INIT, INFO, "[nvram_write] : failed to open!!\n");
-		return -1;
-	}
-
-	do {
-		if (fd->f_op == NULL) {
-			DBGLOG(INIT, INFO, "[nvram_write] : f_op is NULL!!\n");
-			break;
-		}
-		/* End of if */
-		if (fd->f_pos != offset) {
-			if (fd->f_op->llseek) {
-				if (fd->f_op->llseek(fd, offset, 0) != offset) {
-					DBGLOG(INIT, INFO, "[nvram_write] : failed to seek!!\n");
-					break;
-				}
-			} else {
-				fd->f_pos = offset;
-			}
-		}
-
-		p = (__force char __user *)buf;
-		pos = (loff_t)offset;
-
-		retLen = __vfs_write(fd, p, len, &pos);
-		if (retLen < 0)
-			DBGLOG(INIT, ERROR, "[nvram_write] : write failed!! Error code: %d\n", retLen);
-
-	} while (FALSE);
-
-	filp_close(fd, NULL);
-
-	set_fs(old_fs);
-
-	return retLen;
-
-#else /* !CFG_SUPPORT_NVRAMS */
-
-	return -EIO;
-
-#endif
-}
-
-/*----------------------------------------------------------------------------*/
-/*!
-* \brief API for reading data on NVRAM
-*
-* \param[in]
-*           prGlueInfo
-*           u4Offset
-* \param[out]
-*           pu2Data
-* \return
-*           TRUE
-*           FALSE
-*/
-/*----------------------------------------------------------------------------*/
-BOOLEAN kalCfgDataRead16(IN P_GLUE_INFO_T prGlueInfo, IN UINT_32 u4Offset, OUT PUINT_16 pu2Data)
-{
-	if (pu2Data == NULL)
-		return FALSE;
-
-	if (nvram_read(WIFI_NVRAM_FILE_NAME,
-		       (char *)pu2Data, sizeof(unsigned short), u4Offset) != sizeof(unsigned short)) {
-		return FALSE;
-	} else {
-		return TRUE;
-	}
-}
-
-/*----------------------------------------------------------------------------*/
-/*!
-* \brief API for writing data on NVRAM
-*
-* \param[in]
-*           prGlueInfo
-*           u4Offset
-*           u2Data
-* \return
-*           TRUE
-*           FALSE
-*/
-/*----------------------------------------------------------------------------*/
-BOOLEAN kalCfgDataWrite16(IN P_GLUE_INFO_T prGlueInfo, UINT_32 u4Offset, UINT_16 u2Data)
-{
-	if (nvram_write(WIFI_NVRAM_FILE_NAME,
-			(char *)&u2Data, sizeof(unsigned short), u4Offset) != sizeof(unsigned short)) {
-		return FALSE;
-	} else {
-		return TRUE;
-	}
-}

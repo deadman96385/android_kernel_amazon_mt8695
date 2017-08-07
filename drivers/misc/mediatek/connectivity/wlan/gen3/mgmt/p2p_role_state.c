@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include "precomp.h"
 
 VOID
@@ -20,6 +6,7 @@ p2pRoleStateInit_IDLE(IN P_ADAPTER_T prAdapter, IN P_P2P_ROLE_FSM_INFO_T prP2pRo
 
 	cnmTimerStartTimer(prAdapter, &(prP2pRoleFsmInfo->rP2pRoleFsmTimeoutTimer), P2P_AP_CHNL_HOLD_TIME_MS);
 
+	return;
 }				/* p2pRoleStateInit_IDLE */
 
 VOID
@@ -33,6 +20,7 @@ p2pRoleStateAbort_IDLE(IN P_ADAPTER_T prAdapter,
 
 	cnmTimerStopTimer(prAdapter, &(prP2pRoleFsmInfo->rP2pRoleFsmTimeoutTimer));
 
+	return;
 }				/* p2pRoleStateAbort_IDLE */
 
 VOID p2pRoleStateInit_SCAN(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIndex, IN P_P2P_SCAN_REQ_INFO_T prScanReqInfo)
@@ -46,12 +34,12 @@ VOID p2pRoleStateInit_SCAN(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIndex, IN P_
 
 	} while (FALSE);
 
+	return;
 }				/* p2pRoleStateInit_SCAN */
 
 VOID p2pRoleStateAbort_SCAN(IN P_ADAPTER_T prAdapter, IN P_P2P_ROLE_FSM_INFO_T prP2pRoleFsmInfo)
 {
 	P_P2P_SCAN_REQ_INFO_T prScanInfo = (P_P2P_SCAN_REQ_INFO_T) NULL;
-
 	do {
 		prScanInfo = &prP2pRoleFsmInfo->rScanReqInfo;
 
@@ -61,6 +49,7 @@ VOID p2pRoleStateAbort_SCAN(IN P_ADAPTER_T prAdapter, IN P_P2P_ROLE_FSM_INFO_T p
 		kalP2PIndicateScanDone(prAdapter->prGlueInfo, prP2pRoleFsmInfo->ucRoleIndex, prScanInfo->fgIsAbort);
 	} while (FALSE);
 
+	return;
 }				/* p2pRoleStateAbort_SCAN */
 
 VOID
@@ -74,6 +63,7 @@ p2pRoleStateInit_REQING_CHANNEL(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIdx, IN
 
 	} while (FALSE);
 
+	return;
 }				/* p2pRoleStateInit_REQING_CHANNEL */
 
 VOID
@@ -97,6 +87,7 @@ p2pRoleStateAbort_REQING_CHANNEL(IN P_ADAPTER_T prAdapter,
 		}
 	} while (FALSE);
 
+	return;
 }				/* p2pRoleStateAbort_REQING_CHANNEL */
 
 VOID
@@ -155,6 +146,8 @@ p2pRoleStateInit_AP_CHNL_DETECTION(IN P_ADAPTER_T prAdapter,
 
 	} while (FALSE);
 
+	return;
+
 }				/* p2pRoleStateInit_AP_CHNL_DETECTION */
 
 VOID
@@ -200,6 +193,7 @@ p2pRoleStateAbort_AP_CHNL_DETECTION(IN P_ADAPTER_T prAdapter,
 		}
 	} while (FALSE);
 
+	return;
 }
 
 VOID
@@ -224,6 +218,7 @@ p2pRoleStateInit_GC_JOIN(IN P_ADAPTER_T prAdapter,
 
 	} while (FALSE);
 
+	return;
 }				/* p2pRoleStateInit_GC_JOIN */
 
 VOID
@@ -258,6 +253,7 @@ p2pRoleStateAbort_GC_JOIN(IN P_ADAPTER_T prAdapter,
 		/* Release channel requested. */
 		p2pFuncReleaseCh(prAdapter, prP2pRoleFsmInfo->ucBssIndex, &(prP2pRoleFsmInfo->rChnlReqInfo));
 	} while (FALSE);
+	return;
 }
 
 VOID
@@ -272,7 +268,6 @@ p2pRoleStatePrepare_To_REQING_CHANNEL_STATE(IN P_ADAPTER_T prAdapter,
 	ENUM_BAND_T eBandBackup;
 	UINT_8 ucChannelBackup;
 	ENUM_CHNL_EXT_T eSCOBackup;
-
 	do {
 		/* P2P BSS info is for temporarily use
 		 * Request a 80MHz channel before starting AP/GO
@@ -317,15 +312,10 @@ p2pRoleStatePrepare_To_REQING_CHANNEL_STATE(IN P_ADAPTER_T prAdapter,
 		prChnlReqInfo->ucCenterFreqS2 = 0;
 		DBGLOG(P2P, TRACE, "p2pRoleStatePrepare_To_REQING_CHANNEL_STATE\n");
 
-		if (prChnlReqInfo->ucReqChnlNum > 161) {
-			DBGLOG(P2P, INFO, "Channels above 161 only use 20M bandwidth\n");
-			prChnlReqInfo->ucCenterFreqS1 = 0;
-			prChnlReqInfo->eChannelWidth = CW_20_40MHZ;
-		}
-
 		/* Reset */
 		prBssInfo->ucPrimaryChannel = ucChannelBackup;
 		prBssInfo->eBand = eBandBackup;
 		prBssInfo->eBssSCO = eSCOBackup;
 	} while (FALSE);
+	return;
 }

@@ -1,27 +1,35 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/hif/ehpi/ehpi.c#1
 */
 
+/*! \file   "ehpi.c"
+    \brief  Brief description.
+
+    Detail description.
+*/
+
 /*
- * ! \file   "ehpi.c"
- *  \brief  Brief description.
+** Log: ehpi.c
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
  *
- *   Detail description.
- */
+ * 04 25 2011 cp.wu
+ * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
+ * change eHPI-8/eHPI-16 selection to config.mk.
+ *
+ * 04 01 2011 cp.wu
+ * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
+ * 1. simplify config.h due to aggregation options could be also applied for eHPI/SPI interface
+ * 2. use spin-lock instead of semaphore for protecting eHPI access because of possible access from ISR
+ * 3. request_irq() API has some changes between linux kernel 2.6.12 and 2.6.26
+ *
+ * 03 11 2011 cp.wu
+ * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
+ * add porting layer for eHPI.
+*/
 
 /******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -152,7 +160,6 @@ kalDevPortRead(IN P_GLUE_INFO_T prGlueInfo,
 	       IN UINT_16 u2Port, IN UINT_16 u2Len, OUT PUINT_8 pucBuf, IN UINT_16 u2ValidOutBufSize)
 {
 	UINT_32 i;
-
 	GLUE_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prGlueInfo);
@@ -175,13 +182,13 @@ kalDevPortRead(IN P_GLUE_INFO_T prGlueInfo,
 	/* 3. data cycle */
 	for (i = 0; i < ALIGN_4(u2Len); i += 4) {
 #if EHPI16
-		*((PUINT_16)&(pucBuf[i])) = (UINT_16) (readw(prGlueInfo->rHifInfo.mcr_data_base)&0xFFFF);
-		*((PUINT_16)&(pucBuf[i + 2])) = (UINT_16) (readw(prGlueInfo->rHifInfo.mcr_data_base)&0xFFFF);
+		*((PUINT_16) & (pucBuf[i])) = (UINT_16) (readw(prGlueInfo->rHifInfo.mcr_data_base) & 0xFFFF);
+		*((PUINT_16) & (pucBuf[i + 2])) = (UINT_16) (readw(prGlueInfo->rHifInfo.mcr_data_base) & 0xFFFF);
 #elif EHPI8
-		*((PUINT_8)&(pucBuf[i])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base)&0xFF);
-		*((PUINT_8)&(pucBuf[i + 1])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base)&0xFF);
-		*((PUINT_8)&(pucBuf[i + 2])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base)&0xFF);
-		*((PUINT_8)&(pucBuf[i + 3])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base)&0xFF);
+		*((PUINT_8) & (pucBuf[i])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base) & 0xFF);
+		*((PUINT_8) & (pucBuf[i + 1])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base) & 0xFF);
+		*((PUINT_8) & (pucBuf[i + 2])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base) & 0xFF);
+		*((PUINT_8) & (pucBuf[i + 3])) = (UINT_8) (readw(prGlueInfo->rHifInfo.mcr_data_base) & 0xFF);
 #endif
 	}
 
@@ -214,7 +221,6 @@ kalDevPortWrite(P_GLUE_INFO_T prGlueInfo,
 		IN UINT_16 u2Port, IN UINT_16 u2Len, IN PUINT_8 pucBuf, IN UINT_16 u2ValidInBufSize)
 {
 	UINT_32 i;
-
 	GLUE_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prGlueInfo);
@@ -237,13 +243,13 @@ kalDevPortWrite(P_GLUE_INFO_T prGlueInfo,
 	/* 3. data cycle */
 	for (i = 0; i < ALIGN_4(u2Len); i += 4) {
 #if EHPI16
-		writew((UINT_32) (*((PUINT_16)&(pucBuf[i]))), prGlueInfo->rHifInfo.mcr_data_base);
-		writew((UINT_32) (*((PUINT_16)&(pucBuf[i + 2]))), prGlueInfo->rHifInfo.mcr_data_base);
+		writew((UINT_32) (*((PUINT_16) & (pucBuf[i]))), prGlueInfo->rHifInfo.mcr_data_base);
+		writew((UINT_32) (*((PUINT_16) & (pucBuf[i + 2]))), prGlueInfo->rHifInfo.mcr_data_base);
 #elif EHPI8
-		writew((UINT_32) (*((PUINT_8)&(pucBuf[i]))), prGlueInfo->rHifInfo.mcr_data_base);
-		writew((UINT_32) (*((PUINT_8)&(pucBuf[i + 1]))), prGlueInfo->rHifInfo.mcr_data_base);
-		writew((UINT_32) (*((PUINT_8)&(pucBuf[i + 2]))), prGlueInfo->rHifInfo.mcr_data_base);
-		writew((UINT_32) (*((PUINT_8)&(pucBuf[i + 3]))), prGlueInfo->rHifInfo.mcr_data_base);
+		writew((UINT_32) (*((PUINT_8) & (pucBuf[i]))), prGlueInfo->rHifInfo.mcr_data_base);
+		writew((UINT_32) (*((PUINT_8) & (pucBuf[i + 1]))), prGlueInfo->rHifInfo.mcr_data_base);
+		writew((UINT_32) (*((PUINT_8) & (pucBuf[i + 2]))), prGlueInfo->rHifInfo.mcr_data_base);
+		writew((UINT_32) (*((PUINT_8) & (pucBuf[i + 3]))), prGlueInfo->rHifInfo.mcr_data_base);
 #endif
 	}
 
@@ -274,7 +280,6 @@ BOOL kalDevWriteWithSdioCmd52(IN P_GLUE_INFO_T prGlueInfo, IN UINT_32 u4Addr, IN
 {
 	UINT_32 u4RegValue;
 	BOOLEAN bRet;
-
 	GLUE_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prGlueInfo);

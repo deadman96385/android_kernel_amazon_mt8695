@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include "precomp.h"
 #include "p2p_dev_state.h"
 #if CFG_ENABLE_WIFI_DIRECT
@@ -314,8 +300,7 @@ p2pDevFsmStateTransition(IN P_ADAPTER_T prAdapter,
 			} else {
 				p2pDevStateAbort_CHNL_ON_HAND(prAdapter,
 							      prAdapter->aprBssInfo[prP2pDevFsmInfo->ucBssIndex],
-							prP2pDevFsmInfo, &(prP2pDevFsmInfo->rChnlReqInfo),
-							eNextState);
+							      prP2pDevFsmInfo, &(prP2pDevFsmInfo->rChnlReqInfo));
 			}
 			break;
 		case P2P_DEV_STATE_OFF_CHNL_TX:
@@ -353,6 +338,7 @@ VOID p2pDevFsmRunEventAbort(IN P_ADAPTER_T prAdapter, IN P_P2P_DEV_FSM_INFO_T pr
 		p2pDevStateAbort_IDLE(prAdapter);
 	} while (FALSE);
 
+	return;
 }				/* p2pDevFsmRunEventAbort */
 
 VOID p2pDevFsmRunEventTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParamPtr)
@@ -362,36 +348,12 @@ VOID p2pDevFsmRunEventTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParamPtr)
 	do {
 		ASSERT_BREAK((prAdapter != NULL) && (prP2pDevFsmInfo != NULL));
 
-		DBGLOG(P2P, INFO, "p2p dev fsm timeout, current state: %d:%d:%s\n",
-			prP2pDevFsmInfo->eCurrentState,
-			prP2pDevFsmInfo->eListenExted,
-			apucDebugP2pDevState[prP2pDevFsmInfo->eCurrentState]);
-
 		switch (prP2pDevFsmInfo->eCurrentState) {
 		case P2P_DEV_STATE_IDLE:
 			/* TODO: IDLE timeout for low power mode. */
 			break;
 		case P2P_DEV_STATE_CHNL_ON_HAND:
-			switch (prP2pDevFsmInfo->eListenExted) {
-			case P2P_DEV_NOT_EXT_LISTEN:
-			case P2P_DEV_EXT_LISTEN_WAITFOR_TIMEOUT:
-				DBGLOG(P2P, TRACE, "p2p timeout, state==P2P_DEV_STATE_CHNL_ON_HAND, eListenExted: %d\n",
-					prP2pDevFsmInfo->eListenExted);
 			p2pDevFsmStateTransition(prAdapter, prP2pDevFsmInfo, P2P_DEV_STATE_IDLE);
-				prP2pDevFsmInfo->eListenExted = P2P_DEV_NOT_EXT_LISTEN;
-				break;
-			case P2P_DEV_EXT_LISTEN_ING:
-				DBGLOG(P2P, TRACE, "p2p timeout, state==P2P_DEV_STATE_CHNL_ON_HAND, eListenExted: %d\n",
-					prP2pDevFsmInfo->eListenExted);
-				p2pDevFsmStateTransition(prAdapter, prP2pDevFsmInfo, P2P_DEV_STATE_CHNL_ON_HAND);
-				prP2pDevFsmInfo->eListenExted = P2P_DEV_EXT_LISTEN_WAITFOR_TIMEOUT;
-				break;
-			default:
-				ASSERT(FALSE);
-				DBGLOG(P2P, ERROR,
-					"Current P2P Dev State %d is unexpected for FSM timeout event.\n",
-					prP2pDevFsmInfo->eCurrentState);
-			}
 			break;
 		default:
 			ASSERT(FALSE);
@@ -402,6 +364,7 @@ VOID p2pDevFsmRunEventTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParamPtr)
 		}
 	} while (FALSE);
 
+	return;
 }				/* p2pDevFsmRunEventTimeout */
 
 /*================ Message Event =================*/
@@ -454,12 +417,6 @@ VOID p2pDevFsmRunEventScanRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsg
 			u4ChnlListSize = sizeof(RF_CHANNEL_INFO_T) * prScanReqInfo->ucNumChannelList;
 			kalMemCopy(prScanReqInfo->arScanChannelList,
 				   prP2pScanReqMsg->arChannelListInfo, u4ChnlListSize);
-			if (prP2pScanReqMsg->u4NumChannel == 1) {
-				DBGLOG(P2P, INFO, "Enlarge Dwell time to 100ms, Channel Number: %d\n",
-					prP2pScanReqMsg->u4NumChannel);
-
-				prScanReqInfo->u2PassiveDewellTime = 100;
-			}
 		} else {
 			/* If channel number is ZERO.
 			 * It means do a FULL channel scan.
@@ -490,6 +447,7 @@ VOID p2pDevFsmRunEventScanRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsg
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventScanRequest */
 
 VOID
@@ -526,6 +484,7 @@ p2pDevFsmRunEventScanDone(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr, IN 
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventScanDone */
 
 VOID p2pDevFsmRunEventChannelRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
@@ -537,7 +496,7 @@ VOID p2pDevFsmRunEventChannelRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T pr
 	do {
 		ASSERT_BREAK((prAdapter != NULL) && (prMsgHdr != NULL));
 
-		DBGLOG(P2P, TRACE, "p2pDevFsmRunEventChannelRequest\n");
+		DBGLOG(P2P, STATE, "p2pDevFsmRunEventChannelRequest\n");
 
 		prP2pDevFsmInfo = prAdapter->rWifiVar.prP2pDevFsmInfo;
 
@@ -547,6 +506,8 @@ VOID p2pDevFsmRunEventChannelRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T pr
 		prChnlReqInfo = &(prP2pDevFsmInfo->rChnlReqInfo);
 
 		DBGLOG(P2P, TRACE, "p2pDevFsmRunEventChannelRequest\n");
+
+		/* printk("p2pDevFsmRunEventChannelRequest check cookie =%lld\n",prChnlReqInfo->u8Cookie); */
 
 		if (!LINK_IS_EMPTY(&prChnlReqInfo->rP2pChnlReqLink)) {
 			P_LINK_ENTRY_T prLinkEntry = (P_LINK_ENTRY_T) NULL;
@@ -585,7 +546,6 @@ VOID p2pDevFsmRunEventChannelRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T pr
 
 		if (prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_IDLE) {
 			/* Re-enter IDLE state would trigger channel request. */
-			DBGLOG(P2P, TRACE, "prepare to enter idle to trigger channel req\n");
 			p2pDevFsmStateTransition(prAdapter, prP2pDevFsmInfo, P2P_DEV_STATE_IDLE);
 		}
 	} while (FALSE);
@@ -593,6 +553,7 @@ VOID p2pDevFsmRunEventChannelRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T pr
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventChannelRequest */
 
 VOID p2pDevFsmRunEventChannelAbort(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
@@ -620,22 +581,6 @@ VOID p2pDevFsmRunEventChannelAbort(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMs
 			ASSERT((prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_REQING_CHANNEL) ||
 			       (prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_CHNL_ON_HAND));
 
-			if (prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_REQING_CHANNEL) {
-
-				kalP2PIndicateChannelReady(prAdapter->prGlueInfo,
-							   prChnlReqInfo->u8Cookie,
-							   prChnlReqInfo->ucReqChnlNum,
-							   prChnlReqInfo->eBand,
-							   prChnlReqInfo->eChnlSco,
-							   prChnlReqInfo->u4MaxInterval);
-
-				kalP2PIndicateChannelExpired(prAdapter->prGlueInfo,
-								 prChnlReqInfo->u8Cookie,
-								 prChnlReqInfo->ucReqChnlNum,
-								 prChnlReqInfo->eBand,
-								 prChnlReqInfo->eChnlSco);
-			}
-
 			p2pDevFsmRunEventAbort(prAdapter, prP2pDevFsmInfo);
 
 			break;
@@ -649,23 +594,10 @@ VOID p2pDevFsmRunEventChannelAbort(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMs
 
 				if (prP2pMsgChnlReq->u8Cookie == prChnlAbortMsg->u8Cookie) {
 					LINK_REMOVE_KNOWN_ENTRY(&prChnlReqInfo->rP2pChnlReqLink, prLinkEntry);
-					DBGLOG(P2P, INFO, "Channel Abort. Indicating event, cookie found: 0x%llx\n",
-						prChnlAbortMsg->u8Cookie);
-
-					kalP2PIndicateChannelReady(prAdapter->prGlueInfo,
-								   prP2pMsgChnlReq->u8Cookie,
-								   prP2pMsgChnlReq->rChannelInfo.ucChannelNum,
-								   prP2pMsgChnlReq->rChannelInfo.eBand,
-								   prP2pMsgChnlReq->eChnlSco,
-								   prP2pMsgChnlReq->u4Duration);
-
-					kalP2PIndicateChannelExpired(prAdapter->prGlueInfo,
-									 prP2pMsgChnlReq->u8Cookie,
-									 prP2pMsgChnlReq->rChannelInfo.ucChannelNum,
-									 prP2pMsgChnlReq->rChannelInfo.eBand,
-									 prP2pMsgChnlReq->eChnlSco);
-
 					cnmMemFree(prAdapter, prP2pMsgChnlReq);
+					DBGLOG(P2P, TRACE,
+					       "p2pDevFsmRunEventChannelAbort: Channel Abort, cookie found:%d\n",
+						prChnlAbortMsg->u8Cookie);
 					break;
 				}
 			}
@@ -679,6 +611,7 @@ VOID p2pDevFsmRunEventChannelAbort(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMs
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventChannelAbort */
 
 VOID
@@ -700,9 +633,8 @@ p2pDevFsmRunEventChnlGrant(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr, IN
 
 		ASSERT(prMsgChGrant->ucPrimaryChannel == prChnlReqInfo->ucReqChnlNum);
 		ASSERT(prMsgChGrant->eReqType == prChnlReqInfo->eChnlReqType);
-
-		DBGLOG(P2P, INFO, "P2P: channel grant: u4MaxInterval: %d, Cookie: 0x%llx\n",
-			prChnlReqInfo->u4MaxInterval, prChnlReqInfo->u8Cookie);
+		ASSERT(prMsgChGrant->u4GrantInterval == prChnlReqInfo->u4MaxInterval);
+		prChnlReqInfo->u4MaxInterval = prMsgChGrant->u4GrantInterval;
 
 		if (prMsgChGrant->eReqType == CH_REQ_TYPE_P2P_LISTEN) {
 			p2pDevFsmStateTransition(prAdapter, prP2pDevFsmInfo, P2P_DEV_STATE_CHNL_ON_HAND);
@@ -715,6 +647,7 @@ p2pDevFsmRunEventChnlGrant(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr, IN
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventChnlGrant */
 
 VOID p2pDevFsmRunEventMgmtTx(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
@@ -737,7 +670,7 @@ VOID p2pDevFsmRunEventMgmtTx(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 		}
 
 		DBGLOG(P2P, TRACE, " Device Interface\n");
-		DBGLOG(P2P, TRACE, "p2pDevFsmRunEventMgmtTx\n");
+		DBGLOG(P2P, STATE, "p2pDevFsmRunEventMgmtTx\n");
 
 		prMgmtTxMsg->ucBssIdx = P2P_DEV_BSS_INDEX;
 
@@ -751,7 +684,6 @@ VOID p2pDevFsmRunEventMgmtTx(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 		if ((!prMgmtTxMsg->fgIsOffChannel) ||
 		    ((prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_OFF_CHNL_TX) &&
 		     (LINK_IS_EMPTY(&prP2pMgmtTxReqInfo->rP2pTxReqLink)))) {
-			DBGLOG(P2P, INFO, "send without roc\n");
 			p2pFuncTxMgmtFrame(prAdapter,
 					   prP2pDevFsmInfo->ucBssIndex,
 					   prMgmtTxMsg->prMgmtMsduInfo, prMgmtTxMsg->fgNoneCckRate);
@@ -765,7 +697,6 @@ VOID p2pDevFsmRunEventMgmtTx(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 				ASSERT(FALSE);
 				break;
 			}
-			DBGLOG(P2P, INFO, "send roc\n");
 
 			prOffChnlTxReq->prMgmtTxMsdu = prMgmtTxMsg->prMgmtMsduInfo;
 			prOffChnlTxReq->fgNoneCckRate = prMgmtTxMsg->fgNoneCckRate;
@@ -808,6 +739,7 @@ VOID p2pDevFsmRunEventMgmtTx(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventMgmtTx */
 
 WLAN_STATUS
@@ -816,31 +748,20 @@ p2pDevFsmRunEventMgmtFrameTxDone(IN P_ADAPTER_T prAdapter,
 {
 	BOOLEAN fgIsSuccess = FALSE;
 	P_P2P_DEV_FSM_INFO_T prP2pDevFsmInfo = (P_P2P_DEV_FSM_INFO_T) NULL;
-	UINT_64 u8Cookie;
 
 	do {
 		ASSERT_BREAK((prAdapter != NULL) && (prMsduInfo != NULL));
 
-		if (!prMsduInfo->prPacket) {
-			DBGLOG(P2P, WARN, "Buffer Cookie freed\n");
-			break;
-		}
-
-		u8Cookie = *(PUINT_64)((ULONG) prMsduInfo->prPacket + (ULONG)prMsduInfo->u2FrameLength
-						+ MAC_TX_RESERVED_FIELD);
-
 		prP2pDevFsmInfo = prAdapter->rWifiVar.prP2pDevFsmInfo;
 
-		if (prP2pDevFsmInfo && (prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_OFF_CHNL_TX))
+		if (prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_OFF_CHNL_TX)
 			p2pDevFsmStateTransition(prAdapter, prP2pDevFsmInfo, P2P_DEV_STATE_OFF_CHNL_TX);
 
 		if (rTxDoneStatus != TX_RESULT_SUCCESS) {
-			DBGLOG(P2P, INFO, "Mgmt Frame TX Fail, Status: %d, cookie: 0x%llx SeqNO: %d.\n",
-				rTxDoneStatus, u8Cookie, prMsduInfo->ucTxSeqNum);
+			DBGLOG(P2P, TRACE, "Mgmt Frame TX Fail, Status:%d.\n", rTxDoneStatus);
 		} else {
 			fgIsSuccess = TRUE;
-			DBGLOG(P2P, INFO, "Mgmt Frame TX Done, cookie: 0x%llx SeqNO: %d.\n",
-				   u8Cookie, prMsduInfo->ucTxSeqNum);
+			DBGLOG(P2P, TRACE, "Mgmt Frame TX Done.\n");
 		}
 
 		kalP2PIndicateMgmtTxStatus(prAdapter->prGlueInfo, prMsduInfo, fgIsSuccess);
@@ -856,6 +777,7 @@ VOID p2pDevFsmRunEventMgmtFrameRegister(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventMgmtFrameRegister */
 
 /* /////////////////////////////////////////// */
@@ -901,6 +823,7 @@ VOID p2pFsmRunEventChGrant(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 		}
 	} while (FALSE);
 
+	return;
 }				/* p2pFsmRunEventChGrant */
 
 VOID p2pFsmRunEventScanRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
@@ -921,6 +844,7 @@ VOID p2pFsmRunEventScanRequest(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr
 	if (prP2pScanReqMsg == NULL)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pDevFsmRunEventScanRequest */
 
 /*----------------------------------------------------------------------------*/
@@ -972,6 +896,7 @@ VOID p2pFsmRunEventScanDone(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 		}
 	} while (FALSE);
 
+	return;
 }				/* p2pFsmRunEventScanDone */
 
 VOID p2pFsmRunEventNetDeviceRegister(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
@@ -998,6 +923,7 @@ VOID p2pFsmRunEventNetDeviceRegister(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T pr
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }				/* p2pFsmRunEventNetDeviceRegister */
 
 VOID p2pFsmRunEventUpdateMgmtFrame(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
@@ -1030,37 +956,7 @@ VOID p2pFsmRunEventUpdateMgmtFrame(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMs
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
-}				/* p2pFsmRunEventUpdateMgmtFrame */
-
-VOID p2pFsmRunEventExtendListen(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
-{
-	P_P2P_DEV_FSM_INFO_T prP2pDevFsmInfo = NULL;
-	struct _MSG_P2P_EXTEND_LISTEN_INTERVAL_T *prExtListenMsg = NULL;
-
-	ASSERT_BREAK((prAdapter != NULL) && (prMsgHdr != NULL));
-
-	prExtListenMsg = (struct _MSG_P2P_EXTEND_LISTEN_INTERVAL_T *) prMsgHdr;
-
-	prP2pDevFsmInfo = prAdapter->rWifiVar.prP2pDevFsmInfo;
-	ASSERT_BREAK(prP2pDevFsmInfo);
-
-	if (!prExtListenMsg->wait) {
-		DBGLOG(P2P, INFO, "reset listen interval\n");
-		prP2pDevFsmInfo->eListenExted = P2P_DEV_NOT_EXT_LISTEN;
-		if (prMsgHdr)
-			cnmMemFree(prAdapter, prMsgHdr);
-		return;
-	}
-
-	if (prP2pDevFsmInfo && (prP2pDevFsmInfo->eListenExted == P2P_DEV_NOT_EXT_LISTEN)) {
-		DBGLOG(P2P, TRACE, "try to ext listen, p2p state: %d\n", prP2pDevFsmInfo->eCurrentState);
-		if (prP2pDevFsmInfo->eCurrentState == P2P_DEV_STATE_CHNL_ON_HAND) {
-			DBGLOG(P2P, INFO, "here to ext listen interval\n");
-			prP2pDevFsmInfo->eListenExted = P2P_DEV_EXT_LISTEN_ING;
-		}
-	}
-	if (prMsgHdr)
-		cnmMemFree(prAdapter, prMsgHdr);
+	return;
 }				/* p2pFsmRunEventUpdateMgmtFrame */
 
 #if CFG_SUPPORT_WFD
@@ -1119,6 +1015,7 @@ TODO:use chip config more easy rStatus = wlanSendSetQueryCmd(prAdapter,	/* prAda
 	if (prMsgHdr)
 		cnmMemFree(prAdapter, prMsgHdr);
 
+	return;
 }
 
 /* p2pFsmRunEventWfdSettingUpdate */

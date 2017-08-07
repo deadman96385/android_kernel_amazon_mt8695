@@ -1,25 +1,372 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
+** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/mgmt/rlm.c#3
+*/
+
+/*! \file   "rlm.c"
+    \brief
+
 */
 
 /*
- * Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/mgmt/rlm.c#3
- */
-
-/*
- *  ! \file   "rlm.c"
- *   \brief
- */
+** Log: rlm.c
+**
+** 04 08 2014 eason.tsai
+** [ALPS01070904] [Need Patch] [Volunteer Patch]
+** add for BLBIST dump index
+**
+** 03 11 2014 eason.tsai
+** [ALPS01070904] [Need Patch] [Volunteer Patch][MT6630][Driver]MT6630 Wi-Fi Patch
+** fix assert
+**
+** 08 20 2013 eason.tsai
+** [BORA00002255] [MT6630 Wi-Fi][Driver] develop
+** Icap function
+**
+** 07 16 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** Fix VHT CAP IE parsing error
+**
+** 07 12 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** 1. Update VHT IE composing function
+** 2. disable bow
+** 3. Exchange bss/sta rec update sequence for temp solution
+**
+** 06 18 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** Update for 1st connection
+**
+** 06 14 2013 eddie.chen
+** [BORA00002450] [WIFISYS][MT6630] New design for mt6630
+** Add full mcsset. Add more vht info in sta update
+**
+** 03 12 2013 tsaiyuan.hsu
+** [BORA00002222] MT6630 unified MAC RXM
+** remove hif_rx_hdr usage.
+**
+** 02 19 2013 cp.wu
+** [BORA00002227] [MT6630 Wi-Fi][Driver] Update for Makefile and HIFSYS modifications
+** take use of GET_BSS_INFO_BY_INDEX() and MAX_BSS_INDEX macros
+** for correctly indexing of BSS-INFO pointers
+**
+** 01 28 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Sync CMD format
+**
+** 01 22 2013 cp.wu
+** [BORA00002253] [MT6630 Wi-Fi][Driver][Firmware] Add NLO and timeout mechanism to SCN module
+** modification for ucBssIndex migration
+**
+** 01 17 2013 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Use ucBssIndex to replace eNetworkTypeIndex
+**
+** 11 06 2012 eason.tsai
+** [BORA00002255] [MT6630 Wi-Fi][Driver] develop
+** .
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+ *
+ * 07 17 2012 yuche.tsai
+ * NULL
+ * Compile no error before trial run.
+ *
+ * 11 15 2011 cm.chang
+ * NULL
+ * Check length HT cap IE about RX associate request frame
+ *
+ * 11 10 2011 cm.chang
+ * NULL
+ * Modify debug message for XLOG
+ *
+ * 11 08 2011 cm.chang
+ * NULL
+ * Add RLM and CNM debug message for XLOG
+ *
+ * 11 03 2011 cm.chang
+ * [WCXRP00000997] [MT6620 Wi-Fi][Driver][FW] Handle change of BSS preamble type and slot time
+ * Fix preamble type of STA mode
+ *
+ * 10 25 2011 cm.chang
+ * [WCXRP00001058] [All Wi-Fi][Driver] Fix sta_rec's phyTypeSet and OBSS scan in AP mode
+ * Not send ERP IE if peer STA is 802.11b-only
+ *
+ * 10 11 2011 cm.chang
+ * [WCXRP00001031] [All Wi-Fi][Driver] Check HT IE length to avoid wrong SCO parameter
+ * Ignore HT OP IE if its length field is not valid
+ *
+ * 09 28 2011 cm.chang
+ * NULL
+ * Add length check to reduce possibility to adopt wrong IE
+ *
+ * 09 20 2011 cm.chang
+ * [WCXRP00000997] [MT6620 Wi-Fi][Driver][FW] Handle change of BSS preamble type and slot time
+ * Handle client mode about preamble type and slot time
+ *
+ * 09 01 2011 cm.chang
+ * [WCXRP00000971] [MT6620 Wi-Fi][Driver][FW] Not set Beacon timeout interval when CPTT
+ * Final channel number only adopts the field from assoc response
+ *
+ * 06 10 2011 cm.chang
+ * [WCXRP00000773] [MT6620 Wi-Fi][Driver] Workaround some AP fill primary channel field with its secondary channel
+ * If DS IE exists, ignore the primary channel field in HT OP IE
+ *
+ * 05 03 2011 cm.chang
+ * [WCXRP00000691] [MT6620 Wi-Fi][Driver] Workaround about AP's wrong HT capability IE to have wrong channel number
+ * Fix compiling error
+ *
+ * 05 02 2011 cm.chang
+ * [WCXRP00000691] [MT6620 Wi-Fi][Driver] Workaround about AP's wrong HT capability IE to have wrong channel number
+ * Refine range of valid channel number
+ *
+ * 05 02 2011 cm.chang
+ * [WCXRP00000691] [MT6620 Wi-Fi][Driver] Workaround about AP's wrong HT capability IE to have wrong channel number
+ * Check if channel is valided before record ing BSS channel
+ *
+ * 04 14 2011 cm.chang
+ * [WCXRP00000634] [MT6620 Wi-Fi][Driver][FW] 2nd BSS will not support 40MHz bandwidth for concurrency
+ * .
+ *
+ * 04 12 2011 cm.chang
+ * [WCXRP00000634] [MT6620 Wi-Fi][Driver][FW] 2nd BSS will not support 40MHz bandwidth for concurrency
+ * .
+ *
+ * 03 29 2011 cm.chang
+ * [WCXRP00000606] [MT6620 Wi-Fi][Driver][FW] Fix klocwork warning
+ * As CR title
+ *
+ * 01 24 2011 cm.chang
+ * [WCXRP00000384] [MT6620 Wi-Fi][Driver][FW] Handle 20/40 action frame in AP mode
+ * and stop ampdu timer when sta_rec is freed
+ * Process received 20/40 coexistence action frame for AP mode
+ *
+ * 12 13 2010 cp.wu
+ * [WCXRP00000260] [MT6620 Wi-Fi][Driver][Firmware] Create V1.1 branch for both firmware and driver
+ * create branch for Wi-Fi driver v1.1
+ *
+ * 12 07 2010 cm.chang
+ * [WCXRP00000239] MT6620 Wi-Fi][Driver][FW] Merge concurrent branch back to maintrunk
+ * 1. BSSINFO include RLM parameter
+ * 2. free all sta records when network is disconnected
+ *
+ * 12 07 2010 cm.chang
+ * [WCXRP00000238] MT6620 Wi-Fi][Driver][FW] Support regulation domain setting from NVRAM and supplicant
+ * 1. Country code is from NVRAM or supplicant
+ * 2. Change band definition in CMD/EVENT.
+ *
+ * 10 15 2010 cm.chang
+ * [WCXRP00000094] [MT6620 Wi-Fi][Driver] Connect to 2.4GHz AP, Driver crash.
+ * Add exception handle when no mgmt buffer in free build
+ *
+ * 10 08 2010 cm.chang
+ * NULL
+ * When 20M only setting, ignore OBSS IE
+ *
+ * 09 16 2010 cm.chang
+ * NULL
+ * Change conditional compiling options for BOW
+ *
+ * 09 10 2010 cm.chang
+ * NULL
+ * Always update Beacon content if FW sync OBSS info
+ *
+ * 09 03 2010 kevin.huang
+ * NULL
+ * Refine #include sequence and solve recursive/nested #include issue
+ *
+ * 08 24 2010 cm.chang
+ * NULL
+ * Support RLM initail channel of Ad-hoc, P2P and BOW
+ *
+ * 08 23 2010 cp.wu
+ * NULL
+ * revise constant definitions to be matched with implementation (original cmd-event definition is deprecated)
+ *
+ * 08 23 2010 chinghwa.yu
+ * NULL
+ * Temporary add rlmUpdateParamByStaForBow() and rlmBssInitForBow().
+ *
+ * 08 23 2010 chinghwa.yu
+ * NULL
+ * Add CFG_ENABLE_BT_OVER_WIFI.
+ *
+ * 08 23 2010 chinghwa.yu
+ * NULL
+ * Update for BOW.
+ *
+ * 08 20 2010 cm.chang
+ * NULL
+ * Migrate RLM code to host from FW
+ *
+ * 08 02 2010 yuche.tsai
+ * NULL
+ * P2P Group Negotiation Code Check in.
+ *
+ * 07 26 2010 yuche.tsai
+ *
+ * Fix compile error while enabling WiFi Direct function.
+ *
+ * 07 21 2010 yuche.tsai
+ *
+ * Add P2P Scan & Scan Result Parsing & Saving.
+ *
+ * 07 19 2010 cm.chang
+ *
+ * Set RLM parameters and enable CNM channel manager
+ *
+ * 07 08 2010 cp.wu
+ *
+ * [WPD00003833] [MT6620 and MT5931] Driver migration - move to new repository.
+ *
+ * 07 08 2010 cp.wu
+ * [WPD00003833][MT6620 and MT5931] Driver migration
+ * take use of RLM module for parsing/generating HT IEs for 11n capability
+ *
+ * 07 08 2010 cm.chang
+ * [WPD00003841][LITE Driver] Migrate RLM/CNM to host driver
+ * Check draft RLM code for HT cap
+ *
+ * 06 05 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Fix channel ID definition in RFB status to primary channel instead of center channel
+ *
+ * 06 02 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Add TX short GI compiling option
+ *
+ * 06 02 2010 chinghwa.yu
+ * [BORA00000563]Add WiFi CoEx BCM module
+ * Roll back to remove CFG_SUPPORT_BCM_TEST.
+ *
+ * 06 01 2010 chinghwa.yu
+ * [BORA00000563]Add WiFi CoEx BCM module
+ * Update BCM Test and RW configuration.
+ *
+ * 05 31 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Add some compiling options to control 11n functions
+ *
+ * 05 28 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Set RTS threshold of 2K bytes initially
+ *
+ * 05 18 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Ad-hoc Beacon should not carry HT OP and OBSS IEs
+ *
+ * 05 07 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Process 20/40 coexistence public action frame in AP mode
+ *
+ * 05 05 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * First draft support for 20/40M bandwidth for AP mode
+ *
+ * 04 24 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * g_aprBssInfo[] depends on CFG_SUPPORT_P2P and CFG_SUPPORT_BOW
+ *
+ * 04 22 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * First draft code to support protection in AP mode
+ *
+ * 04 13 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Utilize status of swRfb to know channel number and band
+ *
+ * 04 07 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Different invoking order for WTBL entry of associated AP
+ *
+ * 04 07 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Add virtual test for OBSS scan
+ *
+ * 04 02 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Process Beacon only ready for infra STA now
+ *
+ * 03 30 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Support 2.4G OBSS scan
+ *
+ * 03 24 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Not carry  HT cap when being associated with b/g only AP
+ *
+ * 03 24 2010 wh.su
+ * [BORA00000605][WIFISYS] Phase3 Integration
+ * fixed some WHQL testing error.
+ *
+ * 03 15 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Provide draft measurement and quiet functions
+ *
+ * 03 09 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * If bss is not 11n network, zero WTBL HT parameters
+ *
+ * 03 03 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * To support CFG_SUPPORT_BCM_STP
+ *
+ * 03 02 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Generate HT IE only depending on own phyTypeSet
+ *
+ * 03 02 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Not fill HT related IE if BssInfo does not include 11n phySet
+ *
+ * 03 01 2010 tehuang.liu
+ * [BORA00000569][WIFISYS] Phase 2 Integration Test
+ * To store field AMPDU Parameters in STA_REC
+ *
+ * 02 26 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Enable RDG RX, but disable RDG TX for IOT and LongNAV
+ *
+ * 02 12 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Use bss info array for concurrent handle
+ *
+ * 02 05 2010 kevin.huang
+ * [BORA00000603][WIFISYS] [New Feature] AAA Module Support
+ * Add AAA Module Support, Revise Net Type to Net Type Index for array lookup
+ *
+ * 01 22 2010 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Support protection and bandwidth switch
+ *
+ * 01 07 2010 kevin.huang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * Modify the parameter of rlmRecAssocRspHtInfo function
+ *
+ * 12 18 2009 cm.chang
+ * [BORA00000018]Integrate WIFI part into BORA for the 1st time
+ * .
+ *
+ * Dec 12 2009 mtk01104
+ * [BORA00000018] Integrate WIFI part into BORA for the 1st time
+ * Fix prBssInfo->ucPrimaryChannel handle for assoc resp
+ *
+ * Dec 9 2009 mtk01104
+ * [BORA00000018] Integrate WIFI part into BORA for the 1st time
+ * Add some function to process HT operation
+ *
+ * Nov 28 2009 mtk01104
+ * [BORA00000018] Integrate WIFI part into BORA for the 1st time
+ * Call rlmStatisticsInit() to handle MIB counters
+ *
+ * Nov 18 2009 mtk01104
+ * [BORA00000018] Integrate WIFI part into BORA for the 1st time
+ *
+ *
+**
+*/
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -53,14 +400,8 @@
 */
 BOOLEAN g_bCaptureDone = FALSE;
 BOOLEAN g_bIcapEnable = FALSE;
-UINT_16 g_u2DumpIndex;
+UINT_16 g_u2DumpIndex = 0;
 BOOLEAN g_fgHasChannelSwitchIE = FALSE;
-#if CFG_SUPPORT_QA_TOOL
-UINT_32 g_au4Offset[2][2];
-UINT_32 g_au4IQData[20][1024];
-UINT_32 g_au4I0Data[1][408000];
-UINT_32 g_au4Q0Data[1][408000];
-#endif
 /*******************************************************************************
 *                                 M A C R O S
 ********************************************************************************
@@ -509,7 +850,7 @@ static VOID rlmFillHtCapIE(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, P_MSDU
 	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxShortGI))
 		prHtCap->u2HtCapInfo |= (HT_CAP_INFO_SHORT_GI_20M | HT_CAP_INFO_SHORT_GI_40M);
 
-	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxLdpc))
+	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxLdpc) && (wlanGetEcoVersion(prAdapter) > 2))
 		prHtCap->u2HtCapInfo |= HT_CAP_INFO_LDPC_CAP;
 
 	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxStbc))
@@ -525,7 +866,7 @@ static VOID rlmFillHtCapIE(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, P_MSDU
 	prHtCap->ucAmpduParam = AMPDU_PARAM_DEFAULT_VAL;
 
 	prSupMcsSet = &prHtCap->rSupMcsSet;
-	kalMemZero((PVOID)&prSupMcsSet->aucRxMcsBitmask[0], SUP_MCS_RX_BITMASK_OCTET_NUM);
+	kalMemZero((PVOID) & prSupMcsSet->aucRxMcsBitmask[0], SUP_MCS_RX_BITMASK_OCTET_NUM);
 
 	prSupMcsSet->aucRxMcsBitmask[0] = BITS(0, 7);
 
@@ -837,16 +1178,15 @@ static VOID rlmFillVhtCapIE(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, P_MSD
 	prVhtCap->ucLength = sizeof(IE_VHT_CAP_T) - ELEM_HDR_LEN;
 	prVhtCap->u4VhtCapInfo = VHT_CAP_INFO_DEFAULT_VAL;
 
-	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucStaVhtBfee)) {
+	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucStaVhtBfee) && (wlanGetEcoVersion(prAdapter) > 2))
 		prVhtCap->u4VhtCapInfo |= FIELD_VHT_CAP_INFO_BF;
-		if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucStaVhtMuBfee))
+		if(IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucStaVhtMuBfee))
 			prVhtCap->u4VhtCapInfo |= VHT_CAP_INFO_MU_BEAMFOMEE_CAPABLE;
-	}
 
 	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxShortGI))
 		prVhtCap->u4VhtCapInfo |= VHT_CAP_INFO_SHORT_GI_80;
 
-	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxLdpc))
+	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxLdpc) && (wlanGetEcoVersion(prAdapter) > 2))
 		prVhtCap->u4VhtCapInfo |= VHT_CAP_INFO_RX_LDPC;
 
 	if (IS_FEATURE_ENABLED(prAdapter->rWifiVar.ucRxStbc))
@@ -906,19 +1246,19 @@ VOID rlmFillVhtOpIE(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, P_MSDU_INFO_T
 	prVhtOp->ucVhtOperation[2] = prBssInfo->ucVhtChannelFrequencyS2;
 
 	/*
-	 * if(cnmGetBssMaxBw(prAdapter, prBssInfo->ucBssIndex) < MAX_BW_80MHZ) {
-	 * prVhtOp->ucVhtOperation[0] = VHT_OP_CHANNEL_WIDTH_20_40;
-	 * prVhtOp->ucVhtOperation[1] = 0;
-	 * prVhtOp->ucVhtOperation[2] = 0;
-	 * }
-	 * else if(cnmGetBssMaxBw(prAdapter, prBssInfo->ucBssIndex) == MAX_BW_80MHZ) {
-	 * prVhtOp->ucVhtOperation[0] = VHT_OP_CHANNEL_WIDTH_80;
-	 * prVhtOp->ucVhtOperation[1] = nicGetVhtS1(prBssInfo->ucPrimaryChannel);
-	 * prVhtOp->ucVhtOperation[2] = 0;
-	 * }
-	 * else {
-	 * //4 TODO: BW80 + 80/160 support
-	 * }
+	   if(cnmGetBssMaxBw(prAdapter, prBssInfo->ucBssIndex) < MAX_BW_80MHZ) {
+	   prVhtOp->ucVhtOperation[0] = VHT_OP_CHANNEL_WIDTH_20_40;
+	   prVhtOp->ucVhtOperation[1] = 0;
+	   prVhtOp->ucVhtOperation[2] = 0;
+	   }
+	   else if(cnmGetBssMaxBw(prAdapter, prBssInfo->ucBssIndex) == MAX_BW_80MHZ) {
+	   prVhtOp->ucVhtOperation[0] = VHT_OP_CHANNEL_WIDTH_80;
+	   prVhtOp->ucVhtOperation[1] = nicGetVhtS1(prBssInfo->ucPrimaryChannel);
+	   prVhtOp->ucVhtOperation[2] = 0;
+	   }
+	   else {
+	   //4 TODO: BW80 + 80/160 support
+	   }
 	 */
 
 	prVhtOp->u2VhtBasicMcsSet = prBssInfo->u2VhtBasicMcsSet;
@@ -928,8 +1268,13 @@ VOID rlmFillVhtOpIE(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, P_MSDU_INFO_T
 
 #endif
 
-static VOID rlmReviseMaxBw(P_ADAPTER_T prAdapter, UINT_8 ucBssIndex, P_ENUM_CHNL_EXT_T peExtend,
-			PUINT_8 peChannelWidth, PUINT_8 pucS1, UINT_8 ucPrimaryCh)
+static VOID rlmReviseMaxBw(
+	P_ADAPTER_T prAdapter,
+	UINT_8 ucBssIndex,
+	P_ENUM_CHNL_EXT_T peExtend,
+	P_ENUM_CHANNEL_WIDTH_P peChannelWidth,
+	PUINT_8 pucS1,
+	PUINT_8 pucPrimaryCh)
 {
 	UINT_8 ucMaxBandwidth = MAX_BW_80MHZ;
 	UINT_8 ucCurrentBandwidth = MAX_BW_20MHZ;
@@ -953,35 +1298,35 @@ static VOID rlmReviseMaxBw(P_ADAPTER_T prAdapter, UINT_8 ucBssIndex, P_ENUM_CHNL
 
 		if (ucMaxBandwidth <= MAX_BW_40MHZ) {
 			/*BW20 * BW40*/
-			*peChannelWidth = CW_20_40MHZ;
+			*peChannelWidth = 0;
 
 			if (ucMaxBandwidth == MAX_BW_20MHZ)
 				*peExtend = CHNL_EXT_SCN;
 		} else {
-			/*BW80, BW160, BW80P80*/
-			/*ucMaxBandwidth Must be MAX_BW_80MHZ,MAX_BW_160MHZ,MAX_BW_80MHZ*/
-			/*peExtend should not change*/
+			/* BW80, BW160, BW80P80 */
+			/* ucMaxBandwidth Must be MAX_BW_80MHZ,MAX_BW_160MHZ,MAX_BW_80MHZ */
+			/* peExtend should not change */
 			*peChannelWidth = (ucMaxBandwidth - ucOffset);
 
 			if (ucMaxBandwidth == MAX_BW_80MHZ) {
-				/*modify S1 for Bandwidth 160 downgrade 80 case*/
+				/* modify S1 for Bandwidth 160 downgrade 80 case */
 				if (ucCurrentBandwidth == MAX_BW_160MHZ) {
 
-					if ((ucPrimaryCh >= 36) && (ucPrimaryCh <= 48))
+					if ((*pucPrimaryCh >= 36) && (*pucPrimaryCh <= 48))
 						*pucS1 = 42;
-					else if ((ucPrimaryCh >= 52) && (ucPrimaryCh <= 64))
+					else if ((*pucPrimaryCh >= 52) && (*pucPrimaryCh <= 64))
 						*pucS1 = 58;
-					else if ((ucPrimaryCh >= 100) && (ucPrimaryCh <= 112))
+					else if ((*pucPrimaryCh >= 100) && (*pucPrimaryCh <= 112))
 						*pucS1 = 106;
-					else if ((ucPrimaryCh >= 116) && (ucPrimaryCh <= 128))
+					else if ((*pucPrimaryCh >= 116) && (*pucPrimaryCh <= 128))
 						*pucS1 = 122;
-					else if ((ucPrimaryCh >= 132) && (ucPrimaryCh <= 144))
+					else if ((*pucPrimaryCh >= 132) && (*pucPrimaryCh <= 144))
 						*pucS1 = 138; /*160 downgrade should not in this case*/
-					else if ((ucPrimaryCh >= 149) && (ucPrimaryCh <= 161))
+					else if ((*pucPrimaryCh >= 149) && (*pucPrimaryCh <= 161))
 						*pucS1 = 155; /*160 downgrade should not in this case*/
 					else
-						DBGLOG(RLM, INFO,
-							"Check connect 160 downgrde (%d) case\n", ucMaxBandwidth);
+						DBGLOG(RLM, INFO, "Check connect 160 downgrde (%d) case\n"
+						, ucMaxBandwidth);
 
 					DBGLOG(RLM, INFO, "Decreasse the BW160 to BW80, shift S1 to (%d)\n", *pucS1);
 				}
@@ -1053,7 +1398,7 @@ static UINT_8 rlmRecIeInfoForClient(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInf
 
 	/* Note: HT-related members in staRec may not be zero before, so
 	 *       if following IE does not exist, they are still not zero.
-	 *       These HT-related parameters are valid only when the corresponding
+	 *       These HT-related parameters are vaild only when the corresponding
 	 *       BssInfo supports 802.11n, i.e., RLM_NET_IS_11N()
 	 */
 	IE_FOR_EACH(pucIE, u2IELength, u2Offset) {
@@ -1074,7 +1419,8 @@ static UINT_8 rlmRecIeInfoForClient(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInf
 			/* Set LDPC Tx capability */
 			if (IS_FEATURE_FORCE_ENABLED(prWifiVar->ucTxLdpc))
 				prStaRec->u2HtCapInfo |= HT_CAP_INFO_LDPC_CAP;
-			else if (IS_FEATURE_DISABLED(prWifiVar->ucTxLdpc))
+			else if (IS_FEATURE_DISABLED(prWifiVar->ucTxLdpc)
+				   || (wlanGetEcoVersion(prAdapter) <= 2))
 				prStaRec->u2HtCapInfo &= ~HT_CAP_INFO_LDPC_CAP;
 
 			/* Set STBC Tx capability */
@@ -1151,7 +1497,8 @@ static UINT_8 rlmRecIeInfoForClient(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInf
 			/* Set Tx LDPC capability */
 			if (IS_FEATURE_FORCE_ENABLED(prWifiVar->ucTxLdpc))
 				prStaRec->u4VhtCapInfo |= VHT_CAP_INFO_RX_LDPC;
-			else if (IS_FEATURE_DISABLED(prWifiVar->ucTxLdpc))
+			else if (IS_FEATURE_DISABLED(prWifiVar->ucTxLdpc)
+				   || (wlanGetEcoVersion(prAdapter) <= 2))
 				prStaRec->u4VhtCapInfo &= ~VHT_CAP_INFO_RX_LDPC;
 
 			/* Set Tx STBC capability */
@@ -1341,22 +1688,13 @@ static UINT_8 rlmRecIeInfoForClient(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInf
 	 *  The channel bandwidth of OP Mode IE  is  3, represent as 160/80+80MHz.
 	 */
 	if (fgHasOPModeIE == TRUE) {
-		if (ucVhtOpModeChannelWidth == 0) {
-			/*
-			 * Set the channel bandwidth of VHT operating is 0,
-			 * together with other parameters, represent as 20M
-			 */
+
+		/*Set the channel bandwidth of VHT operating is 0, represent as 20/40MHz */
+		if ((ucVhtOpModeChannelWidth == 0) || (ucVhtOpModeChannelWidth == 1))
 			prBssInfo->ucVhtChannelWidth = 0;
-			prBssInfo->ucVhtChannelFrequencyS1 = 0;
-			prBssInfo->ucVhtChannelFrequencyS2 = 0;
-			prBssInfo->eBssSCO = CHNL_EXT_SCN;
-		} else if (ucVhtOpModeChannelWidth == 1) {
-			/*Set the channel bandwidth of VHT operating is 0, represent as 20/40MHz */
-			prBssInfo->ucVhtChannelWidth = 0;
-		} else if (ucVhtOpModeChannelWidth == 2) {
-			/*Set the channel bandwidth of VHT operating is 1, represent as 80MHz */
+		/*Set the channel bandwidth of VHT operating is 1, represent as 80MHz */
+		else if (ucVhtOpModeChannelWidth == 2)
 			prBssInfo->ucVhtChannelWidth = 1;
-		}
 	}
 #endif
 
@@ -1368,14 +1706,12 @@ static UINT_8 rlmRecIeInfoForClient(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInf
 
 	if (fgHasChannelSwitchIE != FALSE) {
 		P_BSS_DESC_T prBssDesc;
-
 		prBssInfo->ucPrimaryChannel = ucChannelAnnouncePri;
 		prBssDesc = scanSearchBssDescByBssid(prAdapter, prBssInfo->aucBSSID);
 
 		if (prBssDesc) {
 			DBGLOG(RLM, INFO, "DFS: BSS: " MACSTR " Desc found, channel from %u to %u\n ",
-			MAC2STR(prBssInfo->aucBSSID),
-			prBssDesc->ucChannelNum,
+			MAC2STR(prBssInfo->aucBSSID), prBssDesc->ucChannelNum,
 			ucChannelAnnouncePri);
 			prBssDesc->ucChannelNum = ucChannelAnnouncePri;
 		} else {
@@ -1403,9 +1739,8 @@ static UINT_8 rlmRecIeInfoForClient(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInf
 		DBGLOG(RLM, INFO, "Ch : DFS has Appeared\n");
 	}
 #endif
-
-	rlmReviseMaxBw(prAdapter, prBssInfo->ucBssIndex, &prBssInfo->eBssSCO, &prBssInfo->ucVhtChannelWidth,
-		&prBssInfo->ucVhtChannelFrequencyS1, prBssInfo->ucPrimaryChannel);
+	rlmReviseMaxBw(prAdapter, prBssInfo->ucBssIndex, &prBssInfo->eBssSCO, (P_ENUM_CHANNEL_WIDTH_P)&prBssInfo->ucVhtChannelWidth,
+		&prBssInfo->ucVhtChannelFrequencyS1, &prBssInfo->ucPrimaryChannel);
 
 	if (!rlmDomainIsValidRfSetting(prAdapter, prBssInfo->eBand,
 				       prBssInfo->ucPrimaryChannel, prBssInfo->eBssSCO,
@@ -1414,7 +1749,6 @@ static UINT_8 rlmRecIeInfoForClient(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInf
 
 		/*Dump IE Inforamtion */
 		PUINT_8 pucDumpIE;
-
 		pucDumpIE = (PUINT_8)((ULONG)pucIE - u2IELength);
 		DBGLOG(RLM, WARN, "rlmRecIeInfoForClient IE Information\n");
 		DBGLOG(RLM, WARN, "IE Length = %d\n", u2IELength);
@@ -1670,7 +2004,7 @@ VOID rlmProcessBcn(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb, PUINT_8 pucIE, UIN
 	fgNewParameter = FALSE;
 
 	/* When concurrent networks exist, GO shall have the same handle as
-	 * the other BSS, so the Beacon shall be processed for bandwidth and
+	 * the other BSS, so the Beacon shall be procesed for bandwidth and
 	 * protection mechanism.
 	 * Note1: we do not have 2 AP (GO) cases simultaneously now.
 	 * Note2: If we are GO, concurrent AIS AP should detect it and reflect
@@ -1717,52 +2051,6 @@ VOID rlmProcessBcn(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb, PUINT_8 pucIE, UIN
 			}
 		}		/* end of IS_BSS_ACTIVE() */
 	}
-}
-
-static VOID rlmParseIeInfoForAssocRsp(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, PUINT_8 pucIE, UINT_16 u2IELength)
-{
-	UINT_16 u2Offset;
-	P_STA_RECORD_T prStaRec;
-	BOOLEAN fgWithHtCap = FALSE;
-	BOOLEAN fgWithVhtCap = FALSE;
-
-	prStaRec = prBssInfo->prStaRecOfAP;
-	if (!prStaRec)
-		return;
-
-	IE_FOR_EACH(pucIE, u2IELength, u2Offset) {
-		switch (IE_ID(pucIE)) {
-		case ELEM_ID_HT_CAP:
-			if (!RLM_NET_IS_11N(prBssInfo) || IE_LEN(pucIE) != (sizeof(IE_HT_CAP_T) - 2))
-				break;
-			fgWithHtCap = TRUE;
-			break;
-
-#if CFG_SUPPORT_802_11AC
-		case ELEM_ID_VHT_CAP:
-			if (!RLM_NET_IS_11AC(prBssInfo) || IE_LEN(pucIE) != (sizeof(IE_VHT_CAP_T) - 2))
-				break;
-			fgWithVhtCap = TRUE;
-			break;
-#endif
-		case ELEM_ID_BSS_MAX_IDLE_PERIOD:
-		{
-			struct IE_BSS_MAX_IDLE_PERIOD *prBssMaxIdle = (struct IE_BSS_MAX_IDLE_PERIOD *)pucIE;
-
-			prStaRec->u2MaxIdlePeriod = prBssMaxIdle->u2MaxIdlePeriod;
-			prStaRec->ucIdleOption = prBssMaxIdle->ucIdleOption;
-			break;
-		}
-		default:
-			break;
-		}		/* end of switch */
-	}			/* end of IE_FOR_EACH */
-
-	if (!fgWithHtCap)
-		prStaRec->ucDesiredPhyTypeSet &= ~PHY_TYPE_BIT_HT;
-
-	if (!fgWithVhtCap)
-		prStaRec->ucDesiredPhyTypeSet &= ~PHY_TYPE_BIT_VHT;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1814,8 +2102,6 @@ VOID rlmProcessAssocRsp(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb, PUINT_8 pucIE
 	if (ucPriChannel > 0)
 		prBssInfo->ucPrimaryChannel = ucPriChannel;
 #endif
-
-	rlmParseIeInfoForAssocRsp(prAdapter, prBssInfo, pucIE, u2IELength);
 
 	if (!RLM_NET_IS_11N(prBssInfo) || !(prStaRec->u2HtCapInfo & HT_CAP_INFO_SUP_CHNL_WIDTH))
 		prBssInfo->fg40mBwAllowed = FALSE;
@@ -1969,7 +2255,8 @@ VOID rlmProcessAssocReq(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb, PUINT_8 pucIE
 			/* Set Short LDPC Tx capability */
 			if (IS_FEATURE_FORCE_ENABLED(prAdapter->rWifiVar.ucTxLdpc))
 				prStaRec->u2HtCapInfo |= HT_CAP_INFO_LDPC_CAP;
-			else if (IS_FEATURE_DISABLED(prAdapter->rWifiVar.ucTxLdpc))
+			else if (IS_FEATURE_DISABLED(prAdapter->rWifiVar.ucTxLdpc)
+				   || (wlanGetEcoVersion(prAdapter) <= 2))
 				prStaRec->u2HtCapInfo &= ~HT_CAP_INFO_LDPC_CAP;
 
 			/* Set STBC Tx capability */
@@ -2010,7 +2297,8 @@ VOID rlmProcessAssocReq(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb, PUINT_8 pucIE
 			/* Set Tx LDPC capability */
 			if (IS_FEATURE_FORCE_ENABLED(prAdapter->rWifiVar.ucTxLdpc))
 				prStaRec->u4VhtCapInfo |= VHT_CAP_INFO_RX_LDPC;
-			else if (IS_FEATURE_DISABLED(prAdapter->rWifiVar.ucTxLdpc))
+			else if (IS_FEATURE_DISABLED(prAdapter->rWifiVar.ucTxLdpc)
+				   || (wlanGetEcoVersion(prAdapter) <= 2))
 				prStaRec->u4VhtCapInfo &= ~VHT_CAP_INFO_RX_LDPC;
 
 			/* Set Tx STBC capability */
@@ -2249,7 +2537,7 @@ rlmFillHtCapIEByParams(BOOLEAN fg40mAllowed,
 	prHtCap->ucAmpduParam = AMPDU_PARAM_DEFAULT_VAL;
 
 	prSupMcsSet = &prHtCap->rSupMcsSet;
-	kalMemZero((PVOID)&prSupMcsSet->aucRxMcsBitmask[0], SUP_MCS_RX_BITMASK_OCTET_NUM);
+	kalMemZero((PVOID) & prSupMcsSet->aucRxMcsBitmask[0], SUP_MCS_RX_BITMASK_OCTET_NUM);
 
 	prSupMcsSet->aucRxMcsBitmask[0] = BITS(0, 7);
 
@@ -2315,7 +2603,7 @@ UINT_32 rlmFillHtCapIEByAdapter(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, U
 	prHtCap->ucAmpduParam = AMPDU_PARAM_DEFAULT_VAL;
 
 	prSupMcsSet = &prHtCap->rSupMcsSet;
-	kalMemZero((PVOID)&prSupMcsSet->aucRxMcsBitmask[0], SUP_MCS_RX_BITMASK_OCTET_NUM);
+	kalMemZero((PVOID) & prSupMcsSet->aucRxMcsBitmask[0], SUP_MCS_RX_BITMASK_OCTET_NUM);
 
 	prSupMcsSet->aucRxMcsBitmask[0] = BITS(0, 7);
 
@@ -2369,18 +2657,13 @@ VOID rlmProcessSpecMgtAction(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb)
 	ASSERT(prAdapter);
 	ASSERT(prSwRfb);
 
-	u2IELength = prSwRfb->u2PacketLen -
-	    (UINT_16) OFFSET_OF(ACTION_CHANNEL_SWITCH_FRAME, aucInfoElem[0]);
+	u2IELength = (prSwRfb->u2PacketLen - prSwRfb->u2HeaderLen) -
+	    (UINT_16) (OFFSET_OF(ACTION_CHANNEL_SWITCH_FRAME, aucInfoElem[0]) - WLAN_MAC_MGMT_HEADER_LEN);
 
 	prRxFrame = (P_ACTION_CHANNEL_SWITCH_FRAME) prSwRfb->pvHeader;
 	pucIE = prRxFrame->aucInfoElem;
 
 	prStaRec = cnmGetStaRecByIndex(prAdapter, prSwRfb->ucStaRecIdx);
-	if (!prStaRec)
-		nicRxMgmtNoWTBLHandling(prAdapter, prSwRfb);
-	if (!prSwRfb->prStaRec)
-		return;
-	prStaRec = prSwRfb->prStaRec;
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prStaRec->ucBssIndex);
 
 	DBGLOG_MEM8(RLM, INFO, pucIE, u2IELength);
@@ -2450,7 +2733,6 @@ VOID rlmProcessSpecMgtAction(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb)
 		}		/*end of IE_FOR_EACH */
 		if (!fgHasChannelSwitchIE) {
 			P_BSS_DESC_T prBssDesc;
-
 			prBssDesc = scanSearchBssDescByBssid(prAdapter, prBssInfo->aucBSSID);
 			if (RLM_NET_IS_11AC(prBssInfo) && (prBssInfo->ucVhtChannelWidth != CW_20_40MHZ)) {
 				/*Due to MT6630 BW80 sidelope issue*/
@@ -2469,8 +2751,7 @@ VOID rlmProcessSpecMgtAction(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb)
 			if (prBssDesc) {
 				DBGLOG(RLM, INFO,
 					"[Mgt Action]BSS: "MACSTR" Desc found, channel from %u to %u\n ",
-					MAC2STR(prBssInfo->aucBSSID),
-					prBssDesc->ucChannelNum,
+					MAC2STR(prBssInfo->aucBSSID), prBssDesc->ucChannelNum,
 					prBssInfo->ucPrimaryChannel);
 				prBssDesc->ucChannelNum = prBssInfo->ucPrimaryChannel;
 			} else {
@@ -2553,64 +2834,3 @@ VOID rlmSendOpModeNotificationFrame(P_ADAPTER_T prAdapter, P_STA_RECORD_T prStaR
 }
 
 #endif
-
-#if CFG_SUPPORT_802_11K
-VOID rlmProcessNeighborReportResonse(P_ADAPTER_T prAdapter, P_WLAN_ACTION_FRAME prAction, UINT_16 u2PacketLen)
-{
-	struct ACTION_NEIGHBOR_REPORT_FRAME *prNeighborResponse = (struct ACTION_NEIGHBOR_REPORT_FRAME *)prAction;
-
-	ASSERT(prAdapter);
-	ASSERT(prNeighborResponse);
-	DBGLOG(RLM, INFO, "Neighbor Resp From %pM, DialogToken %d\n",
-	       prNeighborResponse->aucSrcAddr, prNeighborResponse->ucDialogToken);
-	aisCollectNeighborAPChannel(prAdapter, (struct IE_NEIGHBOR_REPORT_T *)&prNeighborResponse->aucInfoElem[0],
-				    u2PacketLen - OFFSET_OF(struct ACTION_NEIGHBOR_REPORT_FRAME, aucInfoElem));
-}
-
-VOID rlmTxNeighborReportRequest(P_ADAPTER_T prAdapter, P_STA_RECORD_T prStaRec, struct SUB_ELEMENT_LIST *prSubIEs)
-{
-	static UINT_8 ucDialogToken = 1;
-	P_MSDU_INFO_T prMsduInfo = NULL;
-	P_BSS_INFO_T prBssInfo = NULL;
-	PUINT_8 pucPayload = NULL;
-	struct ACTION_NEIGHBOR_REPORT_FRAME *prTxFrame = NULL;
-	UINT_16 u2TxFrameLen = 500;
-	UINT_16 u2FrameLen = 0;
-
-	if (!prStaRec)
-		return;
-
-	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prStaRec->ucBssIndex);
-	ASSERT(prBssInfo);
-	/* 1 Allocate MSDU Info */
-	prMsduInfo = (P_MSDU_INFO_T) cnmMgtPktAlloc(prAdapter, MAC_TX_RESERVED_FIELD + u2TxFrameLen);
-	if (!prMsduInfo)
-		return;
-	prTxFrame = (struct ACTION_NEIGHBOR_REPORT_FRAME *)((ULONG) (prMsduInfo->prPacket) + MAC_TX_RESERVED_FIELD);
-
-	/* 2 Compose The Mac Header. */
-	prTxFrame->u2FrameCtrl = MAC_FRAME_ACTION;
-	COPY_MAC_ADDR(prTxFrame->aucDestAddr, prStaRec->aucMacAddr);
-	COPY_MAC_ADDR(prTxFrame->aucSrcAddr, prBssInfo->aucOwnMacAddr);
-	COPY_MAC_ADDR(prTxFrame->aucBSSID, prBssInfo->aucBSSID);
-	prTxFrame->ucCategory = CATEGORY_RM_ACTION;
-	prTxFrame->ucAction = RM_ACTION_NEIGHBOR_REQUEST;
-	u2FrameLen = OFFSET_OF(struct ACTION_NEIGHBOR_REPORT_FRAME, aucInfoElem);
-	/* 3 Compose the frame body's frame. */
-	prTxFrame->ucDialogToken = ucDialogToken++;
-	u2TxFrameLen -= sizeof(*prTxFrame) - 1;
-	pucPayload = &prTxFrame->aucInfoElem[0];
-	while (prSubIEs && u2TxFrameLen >= (prSubIEs->rSubIE.ucLength + 2)) {
-		kalMemCopy(pucPayload, &prSubIEs->rSubIE, prSubIEs->rSubIE.ucLength + 2);
-		pucPayload += prSubIEs->rSubIE.ucLength + 2;
-		u2FrameLen += prSubIEs->rSubIE.ucLength + 2;
-		prSubIEs = prSubIEs->prNext;
-	}
-	nicTxSetMngPacket(prAdapter, prMsduInfo, prStaRec->ucBssIndex, prStaRec->ucIndex,
-			  WLAN_MAC_MGMT_HEADER_LEN, u2FrameLen, NULL, MSDU_RATE_MODE_AUTO);
-
-	/* 5 Enqueue the frame to send this action frame. */
-	nicTxEnqueueMsdu(prAdapter, prMsduInfo);
-}
-#endif
-

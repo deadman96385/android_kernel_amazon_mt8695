@@ -2182,7 +2182,7 @@ static void createWirelessDevice(void)
 
 	/* 4 <1.4> wowlan support */
 #ifdef CONFIG_PM
-	kalMemCopy(&prWiphy->wowlan, &mtk_wlan_wowlan_support, sizeof(struct wiphy_wowlan_support));
+	prWiphy->wowlan = &mtk_wlan_wowlan_support;
 #endif
 #ifdef CONFIG_CFG80211_WEXT
 	/* 4 <1.5> Use wireless extension to replace IOCTL */

@@ -1651,7 +1651,7 @@ BOOLEAN glP2pCreateWirelessDevice(P_GLUE_INFO_T prGlueInfo)
 	prWiphy->max_scan_ie_len = MAX_SCAN_IE_LEN;
 	prWiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
 #ifdef CONFIG_PM
-	kalMemCopy(&(prWiphy->wowlan), &mtk_p2p_wowlan_support, sizeof(struct wiphy_wowlan_support));
+	prWiphy->wowlan = &mtk_p2p_wowlan_support;
 #endif
 	/* 2.1 set priv as pointer to glue structure */
 	*((P_GLUE_INFO_T *) wiphy_priv(prWiphy)) = prGlueInfo;

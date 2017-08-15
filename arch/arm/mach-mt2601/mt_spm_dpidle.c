@@ -139,7 +139,7 @@ SPM_PCM_CONFIG pcm_config_dpidle = {
 	.spm_turn_off_26m = false,
 	.pcm_firmware_len = PCM_DPIDLE_LEN,
 	.pcm_pwrlevel = PWR_LV0,
-	.spm_request_uart_sleep = true,
+	.spm_request_uart_sleep = false,
 	.pcm_vsr = {PCM_DPIDLE_VEC0, PCM_DPIDLE_VEC1, PCM_DPIDLE_VEC2, PCM_DPIDLE_VEC3, 0, 0, 0, 0},
 
 	/*Wake up event mask */
@@ -217,7 +217,7 @@ wake_reason_t spm_go_to_dpidle(bool cpu_pdn, u8 pwrlevel)
 		goto RESTORE_IRQ;
 	}
 	pcm_config_dpidle.pcm_pwrlevel = 1 << pwrlevel;
-	pcm_config_dpidle.spm_request_uart_sleep = (pwrlevel == 0 ? true : false);
+	/*pcm_config_dpidle.spm_request_uart_sleep = (pwrlevel == 0 ? true : false);*/
 	pcm_config_dpidle.cpu_pdn = cpu_pdn;
 
 	if (mtk_is_wdt_enable())

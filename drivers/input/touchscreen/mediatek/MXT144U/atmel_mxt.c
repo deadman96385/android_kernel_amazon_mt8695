@@ -1272,7 +1272,7 @@ static void mxt_proc_t100_message(struct mxt_data *data, u8 *message)
 	x = (message[3] << 8) | message[2];
 	y = (message[5] << 8) | message[4];
 
-	if (data->lockdown_info[2] == HW_LILY_LOTUS && (y > 993 || x > 737)) {
+	if (data->lockdown_info[2] == HW_LILY_LOTUS && (y < 30 && x < 30)) {
 		input_report_key(input_dev, BTN_TOUCH, 0);
 		input_sync(input_dev);
 		return;
@@ -4929,6 +4929,7 @@ static void mxt_stop(struct mxt_data *data)
 		if (data->is_ambient_mode && data->enable_wakeup_gesture)
 			data->suspended = true;
 
+		mxt_reset_slots(data);
 		return;
 	}
 
@@ -4953,6 +4954,7 @@ static void mxt_stop(struct mxt_data *data)
 
 		data->suspended = true;
 		MXT_LOG("mxt: in mxt_stop enable_wakeup_gesture=1\n");
+		mxt_reset_slots(data);
 		return;
 	}
 #endif

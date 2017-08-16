@@ -816,7 +816,7 @@ UINT_32 u4DebugModule = 0;
 
 /* read cfg data while power on, save the 512 bytes nvram data */
 UINT_8 auiNvram[512];
-PUINT_8 *puiCfgData;
+PUINT_8 puiCfgData;
 static UINT_32 gl_uiCfgLen = 0;
 static struct semaphore data_buf_mtx;
 
@@ -2147,7 +2147,7 @@ static void createWirelessDevice(void)
 	}
 	/* 4 <1.3> configure wireless_dev & wiphy */
 	prWdev->iftype = NL80211_IFTYPE_STATION;
-	prWiphy->max_scan_ssids = 1;//CFG_SCAN_SSID_MAX_NUM;	/* FIXME: for combo scan */
+	prWiphy->max_scan_ssids = CFG_SCAN_SSID_MAX_NUM;
 	prWiphy->max_scan_ie_len = CFG_CFG80211_IE_BUF_LEN;
 	prWiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) | BIT(NL80211_IFTYPE_ADHOC);
 	prWiphy->bands[IEEE80211_BAND_2GHZ] = &mtk_band_2ghz;
@@ -2589,27 +2589,27 @@ int get_cfg_data_handler(UINT_8 *pucdata, ENUM_CFG_DATA_OPT_T eflag)
 	down(&data_buf_mtx);
 	switch(eflag) {
 	case OPT_SET_NVRAM:
-		printk("set nvram data \n");
+		pr_debug("set nvram data\n");
 		bNvramDataValid = TRUE;
 		kalMemCopy(auiNvram, pucdata, 512);
 		vfree(pucdata);
 		break;
 
 	case OPT_SET_CFG_LEN:
-		gl_uiCfgLen = *pucdata;
+		kalMemCopy(&gl_uiCfgLen, pucdata, sizeof(gl_uiCfgLen));
 		break;
 
 	case OPT_SET_CFG_DATA:
-		printk("set cfg data \n");
+		pr_debug("set cfg data\n");
 		if (puiCfgData) {
 			vfree(puiCfgData);
 			puiCfgData = NULL;
 		}
-		if (gl_uiCfgLen==0){
+		if (gl_uiCfgLen == 0) {
 			vfree(pucdata);
 			bCfgDataValid = FALSE;
 		} else {
-			puiCfgData = &pucdata;
+			puiCfgData = pucdata;
 			bCfgDataValid = TRUE;
 		}
 		break;
@@ -2619,11 +2619,11 @@ int get_cfg_data_handler(UINT_8 *pucdata, ENUM_CFG_DATA_OPT_T eflag)
 			vfree(puiCfgData);
 		puiCfgData = NULL;
 		bCfgDataValid = FALSE;
-		gl_uiCfgLen = *pucdata;
+		kalMemCopy(&gl_uiCfgLen, pucdata, sizeof(gl_uiCfgLen));
 		break;
 
 	default:
-		printk("error handler \n");
+		pr_debug("error handler\n");
 		break;
 	}
 	up(&data_buf_mtx);
@@ -3112,7 +3112,7 @@ static int initWlan(void)
 	glResetInit();
 #endif
 	sema_init(&data_buf_mtx, 1);
-	/*register_get_cfg_data_handler(get_cfg_data_handler);*/
+	register_get_cfg_data_handler(get_cfg_data_handler);
 
 	return ret;
 }				/* end of initWlan() */

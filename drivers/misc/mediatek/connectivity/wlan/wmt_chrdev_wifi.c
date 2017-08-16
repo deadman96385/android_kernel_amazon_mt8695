@@ -37,6 +37,12 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define WIFI_DRIVER_NAME "mtk_wmt_wifi_chrdev"
 #define WIFI_DEV_MAJOR 153
 
+#define WIFI_IOCTL_MAGIC	'k'
+#define WIFI_IOCTL_SET_NVRAM		_IOW(WIFI_IOCTL_MAGIC, 0x1a, int)
+#define WIFI_IOCTL_SET_WIFICFG		_IOW(WIFI_IOCTL_MAGIC, 0x1b, int)
+#define WIFI_IOCTL_SET_WIFICFG_LEN	_IOW(WIFI_IOCTL_MAGIC, 0x1c, int)
+#define WIFI_IOCTL_CLEAR_WIFICFG	_IOW(WIFI_IOCTL_MAGIC, 0x1d, int)
+
 #define PFX                         "[MTK-WIFI] "
 #define WIFI_LOG_DBG                  3
 #define WIFI_LOG_INFO                 2
@@ -85,6 +91,7 @@ static INT8 *ifname = WLAN_IFACE_NAME;
 volatile INT32 wlan_if_changed;
 EXPORT_SYMBOL(wlan_if_changed);
 #endif
+static INT32 cfgsize;
 
 /*******************************************************************
  */
@@ -120,6 +127,23 @@ do { \
 		mtk_wcn_wmt_assert(WMTDRV_TYPE_WIFI, 0x40); \
 	} \
 } while (0)
+
+typedef enum _ENUM_CFG_DATA_OPT_T {
+	OPT_SET_NVRAM = 0,
+	OPT_SET_CFG_LEN,
+	OPT_SET_CFG_DATA,
+	OPT_CLR_CFG,
+	OPT_CFG_MAX
+} ENUM_CFG_DATA_OPT_T;
+
+typedef int (*get_cfg_data) (UINT8 *pucdata, ENUM_CFG_DATA_OPT_T eflag);
+
+static get_cfg_data pf_get_cfg_data;
+VOID register_get_cfg_data_handler(get_cfg_data handler)
+{
+	pf_get_cfg_data = handler;
+}
+EXPORT_SYMBOL(register_get_cfg_data_handler);
 
 /*******************************************************************
  *  WHOLE CHIP RESET PROCEDURE:
@@ -449,10 +473,82 @@ done:
 	return retval;
 }
 
+static long WIFI_detect_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+	int retval = 0;
+	int size = 0;
+	ENUM_CFG_DATA_OPT_T eopt = 0;
+	PUINT8 pucConfigBuf = NULL;
+	UINT8 delayCount = 0;
+
+	WIFI_INFO_FUNC("Cmd (0x%x), arg(%ld)\n", cmd, arg);
+	while (!pf_get_cfg_data) {
+		msleep(100);
+		delayCount++;
+		if (delayCount < 5)
+			continue;
+		WIFI_INFO_FUNC("no pf_get_cfg_data API\n");
+		return -1;
+	}
+
+	switch (cmd) {
+	case WIFI_IOCTL_SET_NVRAM:
+		size = 512;
+		eopt = OPT_SET_NVRAM;
+		pucConfigBuf = (PUINT8)vmalloc(size);
+		if (!pucConfigBuf) {
+			WIFI_INFO_FUNC("no pucConfigBuf\n");
+			retval = -1;
+		}
+		break;
+
+	case WIFI_IOCTL_SET_WIFICFG_LEN:
+		size = sizeof(int);
+		eopt = OPT_SET_CFG_LEN;
+		pucConfigBuf = (PUINT8)&cfgsize;
+		break;
+
+	case WIFI_IOCTL_SET_WIFICFG:
+		size = cfgsize;
+		eopt = OPT_SET_CFG_DATA;
+		pucConfigBuf = (PUINT8)vmalloc(size);
+		if (!pucConfigBuf) {
+			retval = -1;
+		}
+		break;
+
+	case WIFI_IOCTL_CLEAR_WIFICFG:
+		size = sizeof(int);
+		eopt = OPT_CLR_CFG;
+		pucConfigBuf = (PUINT8)&cfgsize;
+		break;
+
+	default:
+		WIFI_ERR_FUNC("Unknown cmd (0x%x)\n", cmd);
+		retval = -1;
+		break;
+	}
+
+	if (retval==0 && copy_from_user(pucConfigBuf, (PUINT8)arg, size)==0) {
+		if (pf_get_cfg_data(pucConfigBuf, eopt) != 0) {
+			retval = -1;
+			WIFI_ERR_FUNC("Set data type %d failed\n", eopt);
+		} else
+			WIFI_INFO_FUNC("Set data type %d success\n", eopt);
+	} else {
+		if(cmd==WIFI_IOCTL_SET_WIFICFG || cmd==WIFI_IOCTL_SET_NVRAM)
+			vfree(pucConfigBuf);
+
+		WIFI_ERR_FUNC("Kernel get cfg data failed\n");
+	}
+	return retval;
+}
+
 const struct file_operations WIFI_fops = {
 	.open = WIFI_open,
 	.release = WIFI_close,
 	.write = WIFI_write,
+	.unlocked_ioctl = WIFI_detect_unlocked_ioctl,
 };
 
 static int WIFI_init(void)

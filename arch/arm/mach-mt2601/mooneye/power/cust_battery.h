@@ -46,7 +46,7 @@ typedef struct {
 #define ERR_CHARGE_TEMPERATURE  0xFF
 
 /* Recharging Battery Voltage */
-#define RECHARGING_VOLTAGE      4110
+#define RECHARGING_VOLTAGE      4200
 
 /* Charging Current Setting */
 #define CONFIG_USB_IF						0

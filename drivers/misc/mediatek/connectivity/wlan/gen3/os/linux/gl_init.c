@@ -2878,7 +2878,7 @@ bailout:
 
 		/* 4 <6> Initialize /proc filesystem */
 #ifdef WLAN_INCLUDE_PROC
-		i4Status = kalMetInitProcfs(prGlueInfo);
+		i4Status = procCreateFsEntry(prGlueInfo);
 		if (i4Status < 0) {
 			DBGLOG(INIT, ERROR, "wlanProbe: init procfs failed\n");
 			break;

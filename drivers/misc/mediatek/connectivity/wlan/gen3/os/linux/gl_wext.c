@@ -576,9 +576,10 @@ const long channel_freq[] = {
 		}                                           \
 	    }
 
-#define NUM_CHANNELS (sizeof(channel_freq) / sizeof(channel_freq[0]))
+#define NUM_CHANNELS (ARRAY_SIZE(channel_freq))
 
-#define MAX_SSID_LEN    32
+#define MAX_SSID_LEN		32
+#define COUNTRY_CODE_LEN	10	/* country code length */
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -3453,37 +3454,42 @@ wext_set_encode_ext(IN struct net_device *prNetDev,
 /*!
 * \brief Set country code
 *
-* \param[in] prDev Net device requested.
-* \param[in] prIwrInfo NULL.
-* \param[in] pu4Mode Pointer to new operation mode.
-* \param[in] pcExtra NULL.
+* \param[in] prNetDev Net device requested.
+* \param[in] prData iwreq.u.data carries country code value.
 *
 * \retval 0 For success.
-* \retval -EOPNOTSUPP If new mode is not supported.
+* \retval -EEFAULT For fail.
 *
-* \note Device will run in new operation mode if it is valid.
+* \note Country code is stored and channel list is updated based on current country domain.
 */
 /*----------------------------------------------------------------------------*/
-static int wext_set_country(IN struct net_device *prNetDev, IN struct iwreq *iwr)
+static int wext_set_country(IN struct net_device *prNetDev, IN struct iw_point *prData)
 {
 	P_GLUE_INFO_T prGlueInfo;
 	WLAN_STATUS rStatus;
 	UINT_32 u4BufLen;
-	UINT_8 aucCountry[2];
+	UINT_8 aucCountry[COUNTRY_CODE_LEN];
 
 	ASSERT(prNetDev);
 
-	/* iwr->u.data.pointer should be like "COUNTRY US", "COUNTRY EU"
+	/* prData->pointer should be like "COUNTRY US", "COUNTRY EU"
 	 * and "COUNTRY JP"
 	 */
-	if (FALSE == GLUE_CHK_PR2(prNetDev, iwr) || !iwr->u.data.pointer || iwr->u.data.length < 10)
+	if (GLUE_CHK_PR2(prNetDev, prData) == FALSE || !prData->pointer || prData->length < COUNTRY_CODE_LEN)
 		return -EINVAL;
+
 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prNetDev));
 
-	aucCountry[0] = *((PUINT_8) iwr->u.data.pointer + 8);
-	aucCountry[1] = *((PUINT_8) iwr->u.data.pointer + 9);
+	if (copy_from_user(aucCountry, prData->pointer, COUNTRY_CODE_LEN))
+		return -EFAULT;
 
-	rStatus = kalIoctl(prGlueInfo, wlanoidSetCountryCode, &aucCountry[0], 2, FALSE, FALSE, TRUE, &u4BufLen);
+	rStatus = kalIoctl(prGlueInfo,
+			   wlanoidSetCountryCode,
+			   &aucCountry[COUNTRY_CODE_LEN-2], 2, FALSE, FALSE, TRUE, &u4BufLen);
+	if (rStatus != WLAN_STATUS_SUCCESS) {
+		DBGLOG(REQ, ERROR, "Set country code error: %x\n", rStatus);
+		return -EFAULT;
+	}
 	wlanUpdateChannelTable(prGlueInfo);
 
 	return 0;
@@ -3582,10 +3588,8 @@ int wext_support_ioctl(IN struct net_device *prDev, IN struct ifreq *prIfReq, IN
 		}
 		break;
 
-	case SIOCSIWPRIV:	/* 0x8B0C, Country */
-		/* TODO: receive the android driver command */
-		/* COUNTRY PNOFORCE ... */
-		ret = wext_set_country(prDev, iwr);
+	case SIOCSIWPRIV:	/* 0x8B0C, set country code */
+		ret = wext_set_country(prDev, &iwr->u.data);
 		break;
 
 		/* case SIOCGIWPRIV: 0x8B0D, handled in wlan_do_ioctl() */

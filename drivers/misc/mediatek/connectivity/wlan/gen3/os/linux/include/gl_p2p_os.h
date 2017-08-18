@@ -1,31 +1,16 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id:
 //Department/DaVinci/TRUNK/MT6620_5931_WiFi_Driver/os/linux/include/gl_p2p_os.h#28
 */
 
-/*
- * ! \file   gl_p2p_os.h
- *  \brief  List the external reference to OS for p2p GLUE Layer.
- *
- * In this file we define the data structure - GLUE_INFO_T to store those objects
- * we acquired from OS - e.g. TIMER, SPINLOCK, NET DEVICE ... . And all the
- * external reference (header file, extern func() ..) to OS for GLUE Layer should
- * also list down here.
- */
+/*! \file   gl_p2p_os.h
+    \brief  List the external reference to OS for p2p GLUE Layer.
+
+    In this file we define the data structure - GLUE_INFO_T to store those objects
+    we acquired from OS - e.g. TIMER, SPINLOCK, NET DEVICE ... . And all the
+    external reference (header file, extern func() ..) to OS for GLUE Layer should
+    also list down here.
+*/
 
 #ifndef _GL_P2P_OS_H
 #define _GL_P2P_OS_H
@@ -39,12 +24,6 @@
 *                    E X T E R N A L   R E F E R E N C E S
 ********************************************************************************
 */
-#include <linux/netdevice.h>
-#if CFG_ENABLE_WIFI_DIRECT_CFG_80211
-#include <net/cfg80211.h>
-#endif
-
-#include "wlan_oid.h"
 
 /*******************************************************************************
 *                    E X T E R N A L   V A R I A B L E
@@ -63,7 +42,6 @@ extern const struct net_device_ops p2p_netdev_ops;
 *                                 M A C R O S
 ********************************************************************************
 */
-#define OID_SET_GET_STRUCT_LENGTH		4096	/* For SET_STRUCT/GET_STRUCT */
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -142,8 +120,8 @@ struct _GL_P2P_INFO_T {
 #if CFG_SUPPORT_WFD
 	UINT_8 aucWFDIE[400];	/* 0 for beacon, 1 for probe req, 2 for probe response */
 	UINT_16 u2WFDIELen;
-	UINT_8 aucVenderIE[1024]; /* Save the other IE for prove resp, PLS DON'T COMMENT OUT, CROSSMOUNT */
-	UINT_16 u2VenderIELen;
+	/* UINT_8                      aucVenderIE[1024]; *//* Save the other IE for prove resp */
+/* UINT_16                     u2VenderIELen; */
 #endif
 
 	UINT_8 ucOperatingChnl;
@@ -161,10 +139,8 @@ struct _GL_P2P_INFO_T {
 
 #if CFG_SUPPORT_HOTSPOT_WPS_MANAGER
 	/* Hotspot Client Management */
-	/*
-	 * dependent with  #define P2P_MAXIMUM_CLIENT_COUNT 10,
-	 * fix me to PARAM_MAC_ADDRESS aucblackMACList[P2P_MAXIMUM_CLIENT_COUNT];
-	 */
+	/* dependent with  #define P2P_MAXIMUM_CLIENT_COUNT 10,
+	 * fix me to PARAM_MAC_ADDRESS aucblackMACList[P2P_MAXIMUM_CLIENT_COUNT]; */
 	PARAM_MAC_ADDRESS aucblackMACList[10];
 	UINT_8 ucMaxClients;
 #endif
@@ -252,11 +228,15 @@ typedef struct _NL80211_DRIVER_WFD_PARAMS {
 ********************************************************************************
 */
 
+BOOLEAN p2pRegisterToWlan(P_GLUE_INFO_T prGlueInfo);
+
+BOOLEAN p2pUnregisterToWlan(P_GLUE_INFO_T prGlueInfo);
+
 BOOLEAN p2pLaunch(P_GLUE_INFO_T prGlueInfo);
 
 BOOLEAN p2pRemove(P_GLUE_INFO_T prGlueInfo);
 
-VOID p2pSetMode(IN BOOLEAN fgIsAPMode);
+VOID p2pSetMode(IN BOOLEAN fgIsAPMOde);
 
 BOOLEAN glRegisterP2P(P_GLUE_INFO_T prGlueInfo, const char *prDevName, BOOLEAN fgIsApMode);
 
@@ -269,11 +249,7 @@ BOOLEAN p2pNetUnregister(P_GLUE_INFO_T prGlueInfo, BOOLEAN fgIsRtnlLockAcquired)
 BOOLEAN p2PFreeInfo(P_GLUE_INFO_T prGlueInfo);
 
 VOID p2pSetSuspendMode(P_GLUE_INFO_T prGlueInfo, BOOLEAN fgEnable);
-
 BOOLEAN glP2pCreateWirelessDevice(P_GLUE_INFO_T prGlueInfo);
-
 VOID glP2pDestroyWirelessDevice(VOID);
-
-VOID p2pSetMulticastListWorkQueueWrapper(P_GLUE_INFO_T prGlueInfo);
-
+VOID p2pUpdateChannelTableByDomain(P_GLUE_INFO_T prGlueInfo);
 #endif

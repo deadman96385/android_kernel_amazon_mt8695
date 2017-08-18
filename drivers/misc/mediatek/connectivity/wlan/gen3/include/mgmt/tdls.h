@@ -1,25 +1,20 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id: include/tdls.h#1
 */
 
+/*! \file   "tdls.h"
+    \brief This file contains the internal used in TDLS modules
+	 for MediaTek Inc. 802.11 Wireless LAN Adapters.
+*/
+
 /*
- * ! \file   "tdls.h"
- *  \brief This file contains the internal used in TDLS modules
- *   for MediaTek Inc. 802.11 Wireless LAN Adapters.
+** Log: tdls.h
+ *
+ * 11 18 2013 vend_samp.lin
+ * NULL
+ * Initial version.
+ *
+ **
  */
 
 #ifndef _TDLS_H
@@ -163,7 +158,7 @@ typedef struct _STATION_PRARAMETERS {
 } STATION_PRARAMETERS, P_STATION_PRARAMETERS;
 
 /* test command use */
-typedef struct _PARAM_CUSTOM_TDLS_CMD_STRUCT_T {
+typedef struct _PARAM_CUSTOM_TDLS_CMD_STRUC_T {
 
 	UINT_8 ucFmeType;	/* TDLS_FRM_ACTION_ID */
 
@@ -189,7 +184,7 @@ typedef struct _PARAM_CUSTOM_TDLS_CMD_STRUCT_T {
 	/* struct */
 	STATION_PRARAMETERS rPeerInfo;
 
-} PARAM_CUSTOM_TDLS_CMD_STRUCT_T;
+} PARAM_CUSTOM_TDLS_CMD_STRUC_T;
 
 typedef enum _ENUM_TDLS_LINK_OPER {
 	TDLS_DISCOVERY_REQ,

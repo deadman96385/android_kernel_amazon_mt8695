@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /******************************************************************************
 *[File]             sdio.c
 *[Version]          v1.0
@@ -22,6 +8,151 @@
 *[Copyright]
 *    Copyright (C) 2010 MediaTek Incorporation. All Rights Reserved.
 ******************************************************************************/
+
+/*
+** Log: sdio.c
+**
+** 07 05 2013 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** 1. Avoid large packet Tx issue
+**
+** 02 01 2013 cp.wu
+** [BORA00002227] [MT6630 Wi-Fi][Driver] Update for Makefile and HIFSYS modifications
+** 1. eliminate MT5931/MT6620/MT6628 logic
+** 2. add firmware download control sequence
+**
+** 11 21 2012 terry.wu
+** [BORA00002207] [MT6630 Wi-Fi] TXM & MQM Implementation
+** [Driver] Fix linux drvier build error.
+**
+** 09 17 2012 cm.chang
+** [BORA00002149] [MT6630 Wi-Fi] Initial software development
+** Duplicate source from MT6620 v2.3 driver branch
+** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+**
+** 08 24 2012 cp.wu
+** [WCXRP00001269] [MT6620 Wi-Fi][Driver] cfg80211 porting merge back to DaVinci
+** .
+**
+** 08 24 2012 cp.wu
+** [WCXRP00001269] [MT6620 Wi-Fi][Driver] cfg80211 porting merge back to DaVinci
+** cfg80211 support merge back from ALPS.JB to DaVinci - MT6620 Driver v2.3 branch.
+ *
+ * 04 12 2012 terry.wu
+ * NULL
+ * Add AEE message support
+ * 1) Show AEE warning(red screen) if SDIO access error occurs
+
+ *
+ * 02 14 2012 cp.wu
+ * [WCXRP00000851] [MT6628 Wi-Fi][Driver] Add HIFSYS related definition to driver source tree
+ * include correct header file upon setting.
+ *
+ * 11 10 2011 cp.wu
+ * [WCXRP00001098] [MT6620 Wi-Fi][Driver] Replace printk by DBG LOG macros in linux porting layer
+ * 1. eliminaite direct calls to printk in porting layer.
+ * 2. replaced by DBGLOG, which would be XLOG on ALPS platforms.
+ *
+ * 09 20 2011 cp.wu
+ * [WCXRP00000994] [MT6620 Wi-Fi][Driver] dump message for bus error and reset bus error flag while re-initialized
+ * 1. always show error message for SDIO bus errors.
+ * 2. reset bus error flag when re-initialization
+ *
+ * 08 17 2011 cp.wu
+ * [WCXRP00000851] [MT6628 Wi-Fi][Driver] Add HIFSYS related definition to driver source tree
+ * add MT6628 related definitions for Linux/Android driver.
+ *
+ * 05 18 2011 cp.wu
+ * [WCXRP00000702] [MT5931][Driver] Modify initialization sequence for E1 ASIC
+ * add device ID for MT5931.
+ *
+ * 04 08 2011 pat.lu
+ * [WCXRP00000623] [MT6620 Wi-Fi][Driver] use ARCH define to distinguish PC Linux driver
+ * Use CONFIG_X86 instead of PC_LINUX_DRIVER_USE option to have proper compile settting for PC Linux driver
+ *
+ * 03 22 2011 pat.lu
+ * [WCXRP00000592] [MT6620 Wi-Fi][Driver] Support PC Linux Environment Driver Build
+ * Add a compiler option "PC_LINUX_DRIVER_USE" for building driver in PC Linux environment.
+ *
+ * 03 18 2011 cp.wu
+ * [WCXRP00000559] [MT6620 Wi-Fi][Driver] Combine TX/RX DMA buffers into a single one
+ * to reduce physically continuous memory consumption
+ * deprecate CFG_HANDLE_IST_IN_SDIO_CALLBACK.
+ *
+ * 03 15 2011 cp.wu
+ * [WCXRP00000559] [MT6620 Wi-Fi][Driver] Combine TX/RX DMA buffers into a single
+ * one to reduce physically continuous memory consumption
+ * 1. deprecate CFG_HANDLE_IST_IN_SDIO_CALLBACK
+ * 2. Use common coalescing buffer for both TX/RX directions
+ *
+ *
+ * 03 07 2011 terry.wu
+ * [WCXRP00000521] [MT6620 Wi-Fi][Driver] Remove non-standard debug message
+ * Toggle non-standard debug messages to comments.
+ *
+ * 11 15 2010 jeffrey.chang
+ * [WCXRP00000181] [MT6620 Wi-Fi][Driver] fix the driver message "GLUE_FLAG_HALT skip INT" during unloading
+ * Fix GLUE_FALG_HALT message which cause driver to hang
+ *
+ * 11 08 2010 cp.wu
+ * [WCXRP00000166] [MT6620 Wi-Fi][Driver] use SDIO CMD52 for enabling/disabling interrupt to reduce transaction period
+ * correct typo
+ *
+ * 11 08 2010 cp.wu
+ * [WCXRP00000166] [MT6620 Wi-Fi][Driver] use SDIO CMD52 for enabling/disabling interrupt to reduce transaction period
+ * change to use CMD52 for enabling/disabling interrupt to reduce SDIO transaction time
+ *
+ * 11 01 2010 yarco.yang
+ * [WCXRP00000149] [MT6620 WI-Fi][Driver]Fine tune performance on MT6516 platform
+ * Add code to run WlanIST in SDIO callback.
+ *
+ * 10 19 2010 cp.wu
+ * [WCXRP00000122] [MT6620 Wi-Fi][Driver] Preparation for YuSu source tree integration
+ * remove HIF_SDIO_ONE flags because the settings could be merged for runtime detection instead of compile-time.
+ *
+ * 10 19 2010 jeffrey.chang
+ * [WCXRP00000120] [MT6620 Wi-Fi][Driver] Refine linux kernel module to the license
+ * of MTK propietary and enable MTK HIF by default
+ * Refine linux kernel module to the license of MTK and enable MTK HIF
+ *
+ * 08 21 2010 jeffrey.chang
+ * NULL
+ * 1) add sdio two setting
+ * 2) bug fix of sdio glue
+ *
+ * 08 18 2010 jeffrey.chang
+ * NULL
+ * support multi-function sdio
+ *
+ * 08 18 2010 cp.wu
+ * NULL
+ * #if defined(__X86__) is not working, change to use #ifdef CONFIG_X86.
+ *
+ * 08 17 2010 cp.wu
+ * NULL
+ * add ENE SDIO host workaround for x86 linux platform.
+ *
+ * 07 08 2010 cp.wu
+ *
+ * [WPD00003833] [MT6620 and MT5931] Driver migration - move to new repository.
+ *
+ * 06 06 2010 kevin.huang
+ * [WPD00003832][MT6620 5931] Create driver base
+ * [MT6620 5931] Create driver base
+ *
+ * 05 07 2010 jeffrey.chang
+ * [WPD00003826]Initial import for Linux port
+ * Fix hotplug bug
+ *
+ * 03 28 2010 jeffrey.chang
+ * [WPD00003826]Initial import for Linux port
+ * clear sdio interrupt
+ *
+ * 03 24 2010 jeffrey.chang
+ * [WPD00003826]Initial import for Linux port
+ * initial import for Linux port
+**
+*/
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -188,11 +319,11 @@ void debug_gpio_init(void)
 {
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(dbgPinSTP); ++i) {
-		if (dbgPinSTP[i] == GPIO_INVALID)
+	for (i = 0; i < sizeof(dbgPinSTP) / sizeof(dbgPinSTP[0]); ++i) {
+		if (GPIO_INVALID == dbgPinSTP[i])
 			continue;
 
-		/* DBGLOG(INIT, INFO, "[%s] %ld\n", __func__, dbgPinSTP[i]);*/
+		/* printk(KERN_INFO "[%s] %ld\n", __FUNCTION__, dbgPinSTP[i]); */
 		mt_set_gpio_pull_enable(dbgPinSTP[i], 0);	/* disable pull */
 		mt_set_gpio_dir(dbgPinSTP[i], GPIO_DIR_OUT);	/* set output */
 		mt_set_gpio_mode(dbgPinSTP[i], GPIO_MODE_00);	/* set gpio mode */
@@ -203,36 +334,35 @@ void debug_gpio_init(void)
 		mt_set_gpio_out(dbgPinSTP[i], GPIO_OUT_ZERO);	/* tie low */
 		mt_set_gpio_out(dbgPinSTP[i], GPIO_OUT_ONE);	/* tie high */
 	}
-	DBGLOG(INIT, INFO, "[%s] initialization ok\n", __func__)
+	/* printk(KERN_INFO "[%s] initialization ok\n", __FUNCTION__); */
 }
 
 void debug_gpio_deinit(void)
 {
 	int i;
-
-	for (i = 0; i < ARRAY_SIZE(dbgPinSTP); ++i) {
-		if (dbgPinSTP[i] == GPIO_INVALID)
+	for (i = 0; i < sizeof(dbgPinSTP) / sizeof(dbgPinSTP[0]); ++i) {
+		if (GPIO_INVALID == dbgPinSTP[i])
 			continue;
 
-		/* DBGLOG(INIT, INFO, "[%s] %ld\n", __func__, dbgPinSTP[i]); */
+		/* printk(KERN_INFO "[%s] %ld\n", __FUNCTION__, dbgPinSTP[i]); */
 		mt_set_gpio_dir(dbgPinSTP[i], GPIO_DIR_IN);
 	}
 
-	DBGLOG(INIT, INFO, "[%s] k\n", __func__);
+	/* printk(KERN_INFO "[%s] k\n", __FUNCTION__); */
 }
 
 void mtk_wcn_stp_debug_gpio_assert(UINT_32 dwIndex, UINT_32 dwMethod)
 {
 	unsigned int i;
 
-	if (dwIndex >= ARRAY_SIZE(dbgPinSTP))
-		DBGLOG(INIT, INFO, "[%s] invalid dwIndex(%ld)\n", __func__, dwIndex);
+	if (dwIndex >= (sizeof(dbgPinSTP) / sizeof(dbgPinSTP[0])))
+		/* printk(KERN_INFO "[%s] invalid dwIndex(%ld)\n", __FUNCTION__, dwIndex); */
 		return;
 
 	if (dwIndex > IDX_STP_MAX)
-		DBGLOG(INIT, INFO, "[%s] dwIndex(%ld) > IDX_STP_MAX(%d)\n", __func__, dwIndex, IDX_STP_MAX);
+		/* printk(KERN_INFO "[%s] dwIndex(%ld) > IDX_STP_MAX(%d)\n", __FUNCTION__, dwIndex, IDX_STP_MAX); */
 
-		if (dbgPinSTP[dwIndex] == GPIO_INVALID)
+		if (GPIO_INVALID == dbgPinSTP[dwIndex])
 			return;
 
 	if (dwMethod & DBG_TIE_DIR) {
@@ -252,6 +382,7 @@ void mtk_wcn_stp_debug_gpio_assert(UINT_32 dwIndex, UINT_32 dwMethod)
 		return;
 	}
 
+	return;
 }
 #endif
 
@@ -276,10 +407,13 @@ static INT_32 mtk_sdio_interrupt(MTK_WCN_HIF_SDIO_CLTCTX cltCtx)
 
 	/* ASSERT(prGlueInfo); */
 
-	if (!prGlueInfo)
+	if (!prGlueInfo) {
+		/* printk(KERN_INFO DRV_NAME"No glue info in mtk_sdio_interrupt()\n"); */
 		return -HIF_SDIO_ERR_FAIL;
+	}
 
 	if (prGlueInfo->ulFlag & GLUE_FLAG_HALT) {
+		/* printk(KERN_INFO DRV_NAME"GLUE_FLAG_HALT skip INT\n"); */
 		ret = mtk_wcn_hif_sdio_writel(cltCtx, MCR_WHLPCR, WHLPCR_INT_EN_CLR);
 		return ret;
 	}
@@ -313,11 +447,14 @@ static void mtk_sdio_interrupt(struct sdio_func *func)
 	prGlueInfo = sdio_get_drvdata(func);
 	/* ASSERT(prGlueInfo); */
 
-	if (!prGlueInfo)
+	if (!prGlueInfo) {
+		/* printk(KERN_INFO DRV_NAME"No glue info in mtk_sdio_interrupt()\n"); */
 		return;
+	}
 
 	if (prGlueInfo->ulFlag & GLUE_FLAG_HALT) {
 		sdio_writel(prGlueInfo->rHifInfo.func, WHLPCR_INT_EN_CLR, MCR_WHLPCR, &ret);
+		/* printk(KERN_INFO DRV_NAME"GLUE_FLAG_HALT skip INT\n"); */
 		return;
 	}
 
@@ -326,10 +463,12 @@ static void mtk_sdio_interrupt(struct sdio_func *func)
 #if 0
 	wlanISR(prGlueInfo->prAdapter, TRUE);
 
-	if (prGlueInfo->ulFlag & GLUE_FLAG_HALT)
+	if (prGlueInfo->ulFlag & GLUE_FLAG_HALT) {
 		/* Should stop now... skip pending interrupt */
-	else
+		/* printk(KERN_INFO DRV_NAME"ignore pending interrupt\n"); */
+	} else {
 		wlanIST(prGlueInfo->prAdapter);
+	}
 #endif
 
 	set_bit(GLUE_FLAG_INT_BIT, &prGlueInfo->ulFlag);
@@ -365,12 +504,12 @@ static INT_32 mtk_sdio_probe(MTK_WCN_HIF_SDIO_CLTCTX cltCtx, const MTK_WCN_HIF_S
 
 	prFunc = prFuncInfo;
 
-	if (pfWlanProbe((PVOID)&cltCtx) != WLAN_STATUS_SUCCESS) {
-		DBGLOG(INIT, ERROR, "pfWlanProbe fail!call pfWlanRemove()\n");
+	if (pfWlanProbe((PVOID) & cltCtx) != WLAN_STATUS_SUCCESS) {
+		/* printk(KERN_WARNING DRV_NAME"pfWlanProbe fail!call pfWlanRemove()\n"); */
 		pfWlanRemove();
 		ret = -(HIF_SDIO_ERR_FAIL);
 	} else {
-		DBGLOG(INIT, INFO, "mtk_wifi_sdio_probe() done(%d)\n", ret);
+		/* printk(KERN_INFO DRV_NAME"mtk_wifi_sdio_probe() done(%d)\n", ret); */
 	}
 	return ret;
 }
@@ -380,38 +519,54 @@ static int mtk_sdio_probe(struct sdio_func *func, const struct sdio_device_id *i
 	int ret = 0;
 	int i = 0;
 
-	DBGLOG(INIT, INFO, "mtk_sdio_probe()\n");
+	/* printk(KERN_INFO DRV_NAME "mtk_sdio_probe()\n"); */
 
 	ASSERT(func);
 	ASSERT(id);
 
-	for (i = 0; i < func->card->num_info; i++)
-		DBGLOG(INIT, INFO, "info[%d]: %s\n", i, func->card->info[i]);
+	/* printk(KERN_INFO DRV_NAME "Basic struct size checking...\n"); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct device) = %d\n", sizeof(struct device)); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct mmc_host) = %d\n", sizeof(struct mmc_host)); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct mmc_card) = %d\n", sizeof(struct mmc_card)); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct mmc_driver) = %d\n", sizeof(struct mmc_driver)); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct mmc_data) = %d\n", sizeof(struct mmc_data)); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct mmc_command) = %d\n", sizeof(struct mmc_command)); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct mmc_request) = %d\n", sizeof(struct mmc_request)); */
+	/* printk(KERN_INFO DRV_NAME "sizeof(struct sdio_func) = %d\n", sizeof(struct sdio_func)); */
+
+	/* printk(KERN_INFO DRV_NAME "Card information checking...\n"); */
+	/* printk(KERN_INFO DRV_NAME "func = 0x%p\n", func); */
+	/* printk(KERN_INFO DRV_NAME "Number of info = %d:\n", func->card->num_info); */
+
+	for (i = 0; i < func->card->num_info; i++) {
+		/* printk(KERN_INFO
+			DRV_NAME "info[%d]: %s\n", i, func->card->info[i]); */
+	}
 
 	sdio_claim_host(func);
 	ret = sdio_enable_func(func);
 	sdio_release_host(func);
 
 	if (ret) {
-		DBGLOG(INIT, ERROR, "sdio_enable_func failed!\n");
+		/* printk(KERN_INFO DRV_NAME"sdio_enable_func failed!\n"); */
 		goto out;
 	}
-	DBGLOG(INIT, INFO, "sdio_enable_func done!\n");
+	/* printk(KERN_INFO DRV_NAME"sdio_enable_func done!\n"); */
 
 	if (pfWlanProbe((PVOID) func) != WLAN_STATUS_SUCCESS) {
-		DBGLOG(INIT, WARN, "pfWlanProbe fail!call pfWlanRemove()\n");
+		/* printk(KERN_WARNING DRV_NAME"pfWlanProbe fail!call pfWlanRemove()\n"); */
 		pfWlanRemove();
 		ret = -1;
 	} else {
 #if CFG_DBG_GPIO_PINS
-		DBGLOG(INIT, INFO, "[%s] init debug gpio, 20100815\n", __func__);
+		/* printk(KERN_INFO "[%s] init debug gpio, 20100815\n", __FUNCTION__); */
 		/* Debug pins initialization */
 		debug_gpio_init();
 #endif
 	}
 
 out:
-	DBGLOG(INIT, INFO, "mtk_sdio_probe() done(%d)\n", ret);
+	/* printk(KERN_INFO DRV_NAME"mtk_sdio_probe() done(%d)\n", ret); */
 	return ret;
 }
 #endif
@@ -420,8 +575,7 @@ out:
 static INT_32 mtk_sdio_remove(MTK_WCN_HIF_SDIO_CLTCTX cltCtx)
 {
 	INT_32 ret = HIF_SDIO_ERR_SUCCESS;
-
-	DBGLOG(INIT, INFO, "pfWlanRemove done\n");
+	/* printk(KERN_INFO DRV_NAME"pfWlanRemove done\n"); */
 	pfWlanRemove();
 
 	return ret;
@@ -429,36 +583,38 @@ static INT_32 mtk_sdio_remove(MTK_WCN_HIF_SDIO_CLTCTX cltCtx)
 #else
 static void mtk_sdio_remove(struct sdio_func *func)
 {
-	DBGLOG(INIT, INFO, "mtk_sdio_remove()\n");
+	/* printk(KERN_INFO DRV_NAME"mtk_sdio_remove()\n"); */
 
 #if CFG_DBG_GPIO_PINS
-	DBGLOG(INIT, INFO, "[%s] deinit debug gpio\n", __func__);
+	/* printk(KERN_INFO "[%s] deinit debug gpio\n", __FUNCTION__); */
 	debug_gpio_deinit();
 #endif
 
 	ASSERT(func);
+	/* printk(KERN_INFO DRV_NAME"pfWlanRemove done\n"); */
 	pfWlanRemove();
 
 	sdio_claim_host(func);
 	sdio_disable_func(func);
+	/* printk(KERN_INFO DRV_NAME"sdio_disable_func() done\n"); */
 	sdio_release_host(func);
 
-	DBGLOG(INIT, INFO, "mtk_sdio_remove() done\n");
+	/* printk(KERN_INFO DRV_NAME"mtk_sdio_remove() done\n"); */
 }
 #endif
 
 #if (MTK_WCN_HIF_SDIO == 0)
 static int mtk_sdio_suspend(struct device *pDev, pm_message_t state)
 {
-	DBGLOG(INIT, INFO, "mtk_sdio: mtk_sdio_suspend dev(0x%p)\n", pDev);
-	DBGLOG(INIT, INFO, "mtk_sdio: MediaTek SDIO WLAN driver\n");
+	/* printk(KERN_INFO "mtk_sdio: mtk_sdio_suspend dev(0x%p)\n", pDev); */
+	/* printk(KERN_INFO "mtk_sdio: MediaTek SDIO WLAN driver\n"); */
 
 	return 0;
 }
 
 int mtk_sdio_resume(struct device *pDev)
 {
-	DBGLOG(INIT, INFO, "mtk_sdio: mtk_sdio_resume dev(0x%p)\n", pDev);
+	/* printk(KERN_INFO "mtk_sdio: mtk_sdio_resume dev(0x%p)\n", pDev); */
 
 	return 0;
 }
@@ -481,8 +637,8 @@ WLAN_STATUS glRegisterBus(probe_card pfProbe, remove_card pfRemove)
 	ASSERT(pfProbe);
 	ASSERT(pfRemove);
 
-	DBGLOG(INIT, INFO, "mtk_sdio: MediaTek SDIO WLAN driver\n");
-	DBGLOG(INIT, INFO, "mtk_sdio: Copyright MediaTek Inc.\n");
+	/* printk(KERN_INFO "mtk_sdio: MediaTek SDIO WLAN driver\n"); */
+	/* printk(KERN_INFO "mtk_sdio: Copyright MediaTek Inc.\n"); */
 
 	pfWlanProbe = pfProbe;
 	pfWlanRemove = pfRemove;
@@ -526,6 +682,7 @@ VOID glUnregisterBus(remove_card pfRemove)
 	sdio_unregister_driver(&mtk_sdio_driver);
 #endif
 
+	return;
 }				/* end of glUnregisterBus() */
 
 /*----------------------------------------------------------------------------*/
@@ -553,16 +710,17 @@ VOID glSetHifInfo(P_GLUE_INFO_T prGlueInfo, ULONG ulCookie)
 #else
 	prHif->func = (struct sdio_func *)ulCookie;
 
-	DBGLOG(INIT, LOUD, "prHif->func->dev = 0x%p\n", &prHif->func->dev);
-	DBGLOG(INIT, LOUD, "prHif->func->vendor = 0x%04X\n", prHif->func->vendor);
-	DBGLOG(INIT, LOUD, "prHif->func->device = 0x%04X\n", prHif->func->device);
-	DBGLOG(INIT, LOUD, "prHif->func->func = 0x%04X\n", prHif->func->num);
+	/* printk(KERN_INFO DRV_NAME"prHif->func->dev = 0x%p\n", &prHif->func->dev); */
+	/* printk(KERN_INFO DRV_NAME"prHif->func->vendor = 0x%04X\n", prHif->func->vendor); */
+	/* printk(KERN_INFO DRV_NAME"prHif->func->device = 0x%04X\n", prHif->func->device); */
+	/* printk(KERN_INFO DRV_NAME"prHif->func->func = 0x%04X\n", prHif->func->num); */
 
 	sdio_set_drvdata(prHif->func, prGlueInfo);
 
 	SET_NETDEV_DEV(prGlueInfo->prDevHandler, &prHif->func->dev);
 #endif
 
+	return;
 }				/* end of glSetHifInfo() */
 
 /*----------------------------------------------------------------------------*/
@@ -580,6 +738,7 @@ VOID glClearHifInfo(P_GLUE_INFO_T prGlueInfo)
 	/* ASSERT(prGlueInfo); */
 	/* prHif = &prGlueInfo->rHifInfo; */
 
+	return;
 }				/* end of glClearHifInfo() */
 
 /*----------------------------------------------------------------------------*/
@@ -607,15 +766,18 @@ BOOL glBusInit(PVOID pvData)
 	ret = sdio_set_block_size(func, 512);
 	sdio_release_host(func);
 
-	if (ret)
-		DBGLOG(INIT, ERROR, "sdio_set_block_size 512 failed!\n");
-	else
-		DBGLOG(INIT, INFO, "sdio_set_block_size 512 done!\n");
+	if (ret) {
+		/* printk(KERN_INFO
+			DRV_NAME"sdio_set_block_size 512 failed!\n"); */
+	} else {
+		/* printk(KERN_INFO
+			DRV_NAME"sdio_set_block_size 512 done!\n"); */
+	}
 
-	DBGLOG(INIT, LOUD, "param: func->cur_blksize(%d)\n", func->cur_blksize);
-	DBGLOG(INIT, LOUD, "param: func->max_blksize(%d)\n", func->max_blksize);
-	DBGLOG(INIT, LOUD, "param: func->card->host->max_blk_size(%d)\n", func->card->host->max_blk_size);
-	DBGLOG(INIT, LOUD, "param: func->card->host->max_blk_count(%d)\n", func->card->host->max_blk_count);
+	/* printk(KERN_INFO DRV_NAME"param: func->cur_blksize(%d)\n", func->cur_blksize); */
+	/* printk(KERN_INFO DRV_NAME"param: func->max_blksize(%d)\n", func->max_blksize); */
+	/* printk(KERN_INFO DRV_NAME"param: func->card->host->max_blk_size(%d)\n", func->card->host->max_blk_size); */
+	/* printk(KERN_INFO DRV_NAME"param: func->card->host->max_blk_count(%d)\n", func->card->host->max_blk_count); */
 #endif
 	return TRUE;
 }				/* end of glBusInit() */
@@ -632,6 +794,7 @@ BOOL glBusInit(PVOID pvData)
 VOID glBusRelease(PVOID pvData)
 {
 
+	return;
 }				/* end of glBusRelease() */
 
 /*----------------------------------------------------------------------------*/
@@ -694,11 +857,15 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 	P_GL_HIF_INFO_T prHifInfo = NULL;
 
 	ASSERT(pvData);
+	if (!pvData) {
+		/* printk(KERN_INFO DRV_NAME"%s null pvData\n", __FUNCTION__); */
+		return;
+	}
 	prNetDevice = (struct net_device *)pvData;
 	prGlueInfo = (P_GLUE_INFO_T) pvCookie;
 	ASSERT(prGlueInfo);
 	if (!prGlueInfo) {
-		DBGLOG(INTR, INFO, "%s no glue info\n", __func__);
+		/* printk(KERN_INFO DRV_NAME"%s no glue info\n", __FUNCTION__); */
 		return;
 	}
 
@@ -711,6 +878,7 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 	mtk_wcn_hif_sdio_enable_irq(prHifInfo->cltCtx, FALSE);
 #endif
 
+	return;
 }				/* end of glBusreeIrq() */
 
 BOOLEAN glIsReadClearReg(UINT_32 u4Address)
@@ -759,24 +927,19 @@ BOOL kalDevRegRead(IN P_GLUE_INFO_T prGlueInfo, IN UINT_32 u4Register, OUT PUINT
 #if MTK_WCN_HIF_SDIO
 		ret = mtk_wcn_hif_sdio_readl(prGlueInfo->rHifInfo.cltCtx, u4Register, (PUINT_32) pu4Value);
 #else
-		/*
-		 * checkpatch.pl maybe have bugs as it always reports
-		 * SUSPECT_CODE_INDENT WARNING
-		 */
 		if (!in_interrupt)
-		sdio_claim_host(prGlueInfo->rHifInfo.func);
+			sdio_claim_host(prGlueInfo->rHifInfo.func);
 
 		*pu4Value = sdio_readl(prGlueInfo->rHifInfo.func, u4Register, &ret);
 
 		if (!in_interrupt)
 			sdio_release_host(prGlueInfo->rHifInfo.func);
 #endif
+
 		if (ret || ucRetryCount) {
-			/*
-			 * DBGLOG(HAL, ERROR,
-			 * ("sdio_readl() addr: 0x%08x value: 0x%08x status: %x retry: %u\n",
-			 * u4Register, (unsigned int)*pu4Value, (unsigned int)ret, ucRetryCount));
-			 */
+			/* DBGLOG(HAL, ERROR,
+			   ("sdio_readl() addr: 0x%08x value: 0x%08x status: %x retry: %u\n",
+			   u4Register, (unsigned int)*pu4Value, (unsigned int)ret, ucRetryCount)); */
 
 			if (glIsReadClearReg(u4Register) && (ucRetryCount == 0)) {
 				/* Read Snapshot CR instead */
@@ -821,24 +984,19 @@ BOOL kalDevRegWrite(IN P_GLUE_INFO_T prGlueInfo, IN UINT_32 u4Register, IN UINT_
 #if MTK_WCN_HIF_SDIO
 		ret = mtk_wcn_hif_sdio_writel(prGlueInfo->rHifInfo.cltCtx, u4Register, u4Value);
 #else
-		/*
-		 * checkpatch.pl maybe have bugs as it always reports
-		 * SUSPECT_CODE_INDENT WARNING
-		 */
 		if (!in_interrupt)
-		sdio_claim_host(prGlueInfo->rHifInfo.func);
+			sdio_claim_host(prGlueInfo->rHifInfo.func);
 
 		sdio_writel(prGlueInfo->rHifInfo.func, u4Value, u4Register, &ret);
 
 		if (!in_interrupt)
 			sdio_release_host(prGlueInfo->rHifInfo.func);
 #endif
+
 		if (ret || ucRetryCount) {
-			/*
-			 * DBGLOG(HAL, ERROR,
-			 * ("sdio_writel() addr: 0x%x status: %x retry: %u\n", u4Register,
-			 * ret, ucRetryCount));
-			 */
+			/* DBGLOG(HAL, ERROR,
+			   ("sdio_writel() addr: 0x%x status: %x retry: %u\n", u4Register,
+			   ret, ucRetryCount)); */
 		}
 
 		ucRetryCount++;
@@ -885,7 +1043,7 @@ kalDevPortRead(IN P_GLUE_INFO_T prGlueInfo,
 #endif
 
 #if DBG
-	DBGLOG(INIT, LOUD, "++kalDevPortRead++ buf:0x%p, port:0x%x, length:%d\n", pucBuf, u2Port, u4Len);
+	/* printk(KERN_INFO DRV_NAME"++kalDevPortRead++ buf:0x%p, port:0x%x, length:%d\n", pucBuf, u2Port, u4Len); */
 #endif
 
 	ASSERT(prGlueInfo);
@@ -919,7 +1077,6 @@ kalDevPortRead(IN P_GLUE_INFO_T prGlueInfo,
 		/* ENE workaround */
 		{
 			int tmp;
-
 			sdio_writel(prSdioFunc, 0x0, SDIO_X86_WORKAROUND_WRITE_MCR, &tmp);
 		}
 #endif
@@ -986,7 +1143,7 @@ kalDevPortWrite(IN P_GLUE_INFO_T prGlueInfo,
 #endif
 
 #if DBG
-	DBGLOG(INIT, LOUD, "++kalDevPortWrite++ buf:0x%p, port:0x%x, length:%d\n", pucBuf, u2Port, u2Len);
+	/* printk(KERN_INFO DRV_NAME"++kalDevPortWrite++ buf:0x%p, port:0x%x, length:%d\n", pucBuf, u2Port, u2Len); */
 #endif
 
 	ASSERT(prGlueInfo);
@@ -1019,7 +1176,6 @@ kalDevPortWrite(IN P_GLUE_INFO_T prGlueInfo,
 		/* ENE workaround */
 		{
 			int tmp;
-
 			sdio_writel(prSdioFunc, 0x0, SDIO_X86_WORKAROUND_WRITE_MCR, &tmp);
 		}
 #endif
@@ -1097,4 +1253,5 @@ BOOL kalDevWriteWithSdioCmd52(IN P_GLUE_INFO_T prGlueInfo, IN UINT_32 u4Addr, IN
 
 VOID glSetPowerState(IN P_GLUE_INFO_T prGlueInfo, IN UINT_32 ePowerMode)
 {
+	return;
 }

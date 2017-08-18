@@ -1,29 +1,14 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id: @(#) p2p_nic.c@@
 */
 
-/*
- * ! \file   p2p_nic.c
- *  \brief  Wi-Fi Direct Functions that provide operation in NIC's (Network Interface Card) point of view.
- *
- *   This file includes functions which unite multiple hal(Hardware) operations
- *   and also take the responsibility of Software Resource Management in order
- *   to keep the synchronization with Hardware Manipulation.
- */
+/*! \file   p2p_nic.c
+    \brief  Wi-Fi Direct Functions that provide operation in NIC's (Network Interface Card) point of view.
+
+    This file includes functions which unite multiple hal(Hardware) operations
+    and also take the responsibility of Software Resource Management in order
+    to keep the synchronization with Hardware Manipulation.
+*/
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -127,10 +112,10 @@ nicRxAddP2pDevice(IN P_ADAPTER_T prAdapter,
 				pucIeBuf = prP2pInfo->pucCurrIePtr;
 
 				if (((ULONG) prP2pInfo->pucCurrIePtr + (ULONG) u2RxIELength) >
-				    (ULONG)&prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN]) {
+				    (ULONG) & prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN]) {
 					/* Common Buffer is no enough. */
 					u2RxIELength =
-					    (UINT_16) ((ULONG)&prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN] -
+					    (UINT_16) ((ULONG) & prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN] -
 						       (ULONG) prP2pInfo->pucCurrIePtr);
 				}
 
@@ -143,7 +128,7 @@ nicRxAddP2pDevice(IN P_ADAPTER_T prAdapter,
 			prTargetResult->pucIeBuf = pucIeBuf;
 
 			if (pucRxIEBuf) {
-				/* If new received IE is available.
+				/* If new received IE is availabe.
 				 * Replace the old one & update new IE length.
 				 */
 				kalMemCopy(pucIeBuf, pucRxIEBuf, u2RxIELength);
@@ -168,14 +153,18 @@ nicRxAddP2pDevice(IN P_ADAPTER_T prAdapter,
 			/* then buffer */
 			kalMemCopy(prTargetResult, (PVOID) prP2pResult, sizeof(EVENT_P2P_DEV_DISCOVER_RESULT_T));
 
+			/* printk("DVC FND %d " MACSTR", " MACSTR "\n",
+			 * prP2pInfo->u4DeviceNum, MAC2STR(prP2pResult->aucDeviceAddr),
+			 * MAC2STR(prTargetResult->aucDeviceAddr)); */
+
 			if (u2RxIELength) {
 				prTargetResult->pucIeBuf = prP2pInfo->pucCurrIePtr;
 
 				if (((ULONG) prP2pInfo->pucCurrIePtr + (ULONG) u2RxIELength) >
-				    (ULONG)&prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN]) {
+				    (ULONG) & prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN]) {
 					/* Common Buffer is no enough. */
 					u2IELength =
-					    (UINT_16) ((ULONG)&prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN] -
+					    (UINT_16) ((ULONG) & prP2pInfo->aucCommIePool[CFG_MAX_COMMON_IE_BUF_LEN] -
 						       (ULONG) prP2pInfo->pucCurrIePtr);
 				} else {
 					u2IELength = u2RxIELength;

@@ -15,7 +15,7 @@
 -i".\os\windows\ce\hif\sdio\include"
 
 //===========================================================================
-// NOTE(Kevin): we need to define following compiling flags to avoid
+// NOTE(Kevin): we need to define following compiling flags to avoid 
 // Warning 553: Undefined preprocessor variable.
 //
 -dDBG=1

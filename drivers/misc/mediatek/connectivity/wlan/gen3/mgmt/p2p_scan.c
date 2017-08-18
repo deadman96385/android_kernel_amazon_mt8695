@@ -1,31 +1,16 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software: you can redistribute it and/or modify it under the terms of the
-* GNU General Public License version 2 as published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** Id: @(#) p2p_scan.c@@
 */
 
-/*
- * ! \file   "p2p_scan.c"
- *   \brief  This file defines the p2p scan profile and the processing function of
- *   scan result for SCAN Module.
- *
- *   The SCAN Profile selection is part of SCAN MODULE and responsible for defining
- *   SCAN Parameters - e.g. MIN_CHANNEL_TIME, number of scan channels.
- *   In this file we also define the process of SCAN Result including adding, searching
- *   and removing SCAN record from the list.
- */
+/*! \file   "p2p_scan.c"
+    \brief  This file defines the p2p scan profile and the processing function of
+	    scan result for SCAN Module.
+
+    The SCAN Profile selection is part of SCAN MODULE and responsible for defining
+    SCAN Parameters - e.g. MIN_CHANNEL_TIME, number of scan channels.
+    In this file we also define the process of SCAN Result including adding, searching
+    and removing SCAN record from the list.
+*/
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -81,7 +66,6 @@ scanP2pProcessBeaconAndProbeResp(IN P_ADAPTER_T prAdapter,
 				 IN P_BSS_DESC_T prBssDesc, IN P_WLAN_BEACON_FRAME_T prWlanBeaconFrame)
 {
 	BOOLEAN fgIsSkipThisBeacon = FALSE;
-
 	if (prBssDesc->fgIsP2PPresent) {
 		if ((prBssDesc->fgIsConnected) &&	/* P2P GC connected. */
 		    ((prWlanBeaconFrame->u2FrameCtrl & MASK_FRAME_TYPE) == MAC_FRAME_BEACON)	/* TX Beacon */
@@ -134,12 +118,7 @@ scanP2pProcessBeaconAndProbeResp(IN P_ADAPTER_T prAdapter,
 			rChannelInfo.eBand = prBssDesc->eBand;
 			prBssDesc->fgIsP2PReport = TRUE;
 
-			DBGLOG(P2P, INFO, "indicate [%pM] [%s] [%s] [ch %d]\n",
-				   prWlanBeaconFrame->aucBSSID,
-				   ieee80211_is_beacon(prWlanBeaconFrame->u2FrameCtrl) ?
-					"Beacon" : "Probe Response",
-				   prBssDesc->aucSSID,
-				   prBssDesc->ucChannelNum);
+			DBGLOG(P2P, STATE, "indicate %s [%d]\n", prBssDesc->aucSSID, prBssDesc->ucChannelNum);
 
 			kalP2PIndicateBssInfo(prAdapter->prGlueInfo,
 					      (PUINT_8) prSwRfb->pvHeader,
@@ -162,8 +141,9 @@ VOID scnEventReturnChannel(IN P_ADAPTER_T prAdapter, IN UINT_8 ucScnSeqNum)
 	wlanSendSetQueryCmd(prAdapter,
 			    CMD_ID_SCAN_CANCEL,
 			    TRUE,
-			    FALSE, FALSE, NULL, NULL, sizeof(CMD_SCAN_CANCEL), (PUINT_8)&rCmdScanCancel, NULL, 0);
+			    FALSE, FALSE, NULL, NULL, sizeof(CMD_SCAN_CANCEL), (PUINT_8) & rCmdScanCancel, NULL, 0);
 
+	return;
 }				/* scnEventReturnChannel */
 
 VOID scanRemoveAllP2pBssDesc(IN P_ADAPTER_T prAdapter)
@@ -185,6 +165,7 @@ VOID scanRemoveAllP2pBssDesc(IN P_ADAPTER_T prAdapter)
 VOID scanRemoveP2pBssDesc(IN P_ADAPTER_T prAdapter, IN P_BSS_DESC_T prBssDesc)
 {
 
+	return;
 }				/* scanRemoveP2pBssDesc */
 
 P_BSS_DESC_T scanP2pSearchDesc(IN P_ADAPTER_T prAdapter, IN P_P2P_CONNECTION_REQ_INFO_T prConnReqInfo)

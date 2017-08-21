@@ -144,7 +144,7 @@ SPM_PCM_CONFIG pcm_config_suspend = {
 	.spm_turn_off_26m = true,
 	.pcm_firmware_len = PCM_SUSPEND_LEN,
 	.pcm_pwrlevel = PWR_LVNA,	/* no necessary to set pwr level when suspend */
-	.spm_request_uart_sleep = true,
+	.spm_request_uart_sleep = false,
 	.pcm_vsr = {PCM_SUSPEND_VEC0, PCM_SUSPEND_VEC1, PCM_SUSPEND_VEC2, PCM_SUSPEND_VEC3,
 		    PCM_SUSPEND_VEC4, 0, 0, 0},
 

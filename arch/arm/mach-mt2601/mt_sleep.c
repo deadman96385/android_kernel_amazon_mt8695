@@ -40,19 +40,14 @@
 
 #define slp_write_sync()            mb()
 
-#if SLP_SUSPEND_LOG_EN
-#define slp_xverb(fmt, args...)     \
-    xlog_printk(ANDROID_LOG_INFO, "Power/Sleep", fmt, ##args)
-#else
-#define slp_xverb(fmt, args...)     \
-    xlog_printk(ANDROID_LOG_VERBOSE, "Power/Sleep", fmt, ##args)
-#endif
+#define slp_info(fmt, args...)     \
+    pr_info("Power/Sleep" fmt, ##args)
 
-#define slp_xinfo(fmt, args...)     \
-    xlog_printk(ANDROID_LOG_INFO, "Power/Sleep", fmt, ##args)
+#define slp_debug(fmt, args...)     \
+    pr_debug("Power/Sleep" fmt, ##args)
 
-#define slp_xerror(fmt, args...)    \
-    xlog_printk(ANDROID_LOG_ERROR, "Power/Sleep", fmt, ##args)
+#define slp_error(fmt, args...)    \
+    pr_err("Power/Sleep" fmt, ##args)
 
 /* static DEFINE_SPINLOCK(slp_lock); */
 
@@ -93,10 +88,10 @@ static int slp_suspend_ops_valid(suspend_state_t state)
 static int slp_suspend_ops_begin(suspend_state_t state)
 {
 	/* legacy log */
-	slp_xinfo("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo("_Chip_pm_begin (%u)(%u) @@@@@@@@@@@@@@@\n", pcm_config_suspend.cpu_pdn,
+	slp_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("_Chip_pm_begin (%u)(%u) @@@@@@@@@@@@@@@\n", pcm_config_suspend.cpu_pdn,
 		  pcm_config_suspend.infra_pdn);
-	slp_xinfo(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
 	slp_wake_reason = WR_NONE;
 
@@ -107,9 +102,9 @@ static int slp_suspend_ops_prepare(void)
 {
 	/* legacy log */
 	aee_sram_printk("_Chip_pm_prepare\n");
-	slp_xinfo("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo("_Chip_pm_prepare @@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("_Chip_pm_prepare @@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
 	return 0;
 }
@@ -133,16 +128,16 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 	if (PWR_ON == subsys_is_on(SYS_DIS)
 	    || PWR_ON == subsys_is_on(SYS_MFG)
 	    ) {
-		slp_xerror
+		slp_error
 		    ("WARNING: MMSYS_CG_CON0 = 0x%08X, MMSYS_CG_CON1 = 0x%08X, MFG_CG_CON = 0x%08X\n",
 		     spm_read(MMSYS_CG_CON0), spm_read(MMSYS_CG_CON1), spm_read(MFG_CG_CON));
 	}
 
 	/* legacy log */
 	aee_sram_printk("_Chip_pm_enter\n");
-	slp_xinfo("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo("_Chip_pm_enter @@@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("_Chip_pm_enter @@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
 	if (slp_dump_gpio)
 		gpio_dump_regs();
@@ -151,7 +146,7 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 	spm_dump_pll_regs();
 
 	if (pcm_config_suspend.cpu_pdn && !spm_cpusys_can_power_down()) {
-		slp_xerror("!!! CANNOT POWER DOWN CPU0/CPUSYS DUE TO CPUx ON !!!\n");
+		slp_error("!!! CANNOT POWER DOWN CPU0/CPUSYS DUE TO CPUx ON !!!\n");
 	}
 
 	/*Output emi clock to check if PLL is off when suspend(output to LP09) */
@@ -165,7 +160,7 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 			timer_val_ms = 15;
 
 #ifdef LDVT_SPM_SUSPEND_GPT_TEST
-		slp_xinfo("slp_test_cnt:%d,GPT timer:%d", slp_test_cnt, timer_val_ms);
+		slp_debug("slp_test_cnt:%d,GPT timer:%d", slp_test_cnt, timer_val_ms);
 		spm_wakesrc_set(SPM_PCM_KERNEL_SUSPEND, WAKE_ID_GPT);
 		spm_timer_disable(SPM_PCM_KERNEL_SUSPEND);
 		free_gpt(GPT4);	/* temp solution */
@@ -173,7 +168,7 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 		    request_gpt(GPT4, GPT_ONE_SHOT, GPT_CLK_SRC_RTC, GPT_CLK_DIV_1,
 				(timer_val_ms * 32768) / 1024, NULL, GPT_NOAUTOEN);
 		if (gpt_err) {
-			slp_xinfo("GPT 4 Request Error!!");
+			slp_error("GPT 4 Request Error!!");
 			return;
 		}
 		start_gpt(GPT4);
@@ -187,7 +182,7 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 		pcm_config_suspend.timer_val_ms = timer_val_ms;
 #endif
 
-		slp_xinfo("slp_test_cnt:%d,PCM timer:%d", slp_test_cnt,
+		slp_debug("slp_test_cnt:%d,PCM timer:%d", slp_test_cnt,
 			  pcm_config_suspend.timer_val_ms);
 
 		slp_wake_reason = spm_go_to_sleep();
@@ -198,15 +193,15 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 		result = spm_get_wake_up_result(SPM_PCM_KERNEL_SUSPEND);
 
 		if (slp_wake_reason != WR_WAKE_SRC && slp_wake_reason != WR_PCM_TIMER) {
-			slp_xinfo("Wakeup Abnormal");
-			slp_xinfo("%s", result);
+			slp_info("Wakeup Abnormal");
+			slp_info("%s", result);
 			slp_abort_cnt++;
 		} else {
-			slp_xinfo("Wakeup Succefully");
-			slp_xinfo("%s", result);
+			slp_info("Wakeup Succefully");
+			slp_info("%s", result);
 			slp_normal_cnt++;
 		}
-		slp_xinfo("slp_abort_cnt:%d,PCM slp_normal_cnt:%d", slp_abort_cnt, slp_normal_cnt);
+		slp_debug("slp_abort_cnt:%d,PCM slp_normal_cnt:%d", slp_abort_cnt, slp_normal_cnt);
 	}
 #elif defined(LDVT_SPM_SUSPEND_WDT_TEST)
 	pcm_config_suspend.timer_val_ms = 10240;
@@ -218,8 +213,8 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 	if (pcm_config_suspend.timer_val_ms >= 100)
 		pcm_config_suspend.timer_val_ms = 1;
 
-	slp_xinfo("slp_test_cnt:%d,PCM timer:%d", slp_test_cnt, pcm_config_suspend.timer_val_ms);
-	slp_xinfo("slp_abort_cnt:%d,PCM slp_normal_cnt:%d", slp_abort_cnt, slp_normal_cnt);
+	slp_debug("slp_test_cnt:%d,PCM timer:%d", slp_test_cnt, pcm_config_suspend.timer_val_ms);
+	slp_debug("slp_abort_cnt:%d,PCM slp_normal_cnt:%d", slp_abort_cnt, slp_normal_cnt);
 #endif
 
 	spm_wakesrc_set(SPM_PCM_KERNEL_SUSPEND, WAKE_ID_GPT);
@@ -235,7 +230,7 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 				(pcm_config_suspend.timer_val_ms * 32768) / 1024, NULL,
 				GPT_NOAUTOEN);
 		if (gpt_err) {
-			slp_xinfo("GPT 4 Request Error!!");
+			slp_error("GPT 4 Request Error!!");
 			return 0;
 		}
 		start_gpt(GPT4);
@@ -244,7 +239,7 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 	spm_wdt_config(true);
 	while (1) {
 		mdelay(4000);
-		slp_xinfo("Kick Dog!!");
+		slp_debug("Kick Dog!!");
 		spm_wdt_restart();
 	}
 #endif
@@ -252,16 +247,16 @@ static int slp_suspend_ops_enter(suspend_state_t state)
 	slp_wake_reason = spm_go_to_sleep();
 	slp_wakeup_status = spm_get_last_wakeup_status();
 	result = spm_get_wake_up_result(SPM_PCM_KERNEL_SUSPEND);
-	slp_xinfo("Wakeup Succefully");
-	slp_xinfo("%s", result);
+	slp_info("Wakeup Succefully");
+	slp_info("%s", result);
 	if (slp_wake_reason != WR_WAKE_SRC && slp_wake_reason != WR_PCM_TIMER) {
 		slp_abort_cnt++;
 	} else {
 		slp_normal_cnt++;
 	}
 
-	slp_xinfo("slp_abort_cnt:%d,slp_normal_cnt:%d", slp_abort_cnt, slp_normal_cnt);
-	slp_xinfo("slp_wake_reason: %d", slp_wake_reason);
+	slp_debug("slp_abort_cnt:%d,slp_normal_cnt:%d", slp_abort_cnt, slp_normal_cnt);
+	slp_debug("slp_wake_reason: %d", slp_wake_reason);
 	return 0;
 }
 
@@ -269,20 +264,20 @@ static void slp_suspend_ops_finish(void)
 {
 	/* legacy log */
 	aee_sram_printk("_Chip_pm_finish\n");
-	slp_xinfo("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo("_Chip_pm_finish @@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("_Chip_pm_finish @@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
 	/* debug help */
-	/* slp_xinfo("Battery_Voltage = %lu\n", BAT_Get_Battery_Voltage(0)); */
+	/* slp_debug("Battery_Voltage = %lu\n", BAT_Get_Battery_Voltage(0)); */
 }
 
 static void slp_suspend_ops_end(void)
 {
 	/* legacy log */
-	slp_xinfo("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo("_Chip_pm_end @@@@@@@@@@@@@@@@@@@@@@@@\n");
-	slp_xinfo(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug("_Chip_pm_end @@@@@@@@@@@@@@@@@@@@@@@@\n");
+	slp_debug(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 }
 
 static struct platform_suspend_ops slp_suspend_ops = {
@@ -309,7 +304,7 @@ void slp_module_init(void)
 {
 	/* spm_output_sleep_option(); */
 
-	slp_xinfo("SLEEP_DPIDLE_EN:%d, REPLACE_DEF_WAKESRC:%d, SUSPEND_LOG_EN:%d\n",
+	slp_debug("SLEEP_DPIDLE_EN:%d, REPLACE_DEF_WAKESRC:%d, SUSPEND_LOG_EN:%d\n",
 		  SLP_SLEEP_DPIDLE_EN, SLP_REPLACE_DEF_WAKESRC, SLP_SUSPEND_LOG_EN);
 
 	suspend_set_ops(&slp_suspend_ops);

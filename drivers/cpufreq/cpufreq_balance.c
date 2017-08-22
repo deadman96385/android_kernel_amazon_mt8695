@@ -120,6 +120,8 @@ static struct task_struct *freq_up_task;
 
 #endif
 
+static void _reset_counters(void);
+
 static int cpu_loading = 0;
 static int cpus_sum_load = 0;
 /* Sampling types */
@@ -1333,6 +1335,7 @@ static int bl_idle_notifier(struct notifier_block *nb, unsigned long val, void *
 
 	switch (val) {
 	case IDLE_START:
+		_reset_counters();
 		bl_enable_timer(0);
 		break;
 	case IDLE_END:
@@ -1346,6 +1349,21 @@ static int bl_idle_notifier(struct notifier_block *nb, unsigned long val, void *
 struct notifier_block bl_idle_nb = {
 	.notifier_call = bl_idle_notifier,
 };
+
+static void _reset_counters(void)
+{
+	cpu_loading = 0;
+	cpus_sum_load = 0;
+
+	g_cpu_up_count = 0;
+	g_cpu_up_sum_load = 0;
+
+	g_cpu_down_count = 0;
+	g_cpu_down_sum_load = 0;
+
+	g_max_cpu_persist_count = 0;
+	g_thermal_count = 0;
+}
 
 static int bl_cpufreq_governor_dbs(struct cpufreq_policy *policy,
 				   unsigned int event)

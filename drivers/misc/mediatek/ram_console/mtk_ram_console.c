@@ -35,6 +35,7 @@
 #include "ram_console.h"
 
 #define RAM_CONSOLE_HEADER_STR_LEN 1024
+#define LEGACY_PATTERN 0xDEADBEEF
 
 #define THERMAL_RESERVED_TZS (10)
 static int thermal_num = THERMAL_RESERVED_TZS;
@@ -211,7 +212,8 @@ struct legacy_padding_preloader {
 	uint8_t hw_status;
 	uint8_t fiq_step;
 	uint8_t reboot_mode;
-	uint8_t __pad2;
+	uint8_t __pad;
+	uint32_t pattern;
 };
 
 struct ram_console_buffer {
@@ -461,9 +463,9 @@ static int ram_console_lastk_show(struct ram_console_buffer *buffer, struct seq_
 		seq_write(m, buffer, ram_console_buffer->sz_buffer);
 		return 0;
 	}
-	if (buffer->off_pl == 0 || buffer->off_pl + ALIGN(buffer->sz_pl, 64) != buffer->off_lpl) {
+	if (buffer->lgc_pl.pattern == LEGACY_PATTERN) {
 		/* workaround for compatibility to old preloader & lk (OTA) */
-		wdt_status = *((unsigned char *)buffer + 12);
+		wdt_status = buffer->lgc_pl.hw_status;
 	} else
 		wdt_status = LAST_RRPL_BUF_VAL(buffer, wdt_status);
 
@@ -537,7 +539,10 @@ static int __init ram_console_init(struct ram_console_buffer *buffer, size_t buf
 		old_wdt_status = LAST_RRPL_BUF_VAL(buffer, wdt_status);
 	}
 	ram_console_save_old(buffer, buffer_size);
-	if (buffer->sz_lk != 0 && buffer->off_lk + ALIGN(buffer->sz_lk, 64) == buffer->off_llk)
+	if (buffer->off_pl == 0 || buffer->off_pl + ALIGN(buffer->sz_pl, 64) != buffer->off_lpl) {
+		buffer->lgc_pl.pattern = LEGACY_PATTERN;
+		buffer->off_linux = 128;
+	} else if (buffer->sz_lk != 0 && buffer->off_lk + ALIGN(buffer->sz_lk, 64) == buffer->off_llk)
 		buffer->off_linux = buffer->off_llk + ALIGN(buffer->sz_lk, 64);
 	else
 		buffer->off_linux = 512;	/* OTA:leave enough space for pl/lk */
@@ -547,6 +552,10 @@ static int __init ram_console_init(struct ram_console_buffer *buffer, size_t buf
 	buffer->log_start = 0;
 	buffer->log_size = 0;
 	memset_io((void *)buffer + buffer->off_linux, 0, buffer_size - buffer->off_linux);
+	if (buffer->lgc_pl.pattern == LEGACY_PATTERN) {
+		/* Clear it to prevent legacy PL using wrong fiq_step */
+		buffer->lgc_pl.fiq_step = 0;
+	}
 #ifndef CONFIG_PSTORE
 	register_console(&ram_console);
 #endif
@@ -747,6 +756,13 @@ RESERVEDMEM_OF_DECLARE(reserve_memory_ram_console, "mediatek,ram_console",
 #define LAST_RR_MEMCPY_WITH_ID(rr_item, id, str, len)			\
 	(strlcpy(RR_LINUX->rr_item[id], str, len))
 
+#define LEGACY_LAST_RR_SET(rr_item, value) \
+	do { \
+		if (ram_console_buffer->lgc_pl.pattern == LEGACY_PATTERN) { \
+			ram_console_buffer->lgc_pl.rr_item = value; \
+		} \
+	} while(0)
+
 static void ram_console_init_val(void)
 {
 	LAST_RR_SET(pmic_ext_buck, 0xff);
@@ -757,6 +773,7 @@ void aee_rr_rec_reboot_mode(u8 mode)
 	if (!ram_console_init_done || !ram_console_buffer)
 		return;
 	LAST_RR_SET(reboot_mode, mode);
+	LEGACY_LAST_RR_SET(reboot_mode, mode);
 }
 
 void aee_rr_rec_kdump_params(void *params)
@@ -771,6 +788,7 @@ void aee_rr_rec_fiq_step(u8 step)
 	if (!ram_console_init_done || !ram_console_buffer)
 		return;
 	LAST_RR_SET(fiq_step, step);
+	LEGACY_LAST_RR_SET(fiq_step, step);
 }
 
 int aee_rr_curr_fiq_step(void)
@@ -2154,9 +2172,9 @@ void aee_rr_show_wdt_status(struct seq_file *m)
 	unsigned int wdt_status;
 	struct ram_console_buffer *buffer = ram_console_old;
 
-	if (buffer->off_pl == 0 || buffer->off_pl + ALIGN(buffer->sz_pl, 64) != buffer->off_lpl) {
+	if (buffer->lgc_pl.pattern == LEGACY_PATTERN) {
 		/* workaround for compatibility to old preloader & lk (OTA) */
-		wdt_status = *((unsigned char *)buffer + 12);
+		wdt_status = buffer->lgc_pl.hw_status;
 	} else
 		wdt_status = LAST_RRPL_VAL(wdt_status);
 	seq_printf(m, "WDT status: %d", wdt_status);

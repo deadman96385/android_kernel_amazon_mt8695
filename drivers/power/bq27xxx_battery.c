@@ -803,7 +803,7 @@ static void dump_bq27xxx_regs(struct bq27xxx_device_info *di)
 	dev_warn(di->dev, "FullAvailableCapacity:%u\n", fac);
 	dev_warn(di->dev, "RemainingCapacity:%u\n", rmc);
 	dev_warn(di->dev, "FullChargeCapacity:%u\n", fcc);
-	dev_warn(di->dev, "AverageCurrent:%u\n", (int)((s16)ai));
+	dev_warn(di->dev, "AverageCurrent:%d\n", (int)((s16)ai));
 	dev_warn(di->dev, "StateOfCharge:%u\n", soc);
 	dev_warn(di->dev, "RemainingCapacityUnfiltered:%u\n", rcu);
 	dev_warn(di->dev, "FullChargeCapacityUnfiltered:%u\n", fccu);

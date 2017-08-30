@@ -164,80 +164,42 @@ static void mt_usb_try_idle(struct musb *musb, unsigned long timeout)
 
 static void mt_usb_enable(struct musb *musb)
 {
-    unsigned long   flags;
+	unsigned long flags;
 
-    DBG(0, "%d, %d\n", mtk_usb_power, musb->power);
+	DBG(0, "%d, %d\n", mtk_usb_power, musb->power);
 
-    if (musb->power == true)
-	return;
+	if (musb->power == true) {
+		return;
+	}
 
-    flags = musb_readl(mtk_musb->mregs, USB_L1INTM);
+	flags = musb_readl(mtk_musb->mregs, USB_L1INTM);
 
-    /* mask ID pin, so "open clock" and "set flag" won't be interrupted. ISR may call clock_disable. */
-    musb_writel(mtk_musb->mregs, USB_L1INTM, (~IDDIG_INT_STATUS)&flags);
-
-    /*if (platform_init_first) {
-	DBG(0,"usb init first\n\r");
-	musb->is_host = true;
-    }*/
-
-    if (down_interruptible(&power_clock_lock))
-        xlog_printk(ANDROID_LOG_ERROR, "USB20", "%s: busy, Couldn't get power_clock_lock\n" \
-			, __func__);
-
-    if (!mtk_usb_power) {
-
-#ifndef FPGA_PLATFORM
-	/* enable_pll(UNIVPLL, "USB_PLL"); */
-        DBG(0, "enable UPLL before connect\n");
-#endif
 	mdelay(10);
 
 	usb_phy_recover();
 
 	mtk_usb_power = true;
+	musb->power = true;
 
-    }
+	if (in_interrupt()) {
+		DBG(0, "in interrupt !!!!!!!!!!!!!!!\n");
+	}
 
-    musb->power = true;
-
-    up(&power_clock_lock);
-
-    musb_writel(mtk_musb->mregs, USB_L1INTM, flags);
+	musb_writel(mtk_musb->mregs, USB_L1INTM, flags);
 }
 
 static void mt_usb_disable(struct musb *musb)
 {
-    pr_debug("%s, %d, %d\n", __func__, mtk_usb_power, musb->power);
+	pr_debug("%s, %d, %d\n", __func__, mtk_usb_power, musb->power);
 
-    if (musb->power == false)
-	return;
+	if (musb->power == false) {
+		return;
+	}
 
-    /*if (platform_init_first) {
-	DBG(0,"usb init first\n\r");
-	musb->is_host = false;
-	platform_init_first = false;
-    }*/
-
-    if (down_interruptible(&power_clock_lock))
-        xlog_printk(ANDROID_LOG_ERROR, "USB20", "%s: busy, Couldn't get power_clock_lock\n" \
-			, __func__);
-
-    if (mtk_usb_power) {
 	usb_phy_savecurrent();
 
 	mtk_usb_power = false;
-
-#ifndef FPGA_PLATFORM
-	/* disable_pll(UNIVPLL,"USB_PLL"); */
-	DBG(0, "disable UPLL before disconnect\n");
-#endif
-
-    }
-
-    musb->power = false;
-
-    up(&power_clock_lock);
+	musb->power = false;
 }
 
 /* ================================ */

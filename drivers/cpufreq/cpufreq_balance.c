@@ -873,9 +873,9 @@ static void hp_work_handler(struct work_struct *work)
 			{
 				if (onlines_cpu_n < num_possible_cpus())
 				{
-					printk("hp_work_handler: cpu_up(%d) kick off\n", onlines_cpu_n);
+					pr_debug("hp_work_handler: cpu_up(%d) kick off\n", onlines_cpu_n);
 					cpu_up(onlines_cpu_n);
-					printk("hp_work_handler: cpu_up(%d) completion\n", onlines_cpu_n);
+					pr_debug("hp_work_handler: cpu_up(%d) completion\n", onlines_cpu_n);
 
 					dbs_ignore = 0; // force trigger frequency scaling
 				}
@@ -884,9 +884,9 @@ static void hp_work_handler(struct work_struct *work)
 			{
 				if (onlines_cpu_n > 1)
 				{
-					printk("hp_work_handler: cpu_down(%d) kick off\n", (onlines_cpu_n - 1));
+					pr_debug("hp_work_handler: cpu_down(%d) kick off\n", (onlines_cpu_n - 1));
 					cpu_down((onlines_cpu_n - 1));
-					printk("hp_work_handler: cpu_down(%d) completion\n", (onlines_cpu_n - 1));
+					pr_debug("hp_work_handler: cpu_down(%d) completion\n", (onlines_cpu_n - 1));
 
 					dbs_ignore = 0; // force trigger frequency scaling
 				}
@@ -997,9 +997,9 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			max_load_freq = load_freq;
 
 		#ifdef DEBUG_LOG
-		printk("dbs_check_cpu: cpu = %d\n", j);
-		printk("dbs_check_cpu: wall_time = %d, idle_time = %d, load = %d\n", wall_time, idle_time, load);
-		printk("dbs_check_cpu: freq_avg = %d, max_load_freq = %d, cpus_sum_load = %d\n", freq_avg, max_load_freq, cpus_sum_load);
+		pr_debug("dbs_check_cpu: cpu = %d\n", j);
+		pr_debug("dbs_check_cpu: wall_time = %d, idle_time = %d, load = %d\n", wall_time, idle_time, load);
+		pr_debug("dbs_check_cpu: freq_avg = %d, max_load_freq = %d, cpus_sum_load = %d\n", freq_avg, max_load_freq, cpus_sum_load);
 		#endif
 	}
 
@@ -1019,18 +1019,18 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		if ((max_load_freq > dbs_tuners_ins.od_threshold * policy->cur) && (num_online_cpus() == num_possible_cpus())){
 			g_max_cpu_persist_count++;
 #ifdef DEBUG_LOG
-			printk("dvfs_od: g_max_cpu_persist_count: %d\n", g_max_cpu_persist_count);
+			pr_debug("dvfs_od: g_max_cpu_persist_count: %d\n", g_max_cpu_persist_count);
 #endif
 			if(g_max_cpu_persist_count == DEF_CPU_PERSIST_COUNT){
 				//only ramp up to OD OPP here
 #ifdef DEBUG_LOG
-				printk("dvfs_od: cpu loading = %d\n", max_load_freq/policy->cur);
+				pr_debug("dvfs_od: cpu loading = %d\n", max_load_freq/policy->cur);
 #endif
 				if (policy->cur < policy->max)
 					this_dbs_info->rate_mult = dbs_tuners_ins.sampling_down_factor;
 				dbs_freq_increase(policy, policy->max);
 #ifdef DEBUG_LOG
-				printk("reset g_max_cpu_persist_count, count = 10\n");
+				pr_debug("reset g_max_cpu_persist_count, count = 10\n");
 #endif
 				g_max_cpu_persist_count = 0;
 				goto hp_check;
@@ -1047,7 +1047,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			if(g_max_cpu_persist_count != 0){
 				g_max_cpu_persist_count = 0;
 #ifdef DEBUG_LOG
-				printk("reset g_max_cpu_persist_count, and fallback to normal max\n");
+				pr_debug("reset g_max_cpu_persist_count, and fallback to normal max\n");
 #endif
 			}
 			goto hp_check;
@@ -1081,7 +1081,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 	if(g_max_cpu_persist_count != 0){
 		g_max_cpu_persist_count = 0;
 #ifdef DEBUG_LOG
-		printk("reset g_max_cpu_persist_count, decrease freq accrording to loading\n");
+		pr_debug("reset g_max_cpu_persist_count, decrease freq accrording to loading\n");
 #endif
 	}
 
@@ -1108,7 +1108,7 @@ hp_check:
 	/* Check CPU loading to power up slave CPU */
 	if (num_online_cpus() < dbs_tuners_ins.cpu_num_base && num_online_cpus() < dbs_tuners_ins.cpu_num_limit) {
 		raise_freq = true;
-		printk("dbs_check_cpu: turn on CPU by perf service\n");
+		pr_debug("dbs_check_cpu: turn on CPU by perf service\n");
 		g_next_hp_action = 1;
 		schedule_delayed_work_on(0, &hp_work, 0);
 	} else if (num_online_cpus() < num_possible_cpus() && num_online_cpus() < dbs_tuners_ins.cpu_num_limit) {
@@ -1119,10 +1119,10 @@ hp_check:
 			if (g_cpu_up_sum_load >
 				(dbs_tuners_ins.cpu_up_threshold * num_online_cpus())) {
 				#ifdef DEBUG_LOG
-				printk("dbs_check_cpu: g_cpu_up_sum_load = %d\n", g_cpu_up_sum_load);
+				pr_debug("dbs_check_cpu: g_cpu_up_sum_load = %d\n", g_cpu_up_sum_load);
 				#endif
 				raise_freq = true;
-				printk("dbs_check_cpu: turn on CPU\n");
+				pr_debug("dbs_check_cpu: turn on CPU\n");
 				g_next_hp_action = 1;
 				schedule_delayed_work_on(0, &hp_work, 0);
 			}
@@ -1130,8 +1130,8 @@ hp_check:
 			g_cpu_up_sum_load = 0;
 		}
 		#ifdef DEBUG_LOG
-		printk("dbs_check_cpu: g_cpu_up_count = %d, g_cpu_up_sum_load = %d\n", g_cpu_up_count, g_cpu_up_sum_load);
-		printk("dbs_check_cpu: cpu_up_threshold = %d\n", (dbs_tuners_ins.cpu_up_threshold * num_online_cpus()));
+		pr_debug("dbs_check_cpu: g_cpu_up_count = %d, g_cpu_up_sum_load = %d\n", g_cpu_up_count, g_cpu_up_sum_load);
+		pr_debug("dbs_check_cpu: cpu_up_threshold = %d\n", (dbs_tuners_ins.cpu_up_threshold * num_online_cpus()));
 		#endif
 	}
 
@@ -1145,10 +1145,10 @@ hp_check:
 				((dbs_tuners_ins.cpu_up_threshold - dbs_tuners_ins.cpu_down_differential) * (num_online_cpus() - 1))) {
 				if (num_online_cpus() > dbs_tuners_ins.cpu_num_base) {
 				#ifdef DEBUG_LOG
-				printk("dbs_check_cpu: g_cpu_down_sum_load = %d\n", g_cpu_down_sum_load);
+				pr_debug("dbs_check_cpu: g_cpu_down_sum_load = %d\n", g_cpu_down_sum_load);
 				#endif
 				raise_freq = true;
-				printk("dbs_check_cpu: turn off CPU\n");
+				pr_debug("dbs_check_cpu: turn off CPU\n");
 				g_next_hp_action = 0;
 				schedule_delayed_work_on(0, &hp_work, 0);
 				}
@@ -1157,8 +1157,8 @@ hp_check:
 			g_cpu_down_sum_load = 0;
 		}
 		#ifdef DEBUG_LOG
-		printk("dbs_check_cpu: g_cpu_down_count = %d, g_cpu_down_sum_load = %d\n", g_cpu_down_count, g_cpu_down_sum_load);
-		printk("dbs_check_cpu: cpu_down_threshold = %d\n", ((dbs_tuners_ins.cpu_up_threshold - dbs_tuners_ins.cpu_down_differential) * (num_online_cpus() - 1)));
+		pr_debug("dbs_check_cpu: g_cpu_down_count = %d, g_cpu_down_sum_load = %d\n", g_cpu_down_count, g_cpu_down_sum_load);
+		pr_debug("dbs_check_cpu: cpu_down_threshold = %d\n", ((dbs_tuners_ins.cpu_up_threshold - dbs_tuners_ins.cpu_down_differential) * (num_online_cpus() - 1)));
 		#endif
 	}
 
@@ -1438,9 +1438,9 @@ static int bl_cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			dbs_tuners_ins.io_is_busy = should_io_be_busy();
 
 			#ifdef DEBUG_LOG
-			printk("bl_cpufreq_governor_dbs: min_sampling_rate = %d\n", min_sampling_rate);
-			printk("bl_cpufreq_governor_dbs: dbs_tuners_ins.sampling_rate = %d\n", dbs_tuners_ins.sampling_rate);
-			printk("bl_cpufreq_governor_dbs: dbs_tuners_ins.io_is_busy = %d\n", dbs_tuners_ins.io_is_busy);
+			pr_debug("bl_cpufreq_governor_dbs: min_sampling_rate = %d\n", min_sampling_rate);
+			pr_debug("bl_cpufreq_governor_dbs: dbs_tuners_ins.sampling_rate = %d\n", dbs_tuners_ins.sampling_rate);
+			pr_debug("bl_cpufreq_governor_dbs: dbs_tuners_ins.io_is_busy = %d\n", dbs_tuners_ins.io_is_busy);
 			#endif
 		}
 #if INPUT_BOOST
@@ -1567,20 +1567,20 @@ static int __init cpufreq_gov_dbs_init(void)
 	#endif
 
 	#ifdef DEBUG_LOG
-	printk("cpufreq_gov_dbs_init: min_sampling_rate = %d\n", min_sampling_rate);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.up_threshold = %d\n", dbs_tuners_ins.up_threshold);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.od_threshold = %d\n", dbs_tuners_ins.od_threshold);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.down_differential = %d\n", dbs_tuners_ins.down_differential);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_up_threshold = %d\n", dbs_tuners_ins.cpu_up_threshold);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_down_differential = %d\n", dbs_tuners_ins.cpu_down_differential);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_up_avg_times = %d\n", dbs_tuners_ins.cpu_up_avg_times);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_down_avg_times = %d\n", dbs_tuners_ins.cpu_down_avg_times);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.thermal_di_avg_times = %d\n", dbs_tuners_ins.thermal_dispatch_avg_times);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_num_limit = %d\n", dbs_tuners_ins.cpu_num_limit);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_num_base = %d\n", dbs_tuners_ins.cpu_num_base);
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.is_cpu_hotplug_disable = %d\n", dbs_tuners_ins.is_cpu_hotplug_disable);
+	pr_debug("cpufreq_gov_dbs_init: min_sampling_rate = %d\n", min_sampling_rate);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.up_threshold = %d\n", dbs_tuners_ins.up_threshold);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.od_threshold = %d\n", dbs_tuners_ins.od_threshold);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.down_differential = %d\n", dbs_tuners_ins.down_differential);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_up_threshold = %d\n", dbs_tuners_ins.cpu_up_threshold);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_down_differential = %d\n", dbs_tuners_ins.cpu_down_differential);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_up_avg_times = %d\n", dbs_tuners_ins.cpu_up_avg_times);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_down_avg_times = %d\n", dbs_tuners_ins.cpu_down_avg_times);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.thermal_di_avg_times = %d\n", dbs_tuners_ins.thermal_dispatch_avg_times);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_num_limit = %d\n", dbs_tuners_ins.cpu_num_limit);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_num_base = %d\n", dbs_tuners_ins.cpu_num_base);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.is_cpu_hotplug_disable = %d\n", dbs_tuners_ins.is_cpu_hotplug_disable);
 	#if INPUT_BOOST
-	printk("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_input_boost_enable = %d\n", dbs_tuners_ins.cpu_input_boost_enable);
+	pr_debug("cpufreq_gov_dbs_init: dbs_tuners_ins.cpu_input_boost_enable = %d\n", dbs_tuners_ins.cpu_input_boost_enable);
 	#endif /* INPUT_BOOST */
 	#endif /* DEBUG_LOG */
 

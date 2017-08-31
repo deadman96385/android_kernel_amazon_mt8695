@@ -77,10 +77,11 @@ void restore_dbg_regs(unsigned int data[])
 #ifdef CONFIG_SMP
 static int regs_hotplug_callback(struct notifier_block *nfb, unsigned long action, void *hcpu)
 {
-	/* printk(KERN_ALERT "In hotplug callback\n"); */
 	int i;
 	unsigned int cpu = (unsigned int)hcpu;
-	printk("regs_hotplug_callback cpu = %d\n", cpu);
+
+	pr_debug("regs_hotplug_callback cpu = %d\n", cpu);
+
 	switch (action) {
 	case CPU_ONLINE:
 	case CPU_ONLINE_FROZEN:

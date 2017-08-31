@@ -149,7 +149,7 @@ VOID BT_event_cb(VOID)
 	 *   handler is executed and meanwhile the event is received.
 	 *   This will false trigger FW assert and should never happen.
 	 */
-	wake_lock_timeout(&bt_wakelock, 100);
+	wake_lock_timeout(&bt_wakelock, msecs_to_jiffies(100));
 
 	/*
 	 * Finally, wake up any reader blocked in poll or read

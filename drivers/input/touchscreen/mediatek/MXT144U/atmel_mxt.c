@@ -51,6 +51,7 @@
 #include "cust_gpio_usage.h"
 #include "tpd_custom_mxt1144u.h"
 
+#include <linux/wakelock.h>
 
 #if defined(CONFIG_FB_PM)
 #include <linux/notifier.h>
@@ -70,6 +71,7 @@ static u64 heart_beat_time_stamp;
 static unsigned long palm_time_stamp = 0;
 static bool need_power_reboot = false;
 static int wakeup_event_mask = 0;
+struct wake_lock touch_irq_lock;
 
 /* Variable Declaration */
 
@@ -1825,6 +1827,8 @@ static void mxt_interrupt(void)
 {
 	mt_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
 
+	wake_lock(&touch_irq_lock);
+
 	tpd_flag=1;
 
 	wake_up_interruptible(&waiter);
@@ -1865,6 +1869,7 @@ static int touch_event_handler(void *pdata)
 			}
 			//mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
 		}
+		wake_unlock(&touch_irq_lock);
 		mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
 	}while(!kthread_should_stop());
 	return 0;
@@ -5421,6 +5426,8 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		return -ENOMEM;
 	}
 	mxt_i2c_data = data;
+
+	wake_lock_init(&touch_irq_lock, WAKE_LOCK_SUSPEND, "touch irq wakelock");
 
 	mt_set_gpio_mode(GPIO61, 0);
 	mt_set_gpio_mode(GPIO62, 0);

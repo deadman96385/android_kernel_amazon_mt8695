@@ -3034,7 +3034,6 @@ static void CWMCU_late_resume(struct early_suspend *h)
 #if defined(CONFIG_FB)
 static void CWMCU_early_suspend(struct early_suspend *h);
 static void CWMCU_late_resume(struct early_suspend *h);
-static unsigned long cw_wakeup_time = 0;
 
 static int cw_pm_notifier_callback(struct notifier_block *self,
 				   unsigned long event, void *data)
@@ -3043,20 +3042,10 @@ static int cw_pm_notifier_callback(struct notifier_block *self,
 
 	if (event == DISP_POWER_MODE_DOZE
 	    || event == DISP_POWER_MODE_NORMAL) {
-		if (jiffies - cw_wakeup_time < msecs_to_jiffies(1000)) {
-			CW_INFO("wakeup time < 1000ms\n");
-			sensor->pm_flag = 1;
-			return 0;
-		}
 		CW_INFO("sensorhub start resume\n");
-		cw_wakeup_time = jiffies;
 		CWMCU_late_resume(NULL);
 	} else if (event == DISP_POWER_MODE_DOZE_SUSPEND
 	    || event == DISP_POWER_MODE_OFF) {
-		if (sensor->pm_flag == 1) {
-			sensor->pm_flag = 0;
-			return 0;
-		}
 		CW_INFO("sensorhub start suspend\n");
 		CWMCU_early_suspend(NULL);
 	}
@@ -3777,7 +3766,6 @@ int CWMCU_probe(struct i2c_client *client)
 	sensor = mcu;
 	sensor->mcu_suspend_flag = 0;
 	sensor->watch_orientation = LEFT;
-	sensor->pm_flag = 0;
 
 	/*Mcu reset */
 	cwm_reset_mcu(mcu);

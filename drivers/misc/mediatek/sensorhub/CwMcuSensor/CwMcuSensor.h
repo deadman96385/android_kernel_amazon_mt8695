@@ -593,7 +593,6 @@ struct CWMCU_T {
 	int mcu_init_count;
 	int mcu_suspend_flag;
 	int watch_orientation;
-	int pm_flag;
 };
 
 

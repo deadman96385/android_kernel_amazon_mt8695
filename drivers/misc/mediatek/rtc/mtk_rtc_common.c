@@ -76,6 +76,8 @@
 #define RTC_NAME	"mt-rtc"
 #define RTC_RELPWR_WHEN_XRST	1	/* BBPU = 0 when xreset_rstb goes low */
 
+#define RTC_AUTOBOOT_ON		_IO('p', 0x20)  /* RTC drop power auto reboot on	*/
+#define RTC_AUTOBOOT_OFF	_IO('p', 0x21)  /* ... off				*/
 
 /* we map HW YEA 0 (2000) to 1968 not 1970 because 2000 is the leap year */
 #define RTC_MIN_YEAR		1968

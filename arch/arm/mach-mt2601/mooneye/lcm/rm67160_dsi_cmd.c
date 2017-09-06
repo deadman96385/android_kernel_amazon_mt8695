@@ -253,7 +253,6 @@ static unsigned int lcm_compare_id(void)
 	read_reg_v2(0x04, buffer, 3);
 
 	return (LCM_ID == buffer[1]);
-//	return 1;
 }
 
 static void lcm_read_fb(unsigned char *buffer)

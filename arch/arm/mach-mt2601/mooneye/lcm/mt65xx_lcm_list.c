@@ -15,10 +15,14 @@
 #include <lcm_drv.h>
 
 extern LCM_DRIVER rm69080_dsi_cmd_lcm_drv;
+extern LCM_DRIVER rm67160_dsi_cmd_lcm_drv;
 
 LCM_DRIVER *lcm_driver_list[] = {
 #if defined(RM69080_DSI_CMD)
 	&rm69080_dsi_cmd_lcm_drv,
+#endif
+#if defined(RM67160_DSI_CMD)
+	&rm67160_dsi_cmd_lcm_drv,
 #endif
 };
 

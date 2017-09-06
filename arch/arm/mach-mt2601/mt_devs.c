@@ -991,6 +991,27 @@ static struct platform_device camera_sysram_dev = {
 };
 #endif
 
+/* perf event */
+static struct resource mt2601_resource [] = {
+	[0] = {
+		.start = 48,
+		.end = 48,
+		.flags = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWLEVEL,
+	},
+	[1] = {
+		.start = 49,
+		.end = 49,
+		.flags = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWLEVEL,
+	},
+};
+
+static struct platform_device mt2601_pmu_pdev = {
+	.name = "armv7-pmu",
+	.id = -1,
+	.num_resources  = ARRAY_SIZE(mt2601_resource),
+	.resource = mt2601_resource,
+};
+
 /*=======================================================================*/
 /*=======================================================================*/
 /* Commandline filter                                                    */
@@ -2005,6 +2026,11 @@ __init int mt_board_init(void)
 		return retval;
 	}
 #endif
+
+	retval = platform_device_register(&mt2601_pmu_pdev);
+	if (retval != 0) {
+		return retval;
+	}
 
 	return 0;
 

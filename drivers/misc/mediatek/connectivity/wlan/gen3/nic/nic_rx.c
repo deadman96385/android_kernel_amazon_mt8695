@@ -2727,8 +2727,9 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 	prEvent = (P_WIFI_EVENT_T) prSwRfb->pucRecvBuff;
 	prGlueInfo = prAdapter->prGlueInfo;
 
-	DBGLOG(INIT, INFO, "RX EVENT: ID[0x%02X] SEQ[%u] LEN[%u]\n",
-	       prEvent->ucEID, prEvent->ucSeqNum, prEvent->u2PacketLength);
+	if (prEvent->ucEID != EVENT_ID_DEBUG_MSG)
+		DBGLOG(RX, EVENT, "RX EVENT: ID[0x%02X] SEQ[%u] LEN[%u]\n",
+		prEvent->ucEID, prEvent->ucSeqNum, prEvent->u2PacketLength);
 
 	/* Event Handling */
 	switch (prEvent->ucEID) {
@@ -2931,7 +2932,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 			if (prStaRec)
 				rsnTkipHandleMICFailure(prAdapter, prStaRec, (BOOLEAN) prMicError->u4Flags);
 			else
-				DBGLOG(RSN, INFO, "No STA rec!!\n");
+				DBGLOG(RSN, WARN, "No STA rec!!\n");
 #if 0
 			prAuthEvent = (P_PARAM_AUTH_EVENT_T) prAdapter->aucIndicationEventBuffer;
 
@@ -3041,7 +3042,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 		prAdapter->prAisBssInfo->fgIsPNOEnable = FALSE;
 		if (prAdapter->prAisBssInfo->fgIsNetRequestInActive && prAdapter->prAisBssInfo->fgIsPNOEnable) {
 			UNSET_NET_ACTIVE(prAdapter, prAdapter->prAisBssInfo->ucBssIndex);
-			DBGLOG(INIT, INFO, "INACTIVE  AIS from  ACTIVEto disable PNO\n");
+			DBGLOG(RX, INFO, "INACTIVE  AIS from  ACTIVEto disable PNO\n");
 			/* sync with firmware */
 			nicDeactivateNetwork(prAdapter, prAdapter->prAisBssInfo->ucBssIndex);
 		}
@@ -3056,7 +3057,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 			P_EVENT_TX_DONE_T prTxDone;
 			prTxDone = (P_EVENT_TX_DONE_T) (prEvent->aucBuffer);
 
-			DBGLOG(INIT, INFO, "EVENT_ID_TX_DONE WIDX:PID[%u:%u] Status[%u] SN[%u]\n",
+			DBGLOG(RX, TRACE, "EVENT_ID_TX_DONE WIDX:PID[%u:%u] Status[%u] SN[%u]\n",
 			       prTxDone->ucWlanIndex, prTxDone->ucPacketSeq, prTxDone->ucStatus,
 			       prTxDone->u2SequenceNumber);
 
@@ -3064,7 +3065,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 			prMsduInfo = nicGetPendingTxMsduInfo(prAdapter, prTxDone->ucWlanIndex, prTxDone->ucPacketSeq);
 
 #if CFG_SUPPORT_802_11V_TIMING_MEASUREMENT
-			DBGLOG(INIT, TRACE, "EVENT_ID_TX_DONE u4TimeStamp = %x u2AirDelay = %x\n",
+			DBGLOG(RX, TRACE, "EVENT_ID_TX_DONE u4TimeStamp = %x u2AirDelay = %x\n",
 			       prTxDone->au4Reserved1, prTxDone->au4Reserved2);
 
 			wnmReportTimingMeas(prAdapter, prMsduInfo->ucStaRecIndex,
@@ -3188,7 +3189,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 			if (prEventBssBeaconTimeout->ucBssIndex >= BSS_INFO_NUM)
 				break;
 
-			DBGLOG(INIT, INFO, "Reason code: %d\n", prEventBssBeaconTimeout->ucReasonCode);
+			DBGLOG(RX, INFO, "Beacon Timeout Reason: %d\n", prEventBssBeaconTimeout->ucReasonCode);
 
 			prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prEventBssBeaconTimeout->ucBssIndex);
 
@@ -3244,7 +3245,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 				if (prStaRec == NULL)
 					break;
 
-				DBGLOG(INIT, INFO, "EVENT_ID_STA_AGING_TIMEOUT %u " MACSTR "\n",
+				DBGLOG(RX, INFO, "EVENT_ID_STA_AGING_TIMEOUT %u " MACSTR "\n",
 				       prEventStaAgingTimeout->ucStaRecIdx, MAC2STR(prStaRec->aucMacAddr));
 
 				prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prStaRec->ucBssIndex);
@@ -3358,7 +3359,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 
 			prAddKeyDone = (P_EVENT_ADD_KEY_DONE_INFO) (prEvent->aucBuffer);
 
-			DBGLOG(RSN, EVENT,
+			DBGLOG(RSN, TRACE,
 			       "EVENT_ID_ADD_PKEY_DONE BSSIDX=%d " MACSTR "\n",
 			       prAddKeyDone->ucBSSIndex, MAC2STR(prAddKeyDone->aucStaAddr));
 
@@ -3476,12 +3477,11 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 #endif /* CFG_SUPPORT_TDLS */
 
 	case EVENT_ID_DUMP_MEM:
-		DBGLOG(INIT, INFO, "%s: EVENT_ID_DUMP_MEM\n", __func__);
+		DBGLOG(RX, INFO, "%s: EVENT_ID_DUMP_MEM\n", __func__);
 
 		prCmdInfo = nicGetPendingCmdInfo(prAdapter, prEvent->ucSeqNum);
-
+		DBGLOG(RX, INFO, "EVENT_ID_DUMP_MEM, prCmdInfo=%p\n", prCmdInfo);
 		if (prCmdInfo != NULL) {
-			DBGLOG(INIT, INFO, ": ==> 1\n");
 			if (prCmdInfo->pfCmdDoneHandler)
 				prCmdInfo->pfCmdDoneHandler(prAdapter, prCmdInfo, prEvent->aucBuffer);
 			else if (prCmdInfo->fgIsOid)
@@ -3490,7 +3490,6 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 			cmdBufFreeCmdInfo(prAdapter, prCmdInfo);
 		} else {
 			/* Burst mode */
-			DBGLOG(INIT, INFO, ": ==> 2\n");
 			nicEventQueryMemDump(prAdapter, prEvent->aucBuffer);
 		}
 		break;
@@ -3517,7 +3516,7 @@ VOID nicRxProcessEventPacket(IN P_ADAPTER_T prAdapter, IN OUT P_SW_RFB_T prSwRfb
 
 	/* Reset Chip NoAck flag */
 	if (prGlueInfo->prAdapter->fgIsChipNoAck) {
-		DBGLOG(INIT, WARN, "Got response from chip, clear NoAck flag!\n");
+		DBGLOG(RX, WARN, "Got response from chip, clear NoAck flag!\n");
 		WARN_ON(TRUE);
 	}
 	prGlueInfo->prAdapter->ucOidTimeoutCount = 0;

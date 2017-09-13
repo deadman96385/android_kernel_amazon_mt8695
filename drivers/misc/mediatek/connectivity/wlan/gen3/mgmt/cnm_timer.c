@@ -79,26 +79,15 @@
 static BOOLEAN cnmTimerSetTimer(IN P_ADAPTER_T prAdapter, IN OS_SYSTIME rTimeout)
 {
 	P_ROOT_TIMER prRootTimer;
-	BOOLEAN fgNeedWakeLock;
 
 	ASSERT(prAdapter);
 
 	prRootTimer = &prAdapter->rRootTimer;
 
+	kalCancelTimer(prAdapter->prGlueInfo);
 	kalSetTimer(prAdapter->prGlueInfo, rTimeout);
 
-	if (rTimeout <= SEC_TO_SYSTIME(WAKE_LOCK_MAX_TIME)) {
-		fgNeedWakeLock = TRUE;
-
-		if (!prRootTimer->fgWakeLocked) {
-			KAL_WAKE_LOCK(prAdapter, &prRootTimer->rWakeLock);
-			prRootTimer->fgWakeLocked = TRUE;
-		}
-	} else {
-		fgNeedWakeLock = FALSE;
-	}
-
-	return fgNeedWakeLock;
+	return FALSE;
 }
 
 /*----------------------------------------------------------------------------*/

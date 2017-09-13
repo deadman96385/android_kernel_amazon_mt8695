@@ -112,6 +112,9 @@
 #define FIRMWARE_UPDATE_START_ADDR	0x08000000
 #define BUFFER_SIZE				128
 
+#define NEED_UPGRADE      1
+#define NO_NEED_UPGRADE  -2
+
 static int block_orientation = 0;
 bool has_nfc = false;
 bool is_mercury = false;
@@ -2423,7 +2426,7 @@ static int check_fw_version(struct CWMCU_T *sensor,
 		     __func__, __LINE__);
 		data[0] = 1;
 		data[1] = 0;
-		return 0;
+		return NEED_UPGRADE;
 	}
 	power_pin_sw(sensor, SWITCH_POWER_VERSION, 0);
 
@@ -2441,20 +2444,20 @@ static int check_fw_version(struct CWMCU_T *sensor,
 	    || (curr_v_total == 255)) {
 		SH_LOG
 		    ("--FIRUPGRADE-- get currnt version failed or NULL\n");
-		return 0;
+		return NEED_UPGRADE;
 	}
 
 	if (fir_v == curr_v_total) {
 		SH_LOG
 		    ("--FIRUPGRADE-- no need to update, version equal. current ver : %d.%d\n",
 		     version[1], version[0]);
-		return -2;
+		return NO_NEED_UPGRADE;
 	} else {
 		SH_LOG("--FIRUPGRADE-- current ver : %d.%d\n", version[1],
 		       version[0]);
 		SH_LOG("--FIRUPGRADE-- fw ver : %d.%d\n",
 		       fw->data[POSVERSION2], fw->data[POSVERSION1]);
-		return 1;
+		return NEED_UPGRADE;
 	}
 }
 
@@ -2863,7 +2866,7 @@ static void update_firmware(const struct firmware *fw_entry, void *context)
 
 	err = check_fw_version(sensor, fw_entry);
 
-	if (err == 1) {
+	if (err == NEED_UPGRADE) {
 
 		set_mcu_mode(sensor, CHANGE_TO_BOOTLOADER_MODE);
 

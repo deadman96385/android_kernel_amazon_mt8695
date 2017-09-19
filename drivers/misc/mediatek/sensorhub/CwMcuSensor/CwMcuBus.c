@@ -338,14 +338,14 @@ static int CWMCU_i2c_remove(struct i2c_client *client)
 
 static int CWMCU_i2c_suspend(struct device *dev)
 {
-	//CWMCU_suspend(sensor);
+	CWMCU_system_suspend();
 	return 0;
 
 }
 
 static int CWMCU_i2c_resume(struct device *dev)
 {
-	//CWMCU_resume(sensor);
+	CWMCU_system_resume();
 	return 0;
 }
 
@@ -365,7 +365,7 @@ static struct i2c_driver CWMCU_i2c_driver = {
 	.driver = {
 		   .name = CWMCU_I2C_NAME,
 		   .owner = THIS_MODULE,
-		   //.pm = &CWMCU_pm_ops,
+		   .pm = &CWMCU_pm_ops,
 		   },
 	.probe = CWMCU_i2c_probe,
 	.remove = CWMCU_i2c_remove,

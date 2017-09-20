@@ -72,6 +72,7 @@ static unsigned long palm_time_stamp = 0;
 static bool need_power_reboot = false;
 static int wakeup_event_mask = 0;
 struct wake_lock touch_irq_lock;
+spinlock_t touch_irq_spin_lock;
 
 /* Variable Declaration */
 
@@ -5428,6 +5429,7 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	mxt_i2c_data = data;
 
 	wake_lock_init(&touch_irq_lock, WAKE_LOCK_SUSPEND, "touch irq wakelock");
+	spin_lock_init(&touch_irq_spin_lock);
 
 	mt_set_gpio_mode(GPIO61, 0);
 	mt_set_gpio_mode(GPIO62, 0);
@@ -5813,15 +5815,18 @@ static int fb_notifier_callback(struct notifier_block *self,
 	struct fb_event *evdata = data;
 	int *blank;
 	struct mxt_data *mxt = container_of(self, struct mxt_data, fb_notif);
+	unsigned long flags;
 
 	if (evdata && evdata->data && event == FB_EVENT_BLANK &&
 			mxt && mxt->client) {
 		blank = evdata->data;
 		if (*blank == FB_BLANK_UNBLANK) {
+			spin_lock_irqsave(&touch_irq_spin_lock, flags);
 			wakeup_event_mask = 0;
 			mxt_tpd_resume(NULL);
-			MXT_LOG("is_ambient_mode change to 0\n");
 			mxt->is_ambient_mode = false;
+			spin_unlock_irqrestore(&touch_irq_spin_lock, flags);
+			MXT_LOG("is_ambient_mode change to 0\n");
 			return 0;
 #ifdef MAX1_WAKEUP_GESTURE_ENABLE
 			mxt->suspended = 0;

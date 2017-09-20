@@ -126,9 +126,6 @@ enum {
 	DISP_POWER_MODE_DOZE_SUSPEND = 3
 };
 
-extern int ambient_mode_notifier_register(struct notifier_block *nb);
-extern int ambient_mode_notifier_unregister(struct notifier_block *nb);
-
 static const unsigned long cwm_scan_masks[] = {
 	BIT(CW_SCAN_ID) | BIT(CW_SCAN_X) | BIT(CW_SCAN_Y) | BIT(CW_SCAN_Z),
 	0
@@ -2998,7 +2995,7 @@ void CWMCU_resume(struct CWMCU_T *sensor)
 
 }
 
-static void CWMCU_early_suspend(struct early_suspend *h)
+void CWMCU_system_suspend(void)
 {
 	if (sensor->mcu_suspend_flag == 0) {
 		if (sensor->mcu_mode == CW_BOOT) {
@@ -3010,17 +3007,18 @@ static void CWMCU_early_suspend(struct early_suspend *h)
 		power_pin_sw(sensor, SWITCH_POWER_PROBE, 1);
 		cwm_set_kernel_status(sensor, KERNEL_SUSPEND);
 		power_pin_sw(sensor, SWITCH_POWER_PROBE, 0);
-		CW_INFO("CWMCU_early_suspend : power_on_list=0x%x",
+		CW_INFO("%s: power_on_list=0x%x", __FUNCTION__,
 			sensor->power_on_list);
 	}
 }
-static void CWMCU_late_resume(struct early_suspend *h)
+
+void CWMCU_system_resume(void)
 {
 	if (sensor->mcu_suspend_flag == 0) {
 		if (sensor->mcu_mode == CW_BOOT) {
 			return;
 		}
-		CW_INFO("CWMCU_late_resume : power_on_list=0x%x",
+		CW_INFO("%s: power_on_list=0x%x", __FUNCTION__,
 			sensor->power_on_list);
 		//schedule_work(&sensor->resume_work);
 
@@ -3034,29 +3032,7 @@ static void CWMCU_late_resume(struct early_suspend *h)
 	}
 }
 
-#if defined(CONFIG_FB)
-static void CWMCU_early_suspend(struct early_suspend *h);
-static void CWMCU_late_resume(struct early_suspend *h);
-
-static int cw_pm_notifier_callback(struct notifier_block *self,
-				   unsigned long event, void *data)
-{
-	CW_INFO("cw_pm_notifier_callback\n");
-
-	if (event == DISP_POWER_MODE_DOZE
-	    || event == DISP_POWER_MODE_NORMAL) {
-		CW_INFO("sensorhub start resume\n");
-		CWMCU_late_resume(NULL);
-	} else if (event == DISP_POWER_MODE_DOZE_SUSPEND
-	    || event == DISP_POWER_MODE_OFF) {
-		CW_INFO("sensorhub start suspend\n");
-		CWMCU_early_suspend(NULL);
-	}
-
-	return 0;
-}
-
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+#if !defined(CONFIG_FB) && defined(CONFIG_HAS_EARLYSUSPEND)
 static struct early_suspend cw_early_suspend_handler = {
 	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 1,
 	.suspend = NULL,
@@ -3842,11 +3818,7 @@ int CWMCU_probe(struct i2c_client *client)
 	input_set_drvdata(mcu->input, mcu);
 #endif
 
-#if defined(CONFIG_FB)
-	sensor->cw_pm_notifier.notifier_call = cw_pm_notifier_callback;
-	if (ambient_mode_notifier_register(&sensor->cw_pm_notifier))
-		CW_ERROR("register power mode notifier fail!\n");
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+#if !defined(CONFIG_FB) && defined(CONFIG_HAS_EARLYSUSPEND)
 	cw_early_suspend_handler.suspend = CWMCU_early_suspend;
 	cw_early_suspend_handler.resume = CWMCU_late_resume;
 	register_early_suspend(&cw_early_suspend_handler);
@@ -3875,7 +3847,7 @@ int CWMCU_probe(struct i2c_client *client)
 #if defined(CONFIG_FB)
 	if ((get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT)
 	    || (get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT))
-		CWMCU_early_suspend(NULL);
+		CWMCU_system_suspend();
 #endif
 
 	SH_LOG(" Probe success. %s:%s:\n", LOG_TAG_KERNEL, __FUNCTION__);
@@ -3960,9 +3932,7 @@ static int __init CWMCU_init(void)
 static void __exit CWMCU_exit(void)
 {
 	//i2c_del_driver(&CWMCU_driver);
-#if defined(CONFIG_FB)
-	ambient_mode_notifier_unregister(&sensor->cw_pm_notifier);
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+#if !defined(CONFIG_FB) && defined(CONFIG_HAS_EARLYSUSPEND)
 	unregister_early_suspend(&cw_early_suspend_handler);
 #endif
 	CWMCU_bus_unregister();

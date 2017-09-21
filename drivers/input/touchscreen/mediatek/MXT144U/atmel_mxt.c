@@ -1328,11 +1328,11 @@ static void mxt_proc_t100_message(struct mxt_data *data, u8 *message)
 #if !defined(AMBIENT_IDLE_MODE)
 		if (data->is_ambient_mode == true && status == 21 && wakeup_event_mask == 0 ) {
 			++wakeup_event_mask;
-			input_report_key(input_dev, KEY_WAKEUP, 1);
+			input_mt_report_slot_state(input_dev, 0, 1);
+			input_report_abs(input_dev, ABS_MT_POSITION_X, 50);
+			input_report_abs(input_dev, ABS_MT_POSITION_Y, 50);
 			input_sync(input_dev);
-			input_report_key(input_dev, KEY_WAKEUP, 0);
-			input_sync(input_dev);
-			MXT_LOG("T100 send KEY_WAKEUP\n");
+			MXT_LOG("T100 send position info to WAKEUP system\n");
 		}
 #endif
 		mt_eint_unmask(2);
@@ -1541,11 +1541,11 @@ static void mxt_proc_t24_messages(struct mxt_data *data, u8 *msg)
 	if (gesture_detected) {
 		//filter "report palm, then touch" condition when black screen(tap-wake enable).
 		if (jiffies - palm_time_stamp > msecs_to_jiffies(1600)) {
-			input_report_key(dev, KEY_WAKEUP, 1);
+			input_mt_report_slot_state(dev, 0, 1);
+			input_report_abs(dev, ABS_MT_POSITION_X, 50);
+			input_report_abs(dev, ABS_MT_POSITION_Y, 50);
 			input_sync(dev);
-			input_report_key(dev, KEY_WAKEUP, 0);
-			input_sync(dev);
-			MXT_LOG("T24 send KEY_WAKEUP\n");
+			MXT_LOG("T24 send position info to WAKEUP system\n");
 		}
 	}
 }

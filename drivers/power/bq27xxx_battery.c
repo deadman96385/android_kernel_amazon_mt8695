@@ -485,7 +485,6 @@ static enum power_supply_property bq27421_battery_props[] = {
  * Customize these values and, if necessary, add more based on system needs.
  */
 static struct dm_reg bq274xx_dm_regs[] = {
-	{64, 2, 1, 0x0B},	/* Op Config B */
 	{82, 0, 2, 17312},	/* Qmax */
 	{82, 10, 2, 300},	/* Design Capacity */
 	{82, 12, 2, 1140},	/* Design Energy */

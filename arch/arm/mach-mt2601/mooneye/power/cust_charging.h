@@ -31,8 +31,8 @@
 /* Linear Charging Threshold */
 #define V_PRE2CC_THRES			3400	/* mV */
 #define V_CC2TOPOFF_THRES		4050
-#define RECHARGING_VOLTAGE      4200
-#define CHARGING_FULL_CURRENT    80	/* mA */
+#define RECHARGING_VOLTAGE      4250
+#define CHARGING_FULL_CURRENT    60	/* mA */
 
 /* Charging Current Setting */
 /* #define CONFIG_USB_IF */
@@ -126,10 +126,6 @@
 
 /* Charging on suspend support*/
 #define CONFIG_CHARGING_ON_SUSPEND_SUPPORT
-#ifdef CONFIG_CHARGING_ON_SUSPEND_SUPPORT
-#undef CHARGING_FULL_CURRENT
-#define CHARGING_FULL_CURRENT    120	/*mA*/
-#endif
 
 /* Off mode charging to auto-boot support */
 #if !defined(CONFIG_MTK_KERNEL_POWER_OFF_CHARGING) && defined(CONFIG_MTK_CHARGING_AUTO_BOOT_SUPPORT)

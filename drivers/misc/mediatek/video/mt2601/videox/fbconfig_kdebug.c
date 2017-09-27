@@ -93,6 +93,7 @@ CONFIG_RECORD *record_tmp = NULL;
 CONFIG_RECORD *backup_head = NULL;
 #endif
 LCM_REG_READ reg_read;
+static DEFINE_MUTEX(fb_config_lock);
 /* int esd_check_addr; */
 /* int esd_check_para_num; */
 /* int esd_check_type; */
@@ -445,21 +446,24 @@ static long fbconfig_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 
 	case DRIVER_IC_CONFIG:
 		DISP_LOG_PRINT("sxk=>run in case:DRIVER_IC_CONFIG**\n");
+		mutex_lock(&fb_config_lock);
 		if (record_list_initialed == 0) {
 			record_list_init();
 			if (copy_from_user(record_head, (void __user *)arg, sizeof(CONFIG_RECORD))) {
 				pr_err("sxk=>copy_from_user failed! line:%d\n", __LINE__);
+				mutex_unlock(&fb_config_lock);
 				return -EFAULT;
 			}
 			record_list_initialed = 1;
 		} else {
 			if (copy_from_user(record_tmp, (void __user *)arg, sizeof(CONFIG_RECORD))) {
 				pr_err("[DRIVER_IC_CONFIG]: copy_from_user failed! line:%d\n", __LINE__);
+				mutex_unlock(&fb_config_lock);
 				return -EFAULT;
 			}
 			record_list_add();	/* add new node to list ; */
 		}
-
+		mutex_unlock(&fb_config_lock);
 		return 0;
 
 	case MIPI_SET_CLK:
@@ -684,7 +688,9 @@ static int fbconfig_release(struct inode *inode, struct file *file)
 
 /* free the memory ..... */
 		DISP_LOG_PRINT("sxk=>will free the memory\n");
+		mutex_lock(&fb_config_lock);
 		free_list_memory();
+		mutex_unlock(&fb_config_lock);
 		return 0;
 	}
 }

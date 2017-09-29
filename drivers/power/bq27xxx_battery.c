@@ -166,6 +166,7 @@ struct bq27xxx_device_info {
 	u8 *regs;
 	struct dm_reg *dm_regs;
 	u16 dm_regs_count;
+	int fake_capacity;
 };
 
 /* Register mappings */
@@ -479,16 +480,22 @@ static enum power_supply_property bq27421_battery_props[] = {
 #define SET_CFGUPDATE_SUBCMD		0x0013
 #define SEAL_SUBCMD			0x0020
 
+
+#define SPM_TIMEOUT  10*60 //10minutes
+
 /*
  * Ordering the parameters based on subclass and then offset will help in
  * having fewer flash writes while updating.
  * Customize these values and, if necessary, add more based on system needs.
  */
 static struct dm_reg bq274xx_dm_regs[] = {
+	{64, 2, 1, 0x0F},	/* Op Config B */
+	{80, 78, 1, 10},	/* TermV Valid t 10s */
 	{82, 0, 2, 17312},	/* Qmax */
+	{82, 3, 2, 15},		/* Reserve capacity */
 	{82, 10, 2, 300},	/* Design Capacity */
 	{82, 12, 2, 1140},	/* Design Energy */
-	{82, 16, 2, 3400},	/* Terminate Voltage */
+	{82, 16, 2, 3300},	/* Terminate Voltage */
 	{82, 27, 2, 33},	/* Taper rate */
 };
 
@@ -816,6 +823,9 @@ static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 	struct bq27xxx_reg_cache cache = {0, };
 	bool has_ci_flag = di->chip == BQ27000 || di->chip == BQ27010;
 	bool has_singe_flag = di->chip == BQ27000 || di->chip == BQ27010;
+	static struct timeval cur = {0, };
+	static struct timeval last = {0, };
+	static kal_uint32 timer_counter;
 
 	cache.flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, has_singe_flag);
 	if ((cache.flags & 0xff) == 0xff)
@@ -854,9 +864,42 @@ static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 			di->charge_design_full = bq27xxx_battery_read_dcap(di);
 	}
 
-	dev_warn(di->dev, "cache.capacity:%d, cache.temperature:%d, cache.flags:%08x,"
-		              "BMT_status.bat_in_recharging_state:%d, BMT_status.bat_full:%d\n",
-                      cache.capacity, cache.temperature, cache.flags, BMT_status.bat_in_recharging_state, BMT_status.bat_full);
+	dev_warn(di->dev, "cache.capacity:%d, fake_capatity:%d, cache.temperature:%d, cache.flags:%08x,"
+		              "BMT_status.bat_in_recharging_state:%d, BMT_status.bat_full:%d,"
+			     "BMT_status.ICharging:%d, timer_counter:%d\n",
+                      cache.capacity, di->fake_capacity, cache.temperature, cache.flags,
+                      BMT_status.bat_in_recharging_state,
+		      BMT_status.bat_full,BMT_status.ICharging, timer_counter);
+
+	do_gettimeofday(&cur);
+
+	/* Sync fake capacity to real capacity */
+	dev_info(di->dev, "cur.tv_sec:%ld last.tv_sec:%ld\n", cur.tv_sec, last.tv_sec);
+	if ((cur.tv_sec - last.tv_sec > SPM_TIMEOUT) && (last.tv_sec != 0)) {
+		di->fake_capacity = cache.capacity;
+		timer_counter = 0;
+	}
+	else {
+		if (cache.capacity < di->fake_capacity) {
+			cache.capacity = di->fake_capacity;
+			if (!BMT_status.charger_exist && timer_counter == 2) {
+				di->fake_capacity--;
+				timer_counter = 0;
+			}
+			else {
+				if (BMT_status.charger_exist)
+					timer_counter = 0;
+				else
+					timer_counter ++;
+			}
+		}
+		else {
+			timer_counter = 0;
+			di->fake_capacity = cache.capacity;
+		}
+	}
+	last.tv_sec = cur.tv_sec;
+
 	dump_bq27xxx_regs(di);
 
 	mCapacity = cache.capacity;
@@ -1222,8 +1265,10 @@ struct subclass_reg {
 static struct subclass_reg subcla_regs[] = {
 	{64, 0},
 	{64, 2},
+	{80, 78},   /* TermV Valid t 10s */
 	{82, 0},
 	{82, 2},
+	{82, 3},   /* Reserve capacity */
 	{82, 8},
 	{82, 10},	/* Design Capacity */
 	{82, 16},	/* Terminate Voltage */
@@ -1272,6 +1317,22 @@ static void rom_mode_print_subclass(struct bq27xxx_device_info *di)
 	exit_cfg_update_mode(di);
 }
 
+
+static int get_terminate_voltage(struct bq27xxx_device_info *di)
+{
+	u8 buf[32] = {0};
+	u8 subclass = 82;
+	u8 offset = 0;
+
+	if (!unseal(di, BQ274XX_UNSEAL_KEY))
+			return 0;
+
+	read_dm_block(di, subclass, offset, buf);
+
+	seal(di);
+
+	return ((buf[16] & 0xFF)<<8)+(buf[17] & 0xFF);
+}
 
 static void bq27xxx_battery_poll(struct work_struct *work)
 {
@@ -1453,8 +1514,10 @@ static int bq27xxx_battery_get_property(struct power_supply *psy,
 		ret = bq27xxx_battery_current(di, val);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		if(BMT_status.bat_in_recharging_state || BMT_status.bat_full)
+		if(BMT_status.bat_in_recharging_state || BMT_status.bat_full) {
 			val->intval = 100;
+			di->fake_capacity = 100;
+		}
 		else
 			ret = bq27xxx_simple_value(di->cache.capacity, val);
 		break;
@@ -1523,6 +1586,7 @@ static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 	int ret;
 	struct power_supply_desc *psy_desc;
 	struct power_supply_config psy_cfg = { .drv_data = di, };
+	int terminate_voltage = 0;
 
 	psy_desc = devm_kzalloc(di->dev, sizeof(*psy_desc), GFP_KERNEL);
 	if (!psy_desc)
@@ -1548,6 +1612,15 @@ static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 	dev_info(di->dev, "support ver. %s enabled\n", DRIVER_VERSION);
 
 	bq27xxx_battery_update(di);
+
+	if (di->chip == BQ27421) {
+		terminate_voltage = get_terminate_voltage(di);
+		dev_warn(di->dev, "%s: get_terminate_voltage value %d\n",
+				__func__, terminate_voltage);
+		if (3200 == terminate_voltage || 3400 == terminate_voltage) {
+			rom_mode_gauge_dm_init(di);
+		}
+	}
 
 	return 0;
 }

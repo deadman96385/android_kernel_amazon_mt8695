@@ -25,6 +25,8 @@
 #include <mtk_leds_hal.h>
 #include <mtk_leds_drv.h>
 #include <mt-plat/mtk_pwm.h>
+#include "lcm_drv.h"
+
 
 #ifdef CONFIG_BACKLIGHT_SUPPORT_LP8557
 #include <linux/of_gpio.h>
@@ -39,6 +41,7 @@ static unsigned int bl_div = CLK_DIV1;
 #define PWM_DIV_NUM 8
 static unsigned int div_array[PWM_DIV_NUM];
 struct mt65xx_led_data *g_leds_data[MT65XX_LED_TYPE_TOTAL];
+extern LCM_DRIVER *lcm_drv;
 
 #ifdef CONFIG_BACKLIGHT_SUPPORT_LP8557
 static unsigned int last_level1 = 102;
@@ -786,6 +789,8 @@ static void mt65xx_leds_shutdown(struct platform_device *pdev)
 			break;
 		}
 	}
+	mdelay(10);
+	lcm_drv->suspend();
 
 }
 

@@ -1487,8 +1487,6 @@ static void mxt_proc_t70_messages(struct mxt_data *data, u8 *msg)
 			MXT_LOG("large touch detected after suspended\n");
 			return;
 		}
-		input_report_key(input_dev, BTN_TOUCH, 0);
-		input_sync(input_dev);
 		input_report_key(input_dev, KEY_SLEEP, 1);
 		input_sync(input_dev);
 		input_report_key(input_dev, KEY_SLEEP, 0);

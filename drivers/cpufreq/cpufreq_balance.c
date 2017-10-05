@@ -26,6 +26,7 @@
 #include <linux/slab.h>
 #include <linux/sched/rt.h>
 #include <linux/kthread.h>
+#include <linux/platform_device.h>
 
 extern unsigned int get_normal_max_freq(void);
 extern unsigned int mt_dvfs_power_dispatch_safe(void);
@@ -863,6 +864,8 @@ EXPORT_SYMBOL(hp_based_cpu_num);
 
 static void hp_work_handler(struct work_struct *work)
 {
+	int err;
+
 	if (mutex_trylock(&bl_onoff_mutex))
 	{
 		if (!dbs_tuners_ins.is_cpu_hotplug_disable)
@@ -874,8 +877,12 @@ static void hp_work_handler(struct work_struct *work)
 				if (onlines_cpu_n < num_possible_cpus())
 				{
 					pr_debug("hp_work_handler: cpu_up(%d) kick off\n", onlines_cpu_n);
-					cpu_up(onlines_cpu_n);
-					pr_debug("hp_work_handler: cpu_up(%d) completion\n", onlines_cpu_n);
+					err = cpu_up(onlines_cpu_n);
+					if (err) {
+						pr_err("hp_work_handler: cpu_up(%d) err=%d completion\n", onlines_cpu_n, err);
+					} else {
+						pr_debug("hp_work_handler: cpu_up(%d) completion\n", onlines_cpu_n);
+					}
 
 					dbs_ignore = 0; // force trigger frequency scaling
 				}
@@ -885,8 +892,12 @@ static void hp_work_handler(struct work_struct *work)
 				if (onlines_cpu_n > 1)
 				{
 					pr_debug("hp_work_handler: cpu_down(%d) kick off\n", (onlines_cpu_n - 1));
-					cpu_down((onlines_cpu_n - 1));
-					pr_debug("hp_work_handler: cpu_down(%d) completion\n", (onlines_cpu_n - 1));
+					err = cpu_down((onlines_cpu_n - 1));
+					if (err) {
+						pr_err("hp_work_handler: cpu_down(%d) err=%d completion\n", (onlines_cpu_n - 1), err);
+					} else {
+						pr_debug("hp_work_handler: cpu_down(%d) completion\n", (onlines_cpu_n - 1));
+					}
 
 					dbs_ignore = 0; // force trigger frequency scaling
 				}
@@ -1335,7 +1346,6 @@ static int bl_idle_notifier(struct notifier_block *nb, unsigned long val, void *
 
 	switch (val) {
 	case IDLE_START:
-		_reset_counters();
 		bl_enable_timer(0);
 		break;
 	case IDLE_END:
@@ -1512,6 +1522,62 @@ static int touch_freq_up_task(void *data)
 	return 0;
 }
 #endif
+
+static int balance_suspend(struct platform_device *dev, pm_message_t state)
+{
+	disable_nonboot_cpus();
+	_reset_counters();
+	return 0;
+}
+
+static int balance_resume(struct platform_device *dev)
+{
+	cpu_hotplug_enable();
+	return 0;
+}
+
+static struct platform_driver balance_driver = {
+	.suspend    = balance_suspend,
+	.resume    = balance_resume,
+	.driver     = {
+		.name   = "balance_driver",
+		.owner  = THIS_MODULE,
+	},
+};
+
+static int __init balance_driver_init(void)
+{
+	struct platform_device *pdev;
+	int ret;
+
+	ret = platform_driver_register(&balance_driver);
+	if (ret) {
+		goto _out;
+	}
+
+	pdev = platform_device_alloc("balance_driver", -1);
+	if (!pdev) {
+		pr_err("%s: Failed to device alloc for balance_driver\n", __func__);
+		return -ENOMEM;
+	}
+
+	ret = platform_device_add(pdev);
+	if (ret < 0) {
+		platform_device_put(pdev);
+		pdev = NULL;
+	}
+
+_out:
+	pr_info("Register balance driver %d\n", ret);
+	return ret;
+}
+module_init(balance_driver_init);
+
+static void __exit balance_driver_exit(void)
+{
+	platform_driver_unregister(&balance_driver);
+}
+module_exit(balance_driver_exit);
 
 static int __init cpufreq_gov_dbs_init(void)
 {

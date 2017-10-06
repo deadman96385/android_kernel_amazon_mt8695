@@ -338,9 +338,7 @@ static int CWMCU_i2c_remove(struct i2c_client *client)
 
 static int CWMCU_i2c_suspend(struct device *dev)
 {
-	CWMCU_system_suspend();
-	return 0;
-
+	return CWMCU_system_suspend();
 }
 
 static int CWMCU_i2c_resume(struct device *dev)

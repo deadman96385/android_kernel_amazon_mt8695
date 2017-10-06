@@ -2995,11 +2995,16 @@ void CWMCU_resume(struct CWMCU_T *sensor)
 
 }
 
-void CWMCU_system_suspend(void)
+int CWMCU_system_suspend(void)
 {
 	if (sensor->mcu_suspend_flag == 0) {
 		if (sensor->mcu_mode == CW_BOOT) {
-			return;
+			return 0;
+		}
+		if(mt_eint_get_mask(CUST_EINT_SENSORHUB_NUM))
+		{
+			SH_LOG("EINT gpio masked,return -EBUSY\n");
+			return -EBUSY;
 		}
 		if (cw_tilt_wakeup_flag) {
 			CW_INFO("suspend => enable tilt");
@@ -3010,6 +3015,7 @@ void CWMCU_system_suspend(void)
 		CW_INFO("%s: power_on_list=0x%x", __FUNCTION__,
 			sensor->power_on_list);
 	}
+	return 0;
 }
 
 void CWMCU_system_resume(void)

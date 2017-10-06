@@ -118,6 +118,7 @@
  */
 extern void mt_eint_mask(unsigned int eint_num);
 extern void mt_eint_unmask(unsigned int eint_num);
+extern unsigned int mt_eint_get_mask(unsigned int eint_num);
 extern void mt_eint_set_hw_debounce(unsigned int eint_num, unsigned int ms);
 extern void mt_eint_set_polarity(unsigned int eint_num, unsigned int pol);
 extern unsigned int mt_eint_set_sens(unsigned int eint_num, unsigned int sens);

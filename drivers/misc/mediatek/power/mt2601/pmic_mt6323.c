@@ -1464,7 +1464,7 @@ ANALDO:
 VTCXO
 VA
 VCAMA
-VCN33 (¦³wifi/bt ¶}Ãö)
+VCN33 (Â¦Â³wifi/bt Â¶}ÃƒÃ¶)
 VCN28
 
 DIGLDO:
@@ -3585,7 +3585,8 @@ void PMIC_INIT_SETTING_V1(void)
 #endif /* #ifdef CONFIG_MTK_ENABLE_MD1 */
         ret = pmic_config_interface(0x404, 0x1, 0x1, 0);
         ret = pmic_config_interface(0x404, 0x2, 0x3, 8);
-        ret = pmic_config_interface(0x500, 0x1, 0x1, 0);
+	//ret = pmic_config_interface(0x500, 0x1, 0x1, 0);
+	ret = pmic_config_interface(0x500, 0x0, 0x1, 0); // [0:0]: VIO28_LP_SEL;
         ret = pmic_config_interface(0x502, 0x1, 0x1, 0);
         ret = pmic_config_interface(0x504, 0x1, 0x1, 0);
         ret = pmic_config_interface(0x504, 0x0, 0x1, 12);

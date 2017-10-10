@@ -1403,9 +1403,13 @@ static int bq27xxx_battery_status(struct bq27xxx_device_info *di,
 		else
 			status = POWER_SUPPLY_STATUS_DISCHARGING;
 	} else {
-		if (di->cache.flags & BQ27XXX_FLAG_FC)
+		struct bq27xxx_reg_cache cache = {0, };
+		bool has_singe_flag = di->chip == BQ27000 || di->chip == BQ27010;
+
+		cache.flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, has_singe_flag);
+		if ((cache.flags & BQ27XXX_FLAG_FC) && BMT_status.charger_exist)
 			status = POWER_SUPPLY_STATUS_FULL;
-		else if (di->cache.flags & BQ27XXX_FLAG_DSC)
+		else if (cache.flags & BQ27XXX_FLAG_DSC)
 			status = POWER_SUPPLY_STATUS_DISCHARGING;
 		else
 			status = POWER_SUPPLY_STATUS_CHARGING;

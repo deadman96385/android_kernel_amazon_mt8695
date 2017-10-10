@@ -627,7 +627,7 @@ extern void factory_get_calibrator_data(int sensor_id,
 extern void factory_set_mcu_calibration_data(int sensor_id);
 extern void init_factory_node(void);
 extern int spi_rw_bytes_serial(u8 * wbuf, u8 * rbuf, u8 len);
-extern void CWMCU_system_suspend(void);
+extern int CWMCU_system_suspend(void);
 extern void CWMCU_system_resume(void);
 
 

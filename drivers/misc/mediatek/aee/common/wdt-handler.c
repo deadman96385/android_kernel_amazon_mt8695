@@ -32,7 +32,7 @@
 #include <asm/memory.h>
 #include <asm/traps.h>
 #if defined(CONFIG_FIQ_GLUE)
-#include <asm/fiq_smp_call.h>
+#include <mach/fiq_smp_call.h>
 #endif
 #include <mach/wd_api.h>
 #include <mt-plat/mtk_ram_console.h>
@@ -520,9 +520,6 @@ void aee_wdt_fiq_info(void *arg, void *regs, void *svc_sp)
 	}
 
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_FIQ_DONE);
-
-	/* FIXME: correct mrdump function if necessary */
-	__mrdump_create_oops_dump(AEE_REBOOT_MODE_WDT, regs, "WDT/HWT");
 
 	aee_wdt_irq_info();
 }

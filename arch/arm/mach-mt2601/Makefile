@@ -40,6 +40,7 @@ obj-$(CONFIG_MTK_CIRQ) += mt_cirq.o
 obj-$(CONFIG_MTK_MCI) += mt_mci.o
 obj-y += mtk_ccci_helper.o
 obj-y += cache-mtk-v7.o
+obj-$(CONFIG_FIQ_GLUE) += fiq_smp_call.o
 
 # Hibernation
 AFLAGS_swsusp.o	:= -DTEXT_OFFSET=$(TEXT_OFFSET)

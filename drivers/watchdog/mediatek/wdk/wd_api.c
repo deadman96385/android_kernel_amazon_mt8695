@@ -634,8 +634,8 @@ void arch_reset(char mode, const char *cmd)
 	struct wd_api *wd_api = NULL;
 
 	res = get_wd_api(&wd_api);
-	pr_alert("arch_reset: cmd = %s\n", cmd ? : "NULL");
-	dump_stack();
+	pr_alert("arch_reset: mode=%d, cmd=%s\n", mode, cmd ? cmd : "NULL");
+
 	if (console_trylock())
 		pr_err("we can get console_sem\n");
 	else

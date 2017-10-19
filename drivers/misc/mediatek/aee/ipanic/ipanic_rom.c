@@ -683,7 +683,7 @@ static int ipanic_die(struct notifier_block *self, unsigned long cmd, void *ptr)
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_KE_IPANIC_DIE);
 #endif
 	aee_disable_api();
-	__mrdump_create_oops_dump(AEE_REBOOT_MODE_KERNEL_OOPS, dargs->regs, "Kernel Oops");
+	smp_send_stop();
 
 	__show_regs(dargs->regs);
 #ifdef CONFIG_MTK_RAM_CONSOLE

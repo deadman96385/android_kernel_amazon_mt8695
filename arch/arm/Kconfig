@@ -768,7 +768,7 @@ config ARCH_MT2601
 	select MFD_SYSCON
 	select ARM_HAS_SG_CHAIN
 	select KERNEL_MODE_NEON
-	select FIQ
+	select FIQ_GLUE
 	help
 	  This enable support for MediaTek MT2601
 

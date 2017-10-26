@@ -583,7 +583,8 @@ typedef enum {
     MT_DATA_WE,
     MT_DATA_GS,
     MT_DATA_GD,
-    MT_DATA_GE
+    MT_DATA_GE,
+    ActiveTimestampSync
 }MCU_TO_CPU_EVENT_TYPE;
 
 typedef enum {

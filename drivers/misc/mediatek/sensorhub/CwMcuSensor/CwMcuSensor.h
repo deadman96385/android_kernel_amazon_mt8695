@@ -43,6 +43,11 @@
 
 #define CWMCU_MUTEX
 
+#define CWM_USE_TIME_SYNC_WORK
+#define CMD_BUFFER_SIZE			16
+#define SYNC_TIME_DELAY_MS (60000)
+
+
 
 enum SCAN_status {
 	CW_SCAN_ID = 0,
@@ -457,7 +462,10 @@ typedef enum {
 	 */
 	RegMapR_hrLog_Count = 0x8B,
 	RegMapR_hrLog_Event = 0x8C,
-
+    /*
+        request time sync event from sensor hub 2017/10/17
+    */
+    RegMapR_ReqTimeSyncEvt = 0x92,
 	/*Pass the regist table information to the
 	   * host to detemine the read and write behavior
 	 */
@@ -509,6 +517,9 @@ struct CWMCU_T {
 #endif
 #ifdef CWM_USE_ERROR_HANDLE_WORK
 	struct delayed_work error_handle_work;
+#endif
+#ifdef CWM_USE_TIME_SYNC_WORK
+    struct delayed_work time_sync_work;
 #endif
 	struct work_struct resume_work;
 	struct input_dev *input;

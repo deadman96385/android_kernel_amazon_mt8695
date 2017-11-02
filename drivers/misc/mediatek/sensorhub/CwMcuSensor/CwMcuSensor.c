@@ -2848,6 +2848,41 @@ static struct device_attribute attributes[] = {
 	       sensor_hub_fw_download),
 };
 
+#ifdef CWM_USE_TIME_SYNC_WORK
+static void shub_synctimestamp(struct CWMCU_T *sensor)
+{
+    uint8_t data[CMD_BUFFER_SIZE] = {0,};
+    int ret;
+
+    if (sensor->mcu_mode != CW_NORMAL)
+        return;
+
+    power_pin_sw(sensor, SWITCH_POWER_SYS, 1);
+    ret = CWMCU_I2C_R(sensor, RegMapR_ReqTimeSyncEvt, data, 9);
+    mutex_lock(&sensor->mutex_lock);
+    if (ret >= 0) {
+        SH_LOG("shub synctime \n");
+        cw_send_event(sensor, NonWakeUpHandle, data[0], &data[1]);
+    } else {
+        SH_ERR("Read time sync fail [I2C]\n");
+    }
+    mutex_unlock(&sensor->mutex_lock);
+    power_pin_sw(sensor, SWITCH_POWER_SYS, 0);
+}
+
+static void shub_synctime_work(struct work_struct *work)
+{
+	struct CWMCU_T *sensor = container_of((struct delayed_work *)work, struct CWMCU_T, time_sync_work);
+	SH_LOG("synctime work \n");
+
+	shub_synctimestamp(sensor);
+	mutex_lock(&sensor->mutex_lock);
+	atomic_set(&sensor->delay, SYNC_TIME_DELAY_MS);
+	queue_delayed_work(sensor->driver_wq, &sensor->time_sync_work,msecs_to_jiffies(atomic_read(&sensor->delay)));
+	mutex_unlock(&sensor->mutex_lock);
+}
+#endif
+
 static void update_firmware(const struct firmware *fw_entry, void *context)
 {
 	struct CWMCU_T *sensor = context;
@@ -3024,6 +3059,9 @@ void CWMCU_system_resume(void)
 		if (sensor->mcu_mode == CW_BOOT) {
 			return;
 		}
+#ifdef CWM_USE_TIME_SYNC_WORK
+		shub_synctimestamp(sensor);
+#endif
 		CW_INFO("%s: power_on_list=0x%x", __FUNCTION__,
 			sensor->power_on_list);
 		//schedule_work(&sensor->resume_work);
@@ -3850,6 +3888,11 @@ int CWMCU_probe(struct i2c_client *client)
 				   (CWM_MAX_ERROR_WORK_TIME));
 #endif
 	}
+#ifdef CWM_USE_TIME_SYNC_WORK
+    /* send system_time */
+    INIT_DELAYED_WORK(&mcu->time_sync_work, shub_synctime_work);
+    queue_delayed_work(sensor->driver_wq, &sensor->time_sync_work, 0);
+#endif
 #if defined(CONFIG_FB)
 	if ((get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT)
 	    || (get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT))

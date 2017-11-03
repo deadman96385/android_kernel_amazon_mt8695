@@ -2445,13 +2445,6 @@ P_BSS_DESC_T scanSearchBssDescByPolicy(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBss
 			 * we use this Code for "Reject"
 			 * a SCAN result to become our candidate(Like a blacklist).
 			 */
-#if 0				/* TODO(Kevin): */
-			if (prStaRec->u2ReasonCode != REASON_CODE_RESERVED) {
-				DBGLOG(SCN, INFO,
-				       "SEARCH: Ignore BSS with previous Reason Code = %d\n", prStaRec->u2ReasonCode);
-				continue;
-			} else
-#endif
 			if (prStaRec->u2StatusCode != STATUS_CODE_SUCCESSFUL) {
 				/* NOTE(Kevin): greedy association - after timeout, we'll still
 				 * try to associate to the AP whose STATUS of conection attempt
@@ -2501,7 +2494,6 @@ P_BSS_DESC_T scanSearchBssDescByPolicy(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBss
 			if ((prConnSettings->fgIsConnByBssidIssued) &&
 					(prBssDesc->eBSSType == BSS_TYPE_INFRASTRUCTURE)) {
 				if (UNEQUAL_MAC_ADDR(prConnSettings->aucBSSID, prBssDesc->aucBSSID)) {
-					DBGLOG(SCN, INFO, "SEARCH: Ignore due to BSSID was not matched!\n");
 					continue;
 				}
 			}

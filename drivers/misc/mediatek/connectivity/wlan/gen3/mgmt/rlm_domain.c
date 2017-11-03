@@ -1699,11 +1699,9 @@ VOID rlmDomainBuildCmdByConfigTable(P_ADAPTER_T prAdapter, P_CMD_SET_COUNTRY_CHA
 VOID rlmDomainSendPwrLimitCmd(P_ADAPTER_T prAdapter)
 {
 	P_CMD_SET_COUNTRY_CHANNEL_POWER_LIMIT_T prCmd;
-	UINT_8 i;
 	UINT_16 u2DefaultTableIndex;
 	UINT_32 u4SetCmdTableMaxSize;
 	UINT_32 u4SetQueryInfoLen;
-	P_CMD_CHANNEL_POWER_LIMIT prCmdPwrLimit;	/* for print usage */
 
 	u4SetCmdTableMaxSize =
 	    sizeof(CMD_SET_COUNTRY_CHANNEL_POWER_LIMIT_T) +
@@ -1735,62 +1733,6 @@ VOID rlmDomainSendPwrLimitCmd(P_ADAPTER_T prAdapter)
 			rlmDomainBuildCmdByConfigTable(prAdapter, prCmd);
 		}
 	}
-#if 0
-	u4SetCmdTableMaxSize =
-	    sizeof(CMD_SET_COUNTRY_CHANNEL_POWER_LIMIT_T) +
-	    MAX_CMD_SUPPORT_CHANNEL_NUM * sizeof(CMD_CHANNEL_POWER_LIMIT);
-
-	prCmd = cnmMemAlloc(prAdapter, RAM_TYPE_BUF, u4SetCmdTableMaxSize);
-	ASSERT(prCmd);
-
-	/* To do: exception handle */
-	if (!prCmd) {
-		DBGLOG(RLM, ERROR, "Domain: no buf to send cmd\n");
-		return;
-	}
-	kalMemZero(prCmd, u4SetCmdTableMaxSize);	/* TODO memzero */
-
-	if (u2TableIndex != POWER_LIMIT_TABLE_NULL && u2TableIndex < MAX_DEFAULT_TABLE_COUNTRY_NUM) {
-
-		prCmd->u2CountryCode = (((UINT_16) g_rRlmCountryPowerLimitTable[u2TableIndex].aucCountryCode[0]) << 8) |
-		    (((UINT_16) g_rRlmCountryPowerLimitTable[u2TableIndex].aucCountryCode[1]) & BITS(0, 7));
-		prChPwrLimit = &g_rRlmCountryPowerLimitTable[u2TableIndex].rChannelPowerLimit[0];
-		prCmdPwrLimit = &prCmd->rChannelPowerLimit[0];
-		prCmd->ucNum = 0;
-		for (i = 0; i < MAX_CMD_SUPPORT_CHANNEL_NUM; i++) {
-
-			if (prChPwrLimit->ucCentralCh != ENDCH) {
-
-				/*Check Power limit table channel efficient or not */
-				fgChannelValid = rlmDomainCheckChannelEntryValid(prAdapter, prChPwrLimit->ucCentralCh);
-
-				/*Cmd set up */
-				if (fgChannelValid) {
-					kalMemCopy(prCmdPwrLimit, prChPwrLimit, sizeof(CMD_CHANNEL_POWER_LIMIT));
-					DBGLOG(RLM, INFO,
-					       "Domain: ValidCh=%d,Limit=%d,%d,%d,%d,%d,Fg=%d\n",
-						prCmdPwrLimit->ucCentralCh, prCmdPwrLimit->cPwrLimitCCK,
-						prCmdPwrLimit->cPwrLimit20, prCmdPwrLimit->cPwrLimit40,
-						prCmdPwrLimit->cPwrLimit80, prCmdPwrLimit->cPwrLimit160,
-						prCmdPwrLimit->ucFlag);
-					prCmd->ucNum++;
-					prCmdPwrLimit++;
-				} else {
-					DBGLOG(RLM, INFO,
-					       "Domain: Non-Ch=%d,Limit=%d,%d,%d,%d,%d,Fg=%d\n",
-						prChPwrLimit->ucCentralCh, prChPwrLimit->cPwrLimitCCK,
-						prChPwrLimit->cPwrLimit20, prChPwrLimit->cPwrLimit40,
-						prChPwrLimit->cPwrLimit80, prChPwrLimit->cPwrLimit160,
-						prChPwrLimit->ucFlag);
-				}
-				prChPwrLimit++;
-			} else {
-				/*End of the chanel entry */
-				break;
-			}
-		};
-	}
-#endif
 
 	if (prCmd->u2CountryCode != 0) {
 		DBGLOG(RLM, INFO,
@@ -1798,14 +1740,6 @@ VOID rlmDomainSendPwrLimitCmd(P_ADAPTER_T prAdapter)
 			(prCmd->u2CountryCode & 0x00ff), prCmd->ucNum);
 	} else {
 		DBGLOG(RLM, INFO, "Domain: ValidCC =0x%04x, ChNum=%d\n", prCmd->u2CountryCode, prCmd->ucNum);
-	}
-	prCmdPwrLimit = &prCmd->rChannelPowerLimit[0];
-
-	for (i = 0; i < prCmd->ucNum; i++) {
-		DBGLOG(RLM, INFO, "Domain: Ch=%d,Limit=%d,%d,%d,%d,%d,Fg=%d\n", prCmdPwrLimit->ucCentralCh,
-				   prCmdPwrLimit->cPwrLimitCCK, prCmdPwrLimit->cPwrLimit20, prCmdPwrLimit->cPwrLimit40,
-				   prCmdPwrLimit->cPwrLimit80, prCmdPwrLimit->cPwrLimit160, prCmdPwrLimit->ucFlag);
-		prCmdPwrLimit++;
 	}
 
 	u4SetQueryInfoLen =

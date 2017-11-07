@@ -802,18 +802,20 @@ static void dump_bq27xxx_regs(struct bq27xxx_device_info *di)
 	u16 socu = bq27xxx_read(di, BQ27XXX_REG_SOCU, false);
 	u16 fccf = bq27xxx_read(di, BQ27XXX_REG_FCCF, false);
 
-	dev_warn(di->dev, "Control:0x%04x\n", control);
+#if 0
 	dev_warn(di->dev, "Temperature:%u", temp);
-	dev_warn(di->dev, "Voltage:%u\n", volt);
 	dev_warn(di->dev, "Flags:0x%04x\n", flags);
-	dev_warn(di->dev, "FullAvailableCapacity:%u\n", fac);
-	dev_warn(di->dev, "RemainingCapacity:%u\n", rmc);
-	dev_warn(di->dev, "FullChargeCapacity:%u\n", fcc);
-	dev_warn(di->dev, "AverageCurrent:%d\n", (int)((s16)ai));
 	dev_warn(di->dev, "StateOfCharge:%u\n", soc);
 	dev_warn(di->dev, "RemainingCapacityUnfiltered:%u\n", rcu);
 	dev_warn(di->dev, "FullChargeCapacityUnfiltered:%u\n", fccu);
 	dev_warn(di->dev, "StateOfChargeUnfiltered:%u\n", socu);
+#endif
+	dev_warn(di->dev, "Control:0x%04x\n", control);
+	dev_warn(di->dev, "Voltage:%u\n", volt);
+	dev_warn(di->dev, "FullAvailableCapacity:%u\n", fac);
+	dev_warn(di->dev, "RemainingCapacity:%u\n", rmc);
+	dev_warn(di->dev, "FullChargeCapacity:%u\n", fcc);
+	dev_warn(di->dev, "AverageCurrent:%d\n", (int)((s16)ai));
 	dev_warn(di->dev, "FullChargeCapacityFiltered:%u\n", fccf);
 }
 
@@ -1619,7 +1621,7 @@ static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 
 	if (di->chip == BQ27421) {
 		terminate_voltage = get_terminate_voltage(di);
-		dev_warn(di->dev, "%s: get_terminate_voltage value %d\n",
+		dev_warn(di->dev, "%s: terminate_voltage: %d\n",
 				__func__, terminate_voltage);
 		if (3200 == terminate_voltage || 3400 == terminate_voltage) {
 			rom_mode_gauge_dm_init(di);

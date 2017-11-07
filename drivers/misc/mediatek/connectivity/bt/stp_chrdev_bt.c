@@ -28,6 +28,7 @@
 #include <linux/wakelock.h>
 #include <linux/device.h>
 #include <linux/printk.h>
+#include <linux/uio.h>
 
 #include "wmt_exp.h"
 #include "stp_exp.h"
@@ -187,6 +188,54 @@ unsigned int BT_poll(struct file *filp, poll_table *wait)
 	mask |= POLLOUT | POLLWRNORM;	/* Writable */
 
 	return mask;
+}
+
+ssize_t BT_write_iter(struct kiocb *iocb, struct iov_iter *from)
+{
+	INT32 retval = 0;
+	size_t count = iov_iter_count(from);
+
+	down(&wr_mtx);
+
+	BT_DBG_FUNC("count %zd\n", count);
+
+	if (rstflag) {
+		BT_ERR_FUNC("whole chip reset occurs! rstflag=%d\n", rstflag);
+		retval = -EIO;
+		goto OUT;
+	}
+
+	if (count > 0) {
+		if (count > BT_BUFFER_SIZE) {
+			count = BT_BUFFER_SIZE;
+			BT_WARN_FUNC("Shorten write count from %zd to %d\n", count, BT_BUFFER_SIZE);
+		}
+
+		if (copy_from_iter(o_buf, count, from) != count) {
+			retval = -EFAULT;
+			goto OUT;
+		}
+
+		retval = mtk_wcn_stp_send_data(o_buf, count, BT_TASK_INDX);
+		if (retval < 0)
+			BT_ERR_FUNC("mtk_wcn_stp_send_data fail, retval %d\n", retval);
+		else if (retval == 0) {
+			/* Device cannot process data in time, STP queue is full and no space is available for write,
+			 * native program should not call BT_write with no delay.
+			 */
+			BT_ERR_FUNC("Packet length %zd, sent bytes %d, no space is available!\n", count, retval);
+			retval = -EAGAIN;
+		} else
+			BT_DBG_FUNC("Packet length %zd, sent bytes %d\n", count, retval);
+
+	} else {
+		BT_ERR_FUNC("Packet length %zd is not allowed\n", count);
+		retval = -EINVAL;
+	}
+
+OUT:
+	up(&wr_mtx);
+	return retval;
 }
 
 ssize_t BT_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
@@ -447,6 +496,7 @@ const struct file_operations BT_fops = {
 	.release = BT_close,
 	.read = BT_read,
 	.write = BT_write,
+	.write_iter = BT_write_iter,
 	/* .ioctl = BT_ioctl, */
 	.unlocked_ioctl = BT_unlocked_ioctl,
 	.compat_ioctl = BT_compat_ioctl,

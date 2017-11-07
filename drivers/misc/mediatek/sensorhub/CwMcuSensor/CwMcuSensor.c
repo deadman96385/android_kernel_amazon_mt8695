@@ -3042,7 +3042,7 @@ int CWMCU_system_suspend(void)
 			return -EBUSY;
 		}
 		if (cw_tilt_wakeup_flag) {
-			CW_INFO("suspend => enable tilt");
+			SH_DBG("suspend => enable tilt");
 		}
 		power_pin_sw(sensor, SWITCH_POWER_PROBE, 1);
 		cwm_set_kernel_status(sensor, KERNEL_SUSPEND);
@@ -3062,14 +3062,14 @@ void CWMCU_system_resume(void)
 #ifdef CWM_USE_TIME_SYNC_WORK
 		shub_synctimestamp(sensor);
 #endif
-		CW_INFO("%s: power_on_list=0x%x", __FUNCTION__,
+		SH_DBG("%s: power_on_list=0x%x", __FUNCTION__,
 			sensor->power_on_list);
 		//schedule_work(&sensor->resume_work);
 
 		power_pin_sw(sensor, SWITCH_POWER_PROBE, 1);
 		cwm_set_kernel_status(sensor, KERNEL_RESUME);
 		if (cw_tilt_wakeup_flag) {
-			CW_INFO("resume => disable tilt");
+			SH_DBG("resume => disable tilt");
 		}
 		power_pin_sw(sensor, SWITCH_POWER_PROBE, 0);
 		CW_DEBUG("%s:end", __FUNCTION__);
@@ -3378,7 +3378,7 @@ static void cwmcu_resume_work(struct work_struct *work)
 	power_pin_sw(sensor, SWITCH_POWER_PROBE, 1);
 	cwm_set_kernel_status(sensor, KERNEL_RESUME);
 	if (cw_tilt_wakeup_flag) {
-		CW_INFO("resume => disable tilt");
+		SH_DBG("resume => disable tilt");
 	}
 	power_pin_sw(sensor, SWITCH_POWER_PROBE, 0);
 	CW_DEBUG("%s:end", __FUNCTION__);

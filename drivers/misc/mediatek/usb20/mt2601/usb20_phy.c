@@ -196,7 +196,7 @@ bool usb_enable_clock(bool enable)
 
 	spin_unlock_irqrestore(&musb_reg_clock_lock, flags);
 
-	printk(KERN_DEBUG "enable(%d), count(%d) res=%d\n", enable, count, res);
+	pr_debug("enable(%d), count(%d) res=%d\n", enable, count, res);
 	return 1;
 }
 

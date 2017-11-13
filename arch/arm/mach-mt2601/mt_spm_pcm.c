@@ -587,12 +587,6 @@ static u32 spm_parse_wake_reason(SPM_PCM_CONFIG *pcm_config, wake_status_t *wake
 
 	memset(p, 0, SPM_PARSE_BUFF_LEN);
 
-	p += sprintf(p, "VER = %s\n", pcm_config->ver);
-	p += sprintf(p, "PCM_EVENT_REG_STA = 0x%X\n", pcm_dbg_reg->PCM_EVENT_REG_STA);
-	p += sprintf(p, "PCM_R9 = 0x%X\n", pcm_dbg_reg->PCM_REG_DATA[9]);
-	p += sprintf(p, "PCM_R12 = 0x%X\n", pcm_dbg_reg->PCM_REG_DATA[12]);
-	p += sprintf(p, "PCM_R13 = 0x%X\n", pcm_dbg_reg->PCM_REG_DATA[13]);
-
 	switch (wake_status_p->wake_reason) {
 	case WR_PCM_ASSERT:
 		p += sprintf(p, "[PCM ASSERT] at PC= %d\n", pcm_dbg_reg->PCM_REG_DATA_INI);
@@ -611,6 +605,14 @@ static u32 spm_parse_wake_reason(SPM_PCM_CONFIG *pcm_config, wake_status_t *wake
 		goto out;
 	}
 
+	if (wake_status_p->wake_reason != WR_WAKE_SRC) {
+		p += sprintf(p, "VER = %s\n", pcm_config->ver);
+		p += sprintf(p, "PCM_EVENT_REG_STA = 0x%X\n", pcm_dbg_reg->PCM_EVENT_REG_STA);
+		p += sprintf(p, "PCM_R9 = 0x%X\n", pcm_dbg_reg->PCM_REG_DATA[9]);
+		p += sprintf(p, "PCM_R12 = 0x%X\n", pcm_dbg_reg->PCM_REG_DATA[12]);
+		p += sprintf(p, "PCM_R13 = 0x%X\n", pcm_dbg_reg->PCM_REG_DATA[13]);
+	}
+
 	p += sprintf(p, "CPU WAKE UP BY: ");
 
 	if (wake_status_p->wakeup_event & (WAKE_SRC_PCM_TIMER)) {
@@ -625,7 +627,7 @@ static u32 spm_parse_wake_reason(SPM_PCM_CONFIG *pcm_config, wake_status_t *wake
 		if (wake_status_p->wakeup_event & (1 << i)) {
 			p += sprintf(p, "%s ", pcm_wakeup_reason[i]);
 			if (i == WAKE_ID_EINT)
-				p += sprintf(p, ":0x%X ", mt_eint_get_status(0));
+				p += sprintf(p, ":0x%X\n", mt_eint_get_status(0));
 		}
 	}
 
@@ -763,20 +765,20 @@ void spm_clean_after_wakeup(void)
 void spm_dump_pll_regs(void)
 {
 	/* PLL register */
-	spm_notice("ARMPLL_CON0       0x%X = 0x%X\n", ARMPLL_CON0, spm_read(ARMPLL_CON0));
-	spm_notice("ARMPLL_CON1       0x%X = 0x%X\n", ARMPLL_CON1, spm_read(ARMPLL_CON1));
-	spm_notice("ARMPLL_PWR_CON0   0x%X = 0x%X\n", ARMPLL_PWR_CON0, spm_read(ARMPLL_PWR_CON0));
-	spm_notice("MAINPLL_CON0      0x%X = 0x%X\n", MAINPLL_CON0, spm_read(MAINPLL_CON0));
-	spm_notice("MAINPLL_CON1      0x%X = 0x%X\n", MAINPLL_CON1, spm_read(MAINPLL_CON1));
-	spm_notice("MAINPLL_PWR_CON0  0x%X = 0x%X\n", MAINPLL_PWR_CON0, spm_read(MAINPLL_PWR_CON0));
-	spm_notice("UNIVPLL_CON0      0x%X = 0x%X\n", UNIVPLL_CON0, spm_read(UNIVPLL_CON0));
-	spm_notice("UNIVPLL_CON1      0x%X = 0x%X\n", (UNIVPLL_CON0 + 4),
+	spm_debug("ARMPLL_CON0       0x%X = 0x%X\n", ARMPLL_CON0, spm_read(ARMPLL_CON0));
+	spm_debug("ARMPLL_CON1       0x%X = 0x%X\n", ARMPLL_CON1, spm_read(ARMPLL_CON1));
+	spm_debug("ARMPLL_PWR_CON0   0x%X = 0x%X\n", ARMPLL_PWR_CON0, spm_read(ARMPLL_PWR_CON0));
+	spm_debug("MAINPLL_CON0      0x%X = 0x%X\n", MAINPLL_CON0, spm_read(MAINPLL_CON0));
+	spm_debug("MAINPLL_CON1      0x%X = 0x%X\n", MAINPLL_CON1, spm_read(MAINPLL_CON1));
+	spm_debug("MAINPLL_PWR_CON0  0x%X = 0x%X\n", MAINPLL_PWR_CON0, spm_read(MAINPLL_PWR_CON0));
+	spm_debug("UNIVPLL_CON0      0x%X = 0x%X\n", UNIVPLL_CON0, spm_read(UNIVPLL_CON0));
+	spm_debug("UNIVPLL_CON1      0x%X = 0x%X\n", (UNIVPLL_CON0 + 4),
 		   spm_read(UNIVPLL_CON0 + 4));
-	spm_notice("UNIVPLL_PWR_CON0  0x%X = 0x%X\n", UNIVPLL_PWR_CON0, spm_read(UNIVPLL_PWR_CON0));
-	spm_notice("WHPLL_CON0        0x%X = 0x%X\n", WHPLL_CON0, spm_read(WHPLL_CON0));
-	spm_notice("WHPLL_CON1        0x%X = 0x%X\n", WHPLL_CON1, spm_read(WHPLL_CON1));
-	spm_notice("WHPLL_PWR_CON0    0x%X = 0x%X\n", WHPLL_PWR_CON0, spm_read(WHPLL_PWR_CON0));
-	spm_notice("WHPLL_PATHSEL_CON 0x%X = 0x%X\n", WHPLL_PATHSEL_CON,
+	spm_debug("UNIVPLL_PWR_CON0  0x%X = 0x%X\n", UNIVPLL_PWR_CON0, spm_read(UNIVPLL_PWR_CON0));
+	spm_debug("WHPLL_CON0        0x%X = 0x%X\n", WHPLL_CON0, spm_read(WHPLL_CON0));
+	spm_debug("WHPLL_CON1        0x%X = 0x%X\n", WHPLL_CON1, spm_read(WHPLL_CON1));
+	spm_debug("WHPLL_PWR_CON0    0x%X = 0x%X\n", WHPLL_PWR_CON0, spm_read(WHPLL_PWR_CON0));
+	spm_debug("WHPLL_PATHSEL_CON 0x%X = 0x%X\n", WHPLL_PATHSEL_CON,
 		   spm_read(WHPLL_PATHSEL_CON));
 }
 

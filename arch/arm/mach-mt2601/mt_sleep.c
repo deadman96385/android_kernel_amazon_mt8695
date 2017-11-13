@@ -41,13 +41,13 @@
 #define slp_write_sync()            mb()
 
 #define slp_info(fmt, args...)     \
-    pr_info("Power/Sleep" fmt, ##args)
+    pr_info(fmt, ##args)
 
 #define slp_debug(fmt, args...)     \
-    pr_debug("Power/Sleep" fmt, ##args)
+    pr_debug(fmt, ##args)
 
 #define slp_error(fmt, args...)    \
-    pr_err("Power/Sleep" fmt, ##args)
+    pr_err(fmt, ##args)
 
 /* static DEFINE_SPINLOCK(slp_lock); */
 

@@ -675,8 +675,6 @@ typedef struct _SCAN_INFO_T {
 	TIMER_T rWaitForGscanResutsTimer;
 	BOOLEAN fgGscnGetResWaiting;
 #endif
-	TIMER_T rScanDoneTimer;
-	UINT_8 ucScanDoneTimeoutCnt;
 
 } SCAN_INFO_T, *P_SCAN_INFO_T;
 
@@ -998,7 +996,5 @@ scnPSCNFsm(IN P_ADAPTER_T prAdapter,
 VOID scnGscnGetResultReplyCheck(IN P_ADAPTER_T prAdapter);
 
 VOID scnGscnGetResultReplyCheckTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr);
-
-VOID scnScanDoneTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr);
 
 #endif /* _SCAN_H */

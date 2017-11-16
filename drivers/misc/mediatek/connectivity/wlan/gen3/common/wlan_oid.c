@@ -1947,6 +1947,9 @@ wlanoidSetBssidListScanAdv(IN P_ADAPTER_T prAdapter,
 		else
 			return WLAN_STATUS_FAILURE;
 	}
+
+	if (timerPendingTimer(&prAdapter->rWifiVar.rAisFsmInfo.rScanDoneTimer))
+		cnmTimerStopTimer(prAdapter, &prAdapter->rWifiVar.rAisFsmInfo.rScanDoneTimer);
 	cnmTimerStartTimer(prAdapter, &prAdapter->rWifiVar.rAisFsmInfo.rScanDoneTimer,
 			   SEC_TO_MSEC(AIS_SCN_DONE_TIMEOUT_SEC));
 	return WLAN_STATUS_SUCCESS;

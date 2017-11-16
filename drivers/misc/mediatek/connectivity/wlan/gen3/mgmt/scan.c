@@ -840,10 +840,6 @@ VOID scnInit(IN P_ADAPTER_T prAdapter)
 			  (PFN_MGMT_TIMEOUT_FUNC) scnGscnGetResultReplyCheckTimeout, (ULONG) NULL);
 #endif
 
-	cnmTimerInitTimer(prAdapter,
-			  &prScanInfo->rScanDoneTimer, (PFN_MGMT_TIMEOUT_FUNC) scnScanDoneTimeout, (ULONG) NULL);
-	prScanInfo->ucScanDoneTimeoutCnt = 0;
-
 	return;
 }				/* end of scnInit() */
 

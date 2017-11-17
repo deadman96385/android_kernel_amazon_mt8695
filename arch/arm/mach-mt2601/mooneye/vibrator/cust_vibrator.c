@@ -20,7 +20,7 @@ static struct vibrator_hw cust_vibrator_hw = {
 #ifdef CUST_VIBR_LIMIT
 	.vib_limit = 9,
 #endif
-	.vosel = VOL_2800,
+	.vosel = VOL_1800,
 };
 
 struct vibrator_hw *get_cust_vibrator_hw(void)

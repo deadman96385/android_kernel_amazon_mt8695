@@ -460,7 +460,8 @@ static enum power_supply_property bq27421_battery_props[] = {
 /* bq274xx/bq276xx specific command information */
 #define BQ274XX_UNSEAL_KEY		0x80008000
 #define BQ274XX_RESET			0x41
-#define BQ274XX_SOFT_RESET		0x43
+#define BQ274XX_SOFT_RESET		0x42
+#define BQ274XX_EXIT_CFGUPDATE		0x43
 
 /*
  * SBS Commands for DF access - these are pretty standard
@@ -554,6 +555,23 @@ static int bq27xxx_battery_read_soc(struct bq27xxx_device_info *di)
 
 	return soc;
 }
+
+/*
+ * Return the battery State-of-Charge Unfiltered
+ * Or < 0 if something fails.
+ */
+static int bq27xxx_battery_read_socu(struct bq27xxx_device_info *di)
+{
+	int socu;
+
+	socu = bq27xxx_read(di, BQ27XXX_REG_SOCU, false);
+
+	if (socu < 0)
+		dev_dbg(di->dev, "error reading State-of-Charge\n");
+
+	return socu;
+}
+
 
 /*
  * Return a battery charge value in µAh
@@ -802,14 +820,12 @@ static void dump_bq27xxx_regs(struct bq27xxx_device_info *di)
 	u16 socu = bq27xxx_read(di, BQ27XXX_REG_SOCU, false);
 	u16 fccf = bq27xxx_read(di, BQ27XXX_REG_FCCF, false);
 
-#if 0
 	dev_warn(di->dev, "Temperature:%u", temp);
 	dev_warn(di->dev, "Flags:0x%04x\n", flags);
 	dev_warn(di->dev, "StateOfCharge:%u\n", soc);
 	dev_warn(di->dev, "RemainingCapacityUnfiltered:%u\n", rcu);
 	dev_warn(di->dev, "FullChargeCapacityUnfiltered:%u\n", fccu);
 	dev_warn(di->dev, "StateOfChargeUnfiltered:%u\n", socu);
-#endif
 	dev_warn(di->dev, "Control:0x%04x\n", control);
 	dev_warn(di->dev, "Voltage:%u\n", volt);
 	dev_warn(di->dev, "FullAvailableCapacity:%u\n", fac);
@@ -905,8 +921,11 @@ static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 	dump_bq27xxx_regs(di);
 
 	mCapacity = cache.capacity;
-	if (di->cache.capacity != cache.capacity)
+	if (di->cache.capacity != cache.capacity) {
+	    if ((BMT_status.charger_exist && (di->cache.capacity > cache.capacity)) ||
+		(!BMT_status.charger_exist && (di->cache.capacity < cache.capacity)) )
 		power_supply_changed(di->bat);
+	}
 
 	if (memcmp(&di->cache, &cache, sizeof(cache)) != 0)
 		di->cache = cache;
@@ -1058,7 +1077,7 @@ static int exit_cfg_update_mode(struct bq27xxx_device_info *di)
 
 	dev_dbg(di->dev, "%s:\n", __func__);
 
-	control_cmd_wr(di, BQ274XX_SOFT_RESET);
+	control_cmd_wr(di, BQ274XX_EXIT_CFGUPDATE);
 
 	while (i < CFG_UPDATE_POLLING_RETRY_LIMIT) {
 		i++;
@@ -1188,6 +1207,7 @@ static bool rom_mode_gauge_dm_initialized(struct bq27xxx_device_info *di)
 		return true;
 }
 
+
 #define INITCOMP_TIMEOUT_MS		10000
 static void rom_mode_gauge_dm_init(struct bq27xxx_device_info *di)
 {
@@ -1246,7 +1266,7 @@ static void rom_mode_gauge_dm_init(struct bq27xxx_device_info *di)
 
 			read_dm_block(di, dm_reg->subclass, dm_reg->offset,
 				buf);
-			copy_to_dm_buf_big_endian(di, buf, offset,
+			copy_to_dm_buf_big_endian(di, buf, offset - ((blk_number << 5) & 0xFF),
 				dm_reg->len, dm_reg->data);
 		}
 		blk_number_prev = blk_number;
@@ -1286,14 +1306,15 @@ static struct subclass_reg subcla_regs[] = {
 static void rom_mode_print_subclass(struct bq27xxx_device_info *di)
 {
 	static int count = 0;
-	count++;
-	if(count%10)
-		return;
 	int i;
 	int timeout = INITCOMP_TIMEOUT_MS;
 	u8 subclass, offset;
 	u8 buf[32];
 	struct subclass_reg *sb_reg;
+
+	count++;
+	if(count%10)
+		return;
 
 	dev_dbg(di->dev, "%s:\n", __func__);
 
@@ -1586,6 +1607,22 @@ static void bq27xxx_external_power_changed(struct power_supply *psy)
 	schedule_delayed_work(&di->work, 0);
 }
 
+static void bq27xxx_soft_reset(struct bq27xxx_device_info *di)
+{
+	dev_warn(di->dev, "%s: Enter. \n", __func__);
+
+	dev_warn(di->dev, "%s: Enter cfg update mode\n", __func__);
+	enter_cfg_update_mode(di);
+
+	dev_warn(di->dev, "%s: cmd - %04x\n", __func__, BQ274XX_SOFT_RESET);
+	control_cmd_wr(di, BQ274XX_SOFT_RESET);
+	msleep(200);
+
+	seal(di);
+
+	dev_warn(di->dev, "%s: Exit. \n", __func__);
+}
+
 static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 				    const char *name)
 {
@@ -1593,6 +1630,8 @@ static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 	struct power_supply_desc *psy_desc;
 	struct power_supply_config psy_cfg = { .drv_data = di, };
 	int terminate_voltage = 0;
+	int socu = 0;
+	int fcc = 0;
 
 	psy_desc = devm_kzalloc(di->dev, sizeof(*psy_desc), GFP_KERNEL);
 	if (!psy_desc)
@@ -1620,9 +1659,17 @@ static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 	bq27xxx_battery_update(di);
 
 	if (di->chip == BQ27421) {
+		/*if socu is far greater than soc, align soc with socu. */
+		socu = bq27xxx_battery_read_socu(di);
+		fcc = bq27xxx_battery_read_fcc(di)/1000;
 		terminate_voltage = get_terminate_voltage(di);
-		dev_warn(di->dev, "%s: terminate_voltage: %d\n",
-				__func__, terminate_voltage);
+
+		dev_warn(di->dev, "%s: soc: %d; socu: %d; fcc: %d; terminate_voltage: %d\n",
+				__func__, di->cache.capacity, socu, fcc, terminate_voltage);
+		if ( ((di->cache.capacity - socu > 9) && (socu >=0)) || (fcc > 800)  ) {
+			bq27xxx_soft_reset(di);
+		}
+
 		if (3200 == terminate_voltage || 3400 == terminate_voltage) {
 			rom_mode_gauge_dm_init(di);
 		}

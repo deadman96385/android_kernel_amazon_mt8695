@@ -2074,6 +2074,14 @@ VOID aisFsmSteps(IN P_ADAPTER_T prAdapter, ENUM_AIS_STATE_T eNextState)
 				}
 				/* 4 <2.b> If we don't have the matched one */
 				else {
+					if (prAisFsmInfo->rJoinReqTime != 0 &&
+						CHECK_FOR_TIMEOUT(kalGetTimeTick(),
+								  prAisFsmInfo->rJoinReqTime,
+								  SEC_TO_SYSTIME(AIS_JOIN_TIMEOUT))) {
+						eNextState = AIS_STATE_JOIN_FAILURE;
+						fgIsTransition = TRUE;
+						break;
+					}
 
 					/* increase connection trial count for infrastructure connection */
 					if (prConnSettings->eOPMode == NET_TYPE_INFRA)
@@ -2384,7 +2392,7 @@ VOID aisFsmSteps(IN P_ADAPTER_T prAdapter, ENUM_AIS_STATE_T eNextState)
 					    prAisBssInfo->prStaRecOfAP,
 					    (P_SW_RFB_T) NULL, REASON_CODE_DEAUTH_LEAVING_BSS, aisDeauthXmitComplete);
 			if (timerPendingTimer(&prAisFsmInfo->rDeauthDoneTimer))
-				cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rDeauthDoneTimer);    
+				cnmTimerStopTimer(prAdapter, &prAisFsmInfo->rDeauthDoneTimer);
 			cnmTimerStartTimer(prAdapter, &prAisFsmInfo->rDeauthDoneTimer, 100);
 			break;
 
@@ -2958,6 +2966,10 @@ enum _ENUM_AIS_STATE_T aisFsmJoinCompleteAction(IN struct _ADAPTER_T *prAdapter,
 				roamingFsmRunEventStart(prAdapter);
 #endif /* CFG_SUPPORT_ROAMING */
 
+			if (aisFsmIsRequestPending(prAdapter, AIS_REQUEST_ROAMING_CONNECT, FALSE) == FALSE) {
+				prAisFsmInfo->rJoinReqTime = 0;
+			}
+
 			/* 4 <1.7> Set the Next State of AIS FSM */
 			eNextState = AIS_STATE_NORMAL_TR;
 		}
@@ -3006,8 +3018,7 @@ enum _ENUM_AIS_STATE_T aisFsmJoinCompleteAction(IN struct _ADAPTER_T *prAdapter,
 #if CFG_SUPPORT_ROAMING
 					eNextState = AIS_STATE_WAIT_FOR_NEXT_SCAN;
 #endif /* CFG_SUPPORT_ROAMING */
-				} else
-				    if (CHECK_FOR_TIMEOUT
+				} else if (prAisFsmInfo->rJoinReqTime != 0 && CHECK_FOR_TIMEOUT
 					(rCurrentTime, prAisFsmInfo->rJoinReqTime, SEC_TO_SYSTIME(AIS_JOIN_TIMEOUT))) {
 					/* 4.a temrminate join operation */
 					eNextState = AIS_STATE_JOIN_FAILURE;
@@ -3417,6 +3428,7 @@ VOID aisCheckPostponedDisconnTimeout(IN P_ADAPTER_T prAdapter,  P_AIS_FSM_INFO_T
 	/* firstly, check if we have started postpone indication.
 	** otherwise, give a chance to do join before indicate to host
 	**/
+
 	if (prAisFsmInfo->u4PostponeIndStartTime == 0)
 		return;
 
@@ -4126,17 +4138,17 @@ VOID aisFsmRunEventJoinTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr)
 		aisFsmStateAbort_JOIN(prAdapter);
 
 		/* 2. Increase Join Failure Count */
-		prAisFsmInfo->prTargetStaRec->ucJoinFailureCount++;
+		prAisFsmInfo->prTargetBssDesc->ucJoinFailureCount++;
 
-		if (prAisFsmInfo->prTargetStaRec->ucJoinFailureCount < JOIN_MAX_RETRY_FAILURE_COUNT) {
+		//git #527473 (Ziming)
+		if (prAisFsmInfo->prTargetBssDesc->ucJoinFailureCount < JOIN_MAX_RETRY_FAILURE_COUNT) {
 			/* 3.1 Retreat to AIS_STATE_SEARCH state for next try */
 			eNextState = AIS_STATE_SEARCH;
 		} else if (prAisBssInfo->eConnectionState == PARAM_MEDIA_STATE_CONNECTED) {
 			/* roaming cases */
 			/* 3.2 Retreat to AIS_STATE_WAIT_FOR_NEXT_SCAN state for next try */
 			eNextState = AIS_STATE_WAIT_FOR_NEXT_SCAN;
-		} else
-		    if (!CHECK_FOR_TIMEOUT
+		} else if (prAisFsmInfo->rJoinReqTime != 0 && !CHECK_FOR_TIMEOUT
 			(rCurrentTime, prAisFsmInfo->rJoinReqTime, SEC_TO_SYSTIME(AIS_JOIN_TIMEOUT))) {
 			/* 3.3 Retreat to AIS_STATE_WAIT_FOR_NEXT_SCAN state for next try */
 			eNextState = AIS_STATE_WAIT_FOR_NEXT_SCAN;

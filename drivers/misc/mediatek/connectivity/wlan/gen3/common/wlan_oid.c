@@ -6996,6 +6996,9 @@ wlanoidSetCurrentPacketFilter(IN P_ADAPTER_T prAdapter,
 {
 	UINT_32 u4NewPacketFilter;
 	WLAN_STATUS rStatus = WLAN_STATUS_SUCCESS;
+#if CFG_SUPPORT_DROP_MC_PACKET
+	UINT_32 u4SetRxPacketFilter;
+#endif
 
 	DEBUGFUNC("wlanoidSetCurrentPacketFilter");
 
@@ -7059,6 +7062,20 @@ wlanoidSetCurrentPacketFilter(IN P_ADAPTER_T prAdapter,
 		prAdapter->u4OsPacketFilter &= PARAM_PACKET_FILTER_P2P_MASK;
 		prAdapter->u4OsPacketFilter |= u4NewPacketFilter;
 
+#if CFG_SUPPORT_DROP_MC_PACKET
+		u4SetRxPacketFilter = prAdapter->u4OsPacketFilter;
+		if (prAdapter->prGlueInfo->fgIsInSuspendMode)
+			u4SetRxPacketFilter &=
+				~(PARAM_PACKET_FILTER_MULTICAST | PARAM_PACKET_FILTER_ALL_MULTICAST);
+#endif
+		DBGLOG(OID, INFO, "[MC debug] u4PacketFilter=%x, IsSuspend=%d\n",
+#if CFG_SUPPORT_DROP_MC_PACKET
+				u4SetRxPacketFilter,
+#else
+				prAdapter->u4OsPacketFilter,
+#endif
+				prAdapter->prGlueInfo->fgIsInSuspendMode);
+
 		return wlanSendSetQueryCmd(prAdapter,
 					   CMD_ID_SET_RX_FILTER,
 					   TRUE,
@@ -7067,7 +7084,12 @@ wlanoidSetCurrentPacketFilter(IN P_ADAPTER_T prAdapter,
 					   nicCmdEventSetCommon,
 					   nicOidCmdTimeoutCommon,
 					   sizeof(UINT_32),
-					   (PUINT_8) &prAdapter->u4OsPacketFilter, pvSetBuffer, u4SetBufferLen);
+#if CFG_SUPPORT_DROP_MC_PACKET
+					   (PUINT_8) &u4SetRxPacketFilter,
+#else
+					   (PUINT_8) &prAdapter->u4OsPacketFilter,
+#endif
+					   pvSetBuffer, u4SetBufferLen);
 	} else {
 		return rStatus;
 	}

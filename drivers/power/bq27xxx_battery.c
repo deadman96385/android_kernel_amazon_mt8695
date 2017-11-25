@@ -1607,8 +1607,11 @@ static void bq27xxx_external_power_changed(struct power_supply *psy)
 	schedule_delayed_work(&di->work, 0);
 }
 
-static void bq27xxx_soft_reset(struct bq27xxx_device_info *di)
+static int bq27xxx_soft_reset(struct bq27xxx_device_info *di)
 {
+	int i = 0;
+	u16 flags;
+
 	dev_warn(di->dev, "%s: Enter. \n", __func__);
 
 	dev_warn(di->dev, "%s: Enter cfg update mode\n", __func__);
@@ -1616,11 +1619,28 @@ static void bq27xxx_soft_reset(struct bq27xxx_device_info *di)
 
 	dev_warn(di->dev, "%s: cmd - %04x\n", __func__, BQ274XX_SOFT_RESET);
 	control_cmd_wr(di, BQ274XX_SOFT_RESET);
-	msleep(200);
 
-	seal(di);
+	while (i < CFG_UPDATE_POLLING_RETRY_LIMIT) {
+		i++;
+		flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
+		if (!(flags & (1 << 4)))
+			break;
+		msleep(100);
+	}
 
-	dev_warn(di->dev, "%s: Exit. \n", __func__);
+	if (i == CFG_UPDATE_POLLING_RETRY_LIMIT) {
+		dev_err(di->dev, "%s: Exit. soft reset failed %04x!\n", __func__, flags);
+		return 0;
+	}
+
+	if (seal(di)) {
+		dev_warn(di->dev, "%s: Exit. soft reset successfully! \n", __func__);
+		return 1;
+	}
+	else {
+		dev_warn(di->dev, "%s: Exit. soft reset seal failed!\n", __func__);
+		return 0;
+	}
 }
 
 static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
@@ -1662,16 +1682,21 @@ static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 		/*if socu is far greater than soc, align soc with socu. */
 		socu = bq27xxx_battery_read_socu(di);
 		fcc = bq27xxx_battery_read_fcc(di)/1000;
-		terminate_voltage = get_terminate_voltage(di);
 
-		dev_warn(di->dev, "%s: soc: %d; socu: %d; fcc: %d; terminate_voltage: %d\n",
-				__func__, di->cache.capacity, socu, fcc, terminate_voltage);
-		if ( ((di->cache.capacity - socu > 9) && (socu >=0)) || (fcc > 800)  ) {
+		dev_warn(di->dev, "%s: soc: %d; socu: %d; fcc: %d\n",
+				__func__, di->cache.capacity, socu, fcc);
+		if ( ((abs(di->cache.capacity - socu) > 9) && (socu >= 0)) || (fcc > 800)  ) {
 			bq27xxx_soft_reset(di);
-		}
-
-		if (3200 == terminate_voltage || 3400 == terminate_voltage) {
 			rom_mode_gauge_dm_init(di);
+		}
+		else {
+			terminate_voltage = get_terminate_voltage(di);
+			dev_warn(di->dev, "%s: terminate_voltage:%d\n",
+				__func__, terminate_voltage);
+
+			if (3200 == terminate_voltage || 3400 == terminate_voltage) {
+				rom_mode_gauge_dm_init(di);
+			}
 		}
 	}
 

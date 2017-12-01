@@ -3710,7 +3710,7 @@ static void cwmcu_hw_config_init(struct CWMCU_T *sensor)
 	sensor->firmware_update_status = 2;
 
 	sensor->POSITIONData[0] = 5;
-	sensor->POSITIONData[1] = 5;
+	sensor->POSITIONData[1] = 4;
 	sensor->POSITIONData[2] = 5;
 
 	for (i = 0; i < DRIVER_ID_END; i++) {

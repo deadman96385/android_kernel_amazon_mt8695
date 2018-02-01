@@ -100,7 +100,8 @@ static int create_external_display_path(unsigned int session, int mode)
 
 			if (ext_disp_wait_ovl_available(0) > 0) {
 				ovl2mem_init(session);
-				ovl2mem_setlayernum(4);
+				ovl2mem_setlayernum(
+					MEMORY_SESSION_INPUT_LAYER_COUNT);
 			} else {
 				MULTI_COTRL_ERR("mhl path: OVL1 can not be split out!\n");
 				ret = -1;
@@ -155,7 +156,7 @@ static int create_external_display_path(unsigned int session, int mode)
 		}
 	} else if (DISP_SESSION_TYPE(session) == DISP_SESSION_MEMORY && EXTD_OVERLAY_CNT == 0) {
 		MULTI_COTRL_ERR("memory session and ovl time sharing!\n");
-		ovl2mem_setlayernum(4);
+		ovl2mem_setlayernum(MEMORY_SESSION_INPUT_LAYER_COUNT);
 	}
 
 	return ret;

@@ -2235,7 +2235,7 @@ static void mtkfb_free_resources(struct mtkfb_device *fbdev, int state)
 		/* nothing to free */
 		break;
 	default:
-		BUG();
+		WARN(1, "%s: error state=%d\n", __func__, state);
 	}
 }
 

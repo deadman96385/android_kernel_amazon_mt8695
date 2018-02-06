@@ -172,6 +172,13 @@ static void lcm_suspend(void)
 
 	data_array[0] = 0x014F1500;
 	dsi_set_cmdq(data_array, 1, 1);
+
+	MDELAY(10);
+	SET_RESET_PIN(1);
+	SET_RESET_PIN(0);
+	MDELAY(1);
+	SET_RESET_PIN(1);
+	MDELAY(5);
 }
 
 static void lcm_resume(void)

@@ -1130,11 +1130,51 @@ static void mxt_input_button(struct mxt_data *data, u8 *message)
 	}
 }
 
+#define TRKID_SGN	((TRKID_MAX + 1) >> 1)
 static void mxt_input_sync(struct mxt_data *data)
 {
-	input_mt_report_pointer_emulation(data->input_dev,
-			data->pdata->t19_num_keys);
-	input_sync(data->input_dev);
+	struct input_dev *dev = data->input_dev;
+	bool use_count = data->pdata->t19_num_keys;
+	struct input_mt *mt = dev->mt;
+	struct input_mt_slot *oldest;
+	int oldid, count, i;
+
+	if (!mt)
+		return;
+
+	oldest = NULL;
+	oldid = mt->trkid;
+	count = 0;
+
+	for (i = 0; i < mt->num_slots; ++i) {
+		struct input_mt_slot *ps = &mt->slots[i];
+		int id = input_mt_get_value(ps, ABS_MT_TRACKING_ID);
+
+		if (id < 0)
+			continue;
+		if ((id - oldid) & TRKID_SGN) {
+			oldest = ps;
+			oldid = id;
+		}
+		count++;
+	}
+
+	input_event(dev, EV_KEY, BTN_TOUCH, count > 0);
+	if (use_count)
+		input_mt_report_finger_count(dev, count);
+
+	if (oldest) {
+		if (test_bit(ABS_MT_PRESSURE, dev->absbit)) {
+			int p = input_mt_get_value(oldest, ABS_MT_PRESSURE);
+
+			input_event(dev, EV_ABS, ABS_PRESSURE, p);
+		}
+	} else {
+		if (test_bit(ABS_MT_PRESSURE, dev->absbit))
+			input_event(dev, EV_ABS, ABS_PRESSURE, 0);
+	}
+
+	input_sync(dev);
 }
 
 static void mxt_proc_t9_message(struct mxt_data *data, u8 *message)

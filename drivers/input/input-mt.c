@@ -222,11 +222,11 @@ void input_mt_report_pointer_emulation(struct input_dev *dev, bool use_count)
 		input_mt_report_finger_count(dev, count);
 
 	if (oldest) {
-		/*int x = input_mt_get_value(oldest, ABS_MT_POSITION_X);
+		int x = input_mt_get_value(oldest, ABS_MT_POSITION_X);
 		int y = input_mt_get_value(oldest, ABS_MT_POSITION_Y);
 
 		input_event(dev, EV_ABS, ABS_X, x);
-		input_event(dev, EV_ABS, ABS_Y, y);*/
+		input_event(dev, EV_ABS, ABS_Y, y);
 
 		if (test_bit(ABS_MT_PRESSURE, dev->absbit)) {
 			int p = input_mt_get_value(oldest, ABS_MT_PRESSURE);

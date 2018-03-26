@@ -317,7 +317,7 @@ static u8 bq27421_regs[] = {
 	0x30,	/* SOCU		*/
 };
 
-static u8 *bq27xxx_regs[] = {
+static u8 *bq27xxx_regs[] __maybe_unused = {
 	[BQ27000] = bq27000_regs,
 	[BQ27010] = bq27010_regs,
 	[BQ27500] = bq27500_regs,
@@ -1643,7 +1643,7 @@ static int bq27xxx_soft_reset(struct bq27xxx_device_info *di)
 	}
 }
 
-static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
+static int __maybe_unused bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 				    const char *name)
 {
 	int ret;
@@ -1703,7 +1703,7 @@ static int bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 	return 0;
 }
 
-static void bq27xxx_powersupply_unregister(struct bq27xxx_device_info *di)
+static void __maybe_unused bq27xxx_powersupply_unregister(struct bq27xxx_device_info *di)
 {
 	/*
 	 * power_supply_unregister call bq27xxx_battery_get_property which

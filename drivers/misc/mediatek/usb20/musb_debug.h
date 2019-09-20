@@ -14,6 +14,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
  * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
@@ -31,8 +36,8 @@
 #define __MUSB_LINUX_DEBUG_H__
 
 #define yprintk(facility, format, args...) \
-		printk(facility "%s %d: " format, \
-		__func__, __LINE__, ## args)
+		printk(facility "%s %d: " format , \
+		__func__, __LINE__ , ## args)
 
 /* workaroud for redefine warning in usb_dump.c */
 #ifdef WARNING
@@ -54,17 +59,16 @@
 #define xprintk(level,  format, args...) do { \
 	if (_dbg_level(level)) { \
 		if (musb_uart_debug) {\
-			pr_notice("[MUSB]%s %d: " format, \
-				__func__, __LINE__, ## args); \
+			pr_warn("[MUSB]%s %d: " format , \
+				__func__, __LINE__ , ## args); \
 		} \
 		else{\
-			pr_debug("[MUSB]%s %d: " format, \
-				__func__, __LINE__, ## args); \
+			pr_debug("[MUSB]%s %d: " format , \
+				__func__, __LINE__ , ## args); \
 		} \
 	} } while (0)
 
 extern unsigned musb_debug;
-extern unsigned musb_debug_limit;
 extern unsigned musb_uart_debug;
 
 static inline int _dbg_level(unsigned level)
@@ -77,23 +81,9 @@ static inline int _dbg_level(unsigned level)
 #endif
 #define DBG(level, fmt, args...) xprintk(level, fmt, ## args)
 
-#define DBG_LIMIT(FREQ, fmt, args...) do {\
-	static DEFINE_RATELIMIT_STATE(ratelimit, HZ, FREQ);\
-	static int skip_cnt;\
-	\
-	if (unlikely(!musb_debug_limit))\
-		DBG(0, fmt "<unlimit>\n", ## args);\
-	else { \
-		if (__ratelimit(&ratelimit)) {\
-			DBG(0, fmt ", skip_cnt<%d>\n", ## args, skip_cnt);\
-			skip_cnt = 0;\
-		} else\
-			skip_cnt++;\
-	} \
-} while (0)\
-
 /* extern const char *otg_state_string(struct musb *); */
-extern int musb_init_debugfs(struct musb *musb)  __attribute__((weak));
-extern void musb_exit_debugfs(struct musb *musb) __attribute__((weak));
+
+extern int musb_init_debugfs(struct musb *musb);
+extern void musb_exit_debugfs(struct musb *musb);
 
 #endif				/*  __MUSB_LINUX_DEBUG_H__ */

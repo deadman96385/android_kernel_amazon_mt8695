@@ -1044,17 +1044,20 @@ module_param_named(time, printk_time, bool, S_IRUGO | S_IWUSR);
 static size_t print_time(u64 ts, char *buf)
 {
 	unsigned long rem_nsec;
+	int cpuid;
 
 	if (!printk_time)
 		return 0;
 
 	rem_nsec = do_div(ts, 1000000000);
+	cpuid = raw_smp_processor_id();
 
 	if (!buf)
-		return snprintf(NULL, 0, "[%5lu.000000] ", (unsigned long)ts);
+		return snprintf(NULL, 0, "[%5lu.000000@%d] ", (unsigned long)ts,
+							cpuid);
 
-	return sprintf(buf, "[%5lu.%06lu] ",
-		       (unsigned long)ts, rem_nsec / 1000);
+	return sprintf(buf, "[%5lu.%06lu@%d] ",
+		(unsigned long)ts, rem_nsec / 1000, cpuid);
 }
 
 static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)

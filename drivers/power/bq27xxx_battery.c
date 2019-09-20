@@ -52,7 +52,6 @@
 #include <asm/unaligned.h>
 
 #include <linux/power/bq27xxx_battery.h>
-#include <mach/battery_common.h>
 
 #define DRIVER_VERSION		"1.2.0"
 
@@ -82,12 +81,6 @@
 struct bq27xxx_device_info;
 struct bq27xxx_access_methods {
 	int (*read)(struct bq27xxx_device_info *di, u8 reg, bool single);
-	int (*write)(struct bq27xxx_device_info *di, u8 reg, int value,
-			bool single);
-	int (*blk_read)(struct bq27xxx_device_info *di, u8 reg, u8 *data,
-		u8 sz);
-	int (*blk_write)(struct bq27xxx_device_info *di, u8 reg, u8 *data,
-		u8 sz);
 };
 
 #define INVALID_REG_ADDR	0xff
@@ -115,14 +108,6 @@ enum bq27xxx_reg_index {
 	BQ27XXX_REG_SOC,	/* State-of-Charge */
 	BQ27XXX_REG_DCAP,	/* Design Capacity */
 	BQ27XXX_REG_AP,		/* Average Power */
-	BQ27XXX_REG_FAC,
-	BQ27XXX_REG_RMC,
-	BQ27XXX_REG_AVG_CURR,
-	BQ27XXX_REG_RCU,
-	BQ27XXX_REG_FCCU,
-	BQ27XXX_REG_FCCF,
-	BQ27XXX_REG_SOCU,
-	NUM_REGS
 };
 
 struct bq27xxx_reg_cache {
@@ -137,13 +122,6 @@ struct bq27xxx_reg_cache {
 	int flags;
 	int power_avg;
 	int health;
-};
-
-struct dm_reg {
-	u8 subclass;
-	u8 offset;
-	u8 len;
-	u32 data;
 };
 
 struct bq27xxx_device_info {
@@ -164,9 +142,6 @@ struct bq27xxx_device_info {
 	struct mutex lock;
 
 	u8 *regs;
-	struct dm_reg *dm_regs;
-	u16 dm_regs_count;
-	int fake_capacity;
 };
 
 /* Register mappings */
@@ -308,13 +283,6 @@ static u8 bq27421_regs[] = {
 	0x1c,	/* SOC		*/
 	0x3c,	/* DCAP		*/
 	0x18,	/* AP		*/
-	0x0A,	/* FAC		*/
-	0x0C,	/* RMC		*/
-	0x10,	/* AVG CURR	*/
-	0x28,	/* RCU		*/
-	0x2C,	/* FCCU		*/
-	0x2E,   /* FCCF*/
-	0x30,	/* SOCU		*/
 };
 
 static u8 *bq27xxx_regs[] __maybe_unused = {
@@ -457,49 +425,6 @@ static enum power_supply_property bq27421_battery_props[] = {
 	POWER_SUPPLY_PROP_MANUFACTURER,
 };
 
-/* bq274xx/bq276xx specific command information */
-#define BQ274XX_UNSEAL_KEY		0x80008000
-#define BQ274XX_RESET			0x41
-#define BQ274XX_SOFT_RESET		0x42
-#define BQ274XX_EXIT_CFGUPDATE		0x43
-
-/*
- * SBS Commands for DF access - these are pretty standard
- * So, no need to go in the command array
- */
-#define BLOCK_DATA_CLASS		0x3E
-#define DATA_BLOCK			0x3F
-#define BLOCK_DATA			0x40
-#define BLOCK_DATA_CHECKSUM		0x60
-#define BLOCK_DATA_CONTROL		0x61
-
-/* Subcommands of Control() */
-#define CONTROL_STATUS_SUBCMD		0x0000
-
-#define BQ274XX_FLAG_ITPOR				0x20
-#define BQ274XX_CTRL_STATUS_INITCOMP	0x80
-#define SET_CFGUPDATE_SUBCMD		0x0013
-#define SEAL_SUBCMD			0x0020
-
-
-#define SPM_TIMEOUT  10*60 //10minutes
-
-/*
- * Ordering the parameters based on subclass and then offset will help in
- * having fewer flash writes while updating.
- * Customize these values and, if necessary, add more based on system needs.
- */
-static struct dm_reg bq274xx_dm_regs[] = {
-	{64, 2, 1, 0x0F},	/* Op Config B */
-	{80, 78, 1, 10},	/* TermV Valid t 10s */
-	{82, 0, 2, 17312},	/* Qmax */
-	{82, 3, 2, 15},		/* Reserve capacity */
-	{82, 10, 2, 300},	/* Design Capacity */
-	{82, 12, 2, 1140},	/* Design Energy */
-	{82, 16, 2, 3300},	/* Terminate Voltage */
-	{82, 27, 2, 33},	/* Taper rate */
-};
-
 #define BQ27XXX_PROP(_id, _prop)		\
 	[_id] = {				\
 		.props = _prop,			\
@@ -519,8 +444,6 @@ static struct {
 	BQ27XXX_PROP(BQ27421, bq27421_battery_props),
 };
 
-extern PMU_ChargerStruct BMT_status;
-static int mCapacity = 0;
 static unsigned int poll_interval = 360;
 module_param(poll_interval, uint, 0644);
 MODULE_PARM_DESC(poll_interval,
@@ -555,23 +478,6 @@ static int bq27xxx_battery_read_soc(struct bq27xxx_device_info *di)
 
 	return soc;
 }
-
-/*
- * Return the battery State-of-Charge Unfiltered
- * Or < 0 if something fails.
- */
-static int bq27xxx_battery_read_socu(struct bq27xxx_device_info *di)
-{
-	int socu;
-
-	socu = bq27xxx_read(di, BQ27XXX_REG_SOCU, false);
-
-	if (socu < 0)
-		dev_dbg(di->dev, "error reading State-of-Charge\n");
-
-	return socu;
-}
-
 
 /*
  * Return a battery charge value in µAh
@@ -804,46 +710,11 @@ static int bq27xxx_battery_read_health(struct bq27xxx_device_info *di)
 	return POWER_SUPPLY_HEALTH_GOOD;
 }
 
-static void dump_bq27xxx_regs(struct bq27xxx_device_info *di)
-{
-	u16 control = bq27xxx_read(di, BQ27XXX_REG_CTRL, false);
-	u16 temp = bq27xxx_read(di, BQ27XXX_REG_TEMP, false);
-	u16 volt = bq27xxx_read(di, BQ27XXX_REG_VOLT, false);
-	u16 flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
-	u16 fac = bq27xxx_read(di, BQ27XXX_REG_FAC, false);
-	u16 rmc = bq27xxx_read(di, BQ27XXX_REG_RMC, false);
-	u16 fcc = bq27xxx_read(di, BQ27XXX_REG_FCC, false);
-	u16 ai = bq27xxx_read(di, BQ27XXX_REG_AI, false);
-	u16 soc = bq27xxx_read(di, BQ27XXX_REG_SOC, false);
-	u16 rcu = bq27xxx_read(di, BQ27XXX_REG_RCU, false);
-	u16 fccu = bq27xxx_read(di, BQ27XXX_REG_FCCU, false);
-	u16 socu = bq27xxx_read(di, BQ27XXX_REG_SOCU, false);
-	u16 fccf = bq27xxx_read(di, BQ27XXX_REG_FCCF, false);
-
-	dev_warn(di->dev, "Temperature:%u", temp);
-	dev_warn(di->dev, "Flags:0x%04x\n", flags);
-	dev_warn(di->dev, "StateOfCharge:%u\n", soc);
-	dev_warn(di->dev, "RemainingCapacityUnfiltered:%u\n", rcu);
-	dev_warn(di->dev, "FullChargeCapacityUnfiltered:%u\n", fccu);
-	dev_warn(di->dev, "StateOfChargeUnfiltered:%u\n", socu);
-	dev_warn(di->dev, "Control:0x%04x\n", control);
-	dev_warn(di->dev, "Voltage:%u\n", volt);
-	dev_warn(di->dev, "FullAvailableCapacity:%u\n", fac);
-	dev_warn(di->dev, "RemainingCapacity:%u\n", rmc);
-	dev_warn(di->dev, "FullChargeCapacity:%u\n", fcc);
-	dev_warn(di->dev, "AverageCurrent:%d\n", (int)((s16)ai));
-	dev_warn(di->dev, "FullChargeCapacityFiltered:%u\n", fccf);
-}
-
-
 static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 {
 	struct bq27xxx_reg_cache cache = {0, };
 	bool has_ci_flag = di->chip == BQ27000 || di->chip == BQ27010;
 	bool has_singe_flag = di->chip == BQ27000 || di->chip == BQ27010;
-	static struct timeval cur = {0, };
-	static struct timeval last = {0, };
-	static kal_uint32 timer_counter;
 
 	cache.flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, has_singe_flag);
 	if ((cache.flags & 0xff) == 0xff)
@@ -882,50 +753,8 @@ static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 			di->charge_design_full = bq27xxx_battery_read_dcap(di);
 	}
 
-	dev_warn(di->dev, "cache.capacity:%d, fake_capatity:%d, cache.temperature:%d, cache.flags:%08x,"
-		              "BMT_status.bat_in_recharging_state:%d, BMT_status.bat_full:%d,"
-			     "BMT_status.ICharging:%d, timer_counter:%d\n",
-                      cache.capacity, di->fake_capacity, cache.temperature, cache.flags,
-                      BMT_status.bat_in_recharging_state,
-		      BMT_status.bat_full,BMT_status.ICharging, timer_counter);
-
-	do_gettimeofday(&cur);
-
-	/* Sync fake capacity to real capacity */
-	dev_info(di->dev, "cur.tv_sec:%ld last.tv_sec:%ld\n", cur.tv_sec, last.tv_sec);
-	if ((cur.tv_sec - last.tv_sec > SPM_TIMEOUT) && (last.tv_sec != 0)) {
-		di->fake_capacity = cache.capacity;
-		timer_counter = 0;
-	}
-	else {
-		if (cache.capacity < di->fake_capacity) {
-			cache.capacity = di->fake_capacity;
-			if (!BMT_status.charger_exist && timer_counter == 2) {
-				di->fake_capacity--;
-				timer_counter = 0;
-			}
-			else {
-				if (BMT_status.charger_exist)
-					timer_counter = 0;
-				else
-					timer_counter ++;
-			}
-		}
-		else {
-			timer_counter = 0;
-			di->fake_capacity = cache.capacity;
-		}
-	}
-	last.tv_sec = cur.tv_sec;
-
-	dump_bq27xxx_regs(di);
-
-	mCapacity = cache.capacity;
-	if (di->cache.capacity != cache.capacity) {
-	    if ((BMT_status.charger_exist && (di->cache.capacity > cache.capacity)) ||
-		(!BMT_status.charger_exist && (di->cache.capacity < cache.capacity)) )
+	if (di->cache.capacity != cache.capacity)
 		power_supply_changed(di->bat);
-	}
 
 	if (memcmp(&di->cache, &cache, sizeof(cache)) != 0)
 		di->cache = cache;
@@ -933,441 +762,11 @@ static void bq27xxx_battery_update(struct bq27xxx_device_info *di)
 	di->last_update = jiffies;
 }
 
-static int control_cmd_wr(struct bq27xxx_device_info *di, u16 cmd)
-{
-	dev_dbg(di->dev, "%s: cmd - %04x\n", __func__, cmd);
-
-	return di->bus.write(di, BQ27XXX_REG_CTRL, cmd, false);
-}
-
-static int control_cmd_read(struct bq27xxx_device_info *di, u16 cmd)
-{
-	dev_dbg(di->dev, "%s: cmd - %04x\n", __func__, cmd);
-
-	di->bus.write(di, BQ27XXX_REG_CTRL, cmd, false);
-
-	msleep(5);
-
-	return di->bus.read(di, BQ27XXX_REG_CTRL, false);
-}
-
-
-static void copy_to_dm_buf_big_endian(struct bq27xxx_device_info *di,
-	u8 *buf, u8 offset, u8 sz, u32 val)
-{
-	dev_dbg(di->dev, "%s: offset %d sz %d val %d\n",
-		__func__, offset, sz, val);
-
-	switch (sz) {
-	case 1:
-		buf[offset] = (u8) val;
-		break;
-	case 2:
-		put_unaligned_be16((u16) val, &buf[offset]);
-		break;
-	case 4:
-		put_unaligned_be32(val, &buf[offset]);
-		break;
-	default:
-		dev_err(di->dev, "%s: bad size for dm parameter - %d",
-			__func__, sz);
-		break;
-	}
-}
-
-#define SEAL_UNSEAL_POLLING_RETRY_LIMIT	1000
-
-static inline int sealed(struct bq27xxx_device_info *di)
-{
-	return control_cmd_read(di, CONTROL_STATUS_SUBCMD) & (1 << 13);
-}
-
-static int unseal(struct bq27xxx_device_info *di, u32 key)
-{
-	int i = 0;
-
-	dev_dbg(di->dev, "%s: key - %08x\n", __func__, key);
-
-	if (!sealed(di))
-		goto out;
-
-	di->bus.write(di, BQ27XXX_REG_CTRL, key & 0xFFFF, false);
-	msleep(5);
-	di->bus.write(di, BQ27XXX_REG_CTRL, (key & 0xFFFF0000) >> 16, false);
-	msleep(5);
-
-	while (i < SEAL_UNSEAL_POLLING_RETRY_LIMIT) {
-		i++;
-		if (!sealed(di))
-			break;
-		msleep(10);
-	}
-
-out:
-	if (i == SEAL_UNSEAL_POLLING_RETRY_LIMIT) {
-		dev_err(di->dev, "%s: failed\n", __func__);
-		return 0;
-	} else {
-		return 1;
-	}
-}
-
-static int seal(struct bq27xxx_device_info *di)
-{
-	int i = 0;
-	int is_sealed;
-
-	dev_dbg(di->dev, "%s:\n", __func__);
-
-	is_sealed = sealed(di);
-	if (is_sealed)
-		return is_sealed;
-
-	di->bus.write(di, BQ27XXX_REG_CTRL, SEAL_SUBCMD, false);
-
-	while (i < SEAL_UNSEAL_POLLING_RETRY_LIMIT) {
-		i++;
-		is_sealed = sealed(di);
-		if (is_sealed)
-			break;
-		msleep(10);
-	}
-
-	if (!is_sealed)
-		dev_err(di->dev, "%s: failed\n", __func__);
-
-	return is_sealed;
-}
-
-
-#define CFG_UPDATE_POLLING_RETRY_LIMIT 50
-static int enter_cfg_update_mode(struct bq27xxx_device_info *di)
-{
-	int i = 0;
-	u16 flags;
-
-	dev_dbg(di->dev, "%s:\n", __func__);
-
-	if (!unseal(di, BQ274XX_UNSEAL_KEY))
-		return 0;
-
-	control_cmd_wr(di, SET_CFGUPDATE_SUBCMD);
-	msleep(5);
-
-	while (i < CFG_UPDATE_POLLING_RETRY_LIMIT) {
-		i++;
-		flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
-		if (flags & (1 << 4))
-			break;
-		msleep(100);
-	}
-
-	if (i == CFG_UPDATE_POLLING_RETRY_LIMIT) {
-		dev_err(di->dev, "%s: failed %04x\n", __func__, flags);
-		return 0;
-	}
-
-	return 1;
-}
-
-static int exit_cfg_update_mode(struct bq27xxx_device_info *di)
-{
-	int i = 0;
-	u16 flags;
-
-	dev_dbg(di->dev, "%s:\n", __func__);
-
-	control_cmd_wr(di, BQ274XX_EXIT_CFGUPDATE);
-
-	while (i < CFG_UPDATE_POLLING_RETRY_LIMIT) {
-		i++;
-		flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
-		if (!(flags & (1 << 4)))
-			break;
-		msleep(100);
-	}
-
-	if (i == CFG_UPDATE_POLLING_RETRY_LIMIT) {
-		dev_err(di->dev, "%s: failed %04x\n", __func__, flags);
-		return 0;
-	}
-
-	if (seal(di))
-		return 1;
-	else
-		return 0;
-}
-
-static u8 checksum(u8 *data)
-{
-	u16 sum = 0;
-	int i;
-
-	for (i = 0; i < 32; i++)
-		sum += data[i];
-
-	sum &= 0xFF;
-
-	return 0xFF - sum;
-}
-
-static int update_dm_block(struct bq27xxx_device_info *di, u8 subclass,
-	u8 offset, u8 *data)
-{
-	u8 buf[32];
-	u8 cksum;
-	u8 blk_offset = offset >> 5;
-
-	dev_warn(di->dev, "%s: subclass %d offset %d\n",
-		__func__, subclass, offset);
-
-	di->bus.write(di, BLOCK_DATA_CONTROL, 0, true);
-	msleep(5);
-
-	di->bus.write(di, BLOCK_DATA_CLASS, subclass, true);
-	msleep(5);
-
-	di->bus.write(di, DATA_BLOCK, blk_offset, true);
-	msleep(5);
-
-	di->bus.blk_write(di, BLOCK_DATA, data, 32);
-	msleep(5);
-
-	cksum = checksum(data);
-	di->bus.write(di, BLOCK_DATA_CHECKSUM, cksum, true);
-	msleep(5);
-
-	/* Read back and compare to make sure write is successful */
-	di->bus.write(di, DATA_BLOCK, blk_offset, true);
-	msleep(5);
-	di->bus.blk_read(di, BLOCK_DATA, buf, 32);
-
-	if (memcmp(data, buf, 32)) {
-		dev_err(di->dev, "%s: error updating subclass %d offset %d\n",
-			__func__, subclass, offset);
-		return 0;
-	} else {
-		dev_warn(di->dev, "%s:  Update successful subclass %d offset %d\n",
-			__func__, subclass, offset);
-		return 1;
-	}
-}
-
-static int read_dm_block(struct bq27xxx_device_info *di, u8 subclass,
-	u8 offset, u8 *data)
-{
-	u8 cksum_calc, cksum;
-	u8 blk_offset = offset >> 5;
-
-	dev_dbg(di->dev, "%s: subclass %d offset %d\n",
-		__func__, subclass, offset);
-
-	di->bus.write(di, BLOCK_DATA_CONTROL, 0, true);
-	msleep(5);
-
-	di->bus.write(di, BLOCK_DATA_CLASS, subclass, true);
-	msleep(5);
-
-	di->bus.write(di, DATA_BLOCK, blk_offset, true);
-	msleep(5);
-
-	di->bus.blk_read(di, BLOCK_DATA, data, 32);
-
-	cksum_calc = checksum(data);
-	cksum = di->bus.read(di, BLOCK_DATA_CHECKSUM, true);
-	if (cksum != cksum_calc) {
-		dev_err(di->dev, "%s: error reading subclass %d offset %d\n",
-			__func__, subclass, offset);
-		return 0;
-	}
-
-	return 1;
-}
-
-
-static int rom_mode_gauge_init_completed(struct bq27xxx_device_info *di)
-{
-	dev_dbg(di->dev, "%s:\n", __func__);
-
-	return control_cmd_read(di, CONTROL_STATUS_SUBCMD) &
-		BQ274XX_CTRL_STATUS_INITCOMP;
-}
-
-static bool rom_mode_gauge_dm_initialized(struct bq27xxx_device_info *di)
-{
-	u16 flags;
-
-	flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
-
-	dev_dbg(di->dev, "%s: flags - 0x%04x\n", __func__, flags);
-
-	if (flags & BQ274XX_FLAG_ITPOR)
-		return false;
-	else
-		return true;
-}
-
-
-#define INITCOMP_TIMEOUT_MS		10000
-static void rom_mode_gauge_dm_init(struct bq27xxx_device_info *di)
-{
-	int i;
-	int timeout = INITCOMP_TIMEOUT_MS;
-	u8 subclass, offset;
-	u32 blk_number;
-	u32 blk_number_prev = 0;
-	u8 buf[32];
-	bool buf_valid = false;
-	struct dm_reg *dm_reg;
-
-	dev_dbg(di->dev, "%s:\n", __func__);
-
-	while (!rom_mode_gauge_init_completed(di) && timeout > 0) {
-		msleep(100);
-		timeout -= 100;
-	}
-
-	if (timeout <= 0) {
-		dev_err(di->dev, "%s: INITCOMP not set after %d seconds\n",
-			__func__, INITCOMP_TIMEOUT_MS/100);
-		return;
-	}
-
-	if (!di->dm_regs || !di->dm_regs_count) {
-		dev_err(di->dev, "%s: Data not available for DM initialization\n",
-			__func__);
-		return;
-	}
-
-	dev_warn(di->dev, "start rom_mode_gauge_dm_init\n");
-	enter_cfg_update_mode(di);
-	for (i = 0; i < di->dm_regs_count; i++) {
-		dm_reg = &di->dm_regs[i];
-		subclass = dm_reg->subclass;
-		offset = dm_reg->offset;
-
-		/*
-		 * Create a composite block number to see if the subsequent
-		 * register also belongs to the same 32 btye block in the DM
-		 */
-		blk_number = subclass << 8;
-		blk_number |= offset >> 5;
-
-		if (blk_number == blk_number_prev) {
-			copy_to_dm_buf_big_endian(di, buf, offset,
-				dm_reg->len, dm_reg->data);
-		} else {
-
-			if (buf_valid)
-				update_dm_block(di, blk_number_prev >> 8,
-					(blk_number_prev << 5) & 0xFF , buf);
-			else
-				buf_valid = true;
-
-			read_dm_block(di, dm_reg->subclass, dm_reg->offset,
-				buf);
-			copy_to_dm_buf_big_endian(di, buf, offset - ((blk_number << 5) & 0xFF),
-				dm_reg->len, dm_reg->data);
-		}
-		blk_number_prev = blk_number;
-	}
-
-	/* Last buffer to be written */
-	if (buf_valid)
-		update_dm_block(di, subclass, offset, buf);
-
-	exit_cfg_update_mode(di);
-}
-
-struct subclass_reg {
-	u8 subclass;
-	u8 offset;
-};
-
-static struct subclass_reg subcla_regs[] = {
-	{64, 0},
-	{64, 2},
-	{80, 78},   /* TermV Valid t 10s */
-	{82, 0},
-	{82, 2},
-	{82, 3},   /* Reserve capacity */
-	{82, 8},
-	{82, 10},	/* Design Capacity */
-	{82, 16},	/* Terminate Voltage */
-	{82, 22},	/* Taper rate */
-	{82, 29},
-	{89, 0},
-	{89, 2},
-	{89, 12},
-	{89, 20},
-	{89, 28},
-};
-
-static void rom_mode_print_subclass(struct bq27xxx_device_info *di)
-{
-	static int count = 0;
-	int i;
-	int timeout = INITCOMP_TIMEOUT_MS;
-	u8 subclass, offset;
-	u8 buf[32];
-	struct subclass_reg *sb_reg;
-
-	count++;
-	if(count%10)
-		return;
-
-	dev_dbg(di->dev, "%s:\n", __func__);
-
-	while (!rom_mode_gauge_init_completed(di) && timeout > 0) {
-		msleep(100);
-		timeout -= 100;
-	}
-
-	if (timeout <= 0) {
-		dev_err(di->dev, "%s: INITCOMP not set after %d seconds\n",
-			__func__, INITCOMP_TIMEOUT_MS/100);
-		return;
-	}
-
-	enter_cfg_update_mode(di);
-	for (i = 0; i < ARRAY_SIZE(subcla_regs); i++) {
-		sb_reg = &subcla_regs[i];
-		subclass = sb_reg->subclass;
-		offset = sb_reg->offset;
-		read_dm_block(di, sb_reg->subclass, sb_reg->offset,
-				buf);
-	}
-	exit_cfg_update_mode(di);
-}
-
-
-static int get_terminate_voltage(struct bq27xxx_device_info *di)
-{
-	u8 buf[32] = {0};
-	u8 subclass = 82;
-	u8 offset = 0;
-
-	if (!unseal(di, BQ274XX_UNSEAL_KEY))
-			return 0;
-
-	read_dm_block(di, subclass, offset, buf);
-
-	seal(di);
-
-	return ((buf[16] & 0xFF)<<8)+(buf[17] & 0xFF);
-}
-
 static void bq27xxx_battery_poll(struct work_struct *work)
 {
 	struct bq27xxx_device_info *di =
 			container_of(work, struct bq27xxx_device_info,
 				     work.work);
-
-	if ((di->chip == BQ27421) && !rom_mode_gauge_dm_initialized(di)) {
-		rom_mode_gauge_dm_init(di);
-	}
-
-	rom_mode_print_subclass(di);
 
 	bq27xxx_battery_update(di);
 
@@ -1426,13 +825,9 @@ static int bq27xxx_battery_status(struct bq27xxx_device_info *di,
 		else
 			status = POWER_SUPPLY_STATUS_DISCHARGING;
 	} else {
-		struct bq27xxx_reg_cache cache = {0, };
-		bool has_singe_flag = di->chip == BQ27000 || di->chip == BQ27010;
-
-		cache.flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, has_singe_flag);
-		if ((cache.flags & BQ27XXX_FLAG_FC) && BMT_status.charger_exist)
+		if (di->cache.flags & BQ27XXX_FLAG_FC)
 			status = POWER_SUPPLY_STATUS_FULL;
-		else if (cache.flags & BQ27XXX_FLAG_DSC)
+		else if (di->cache.flags & BQ27XXX_FLAG_DSC)
 			status = POWER_SUPPLY_STATUS_DISCHARGING;
 		else
 			status = POWER_SUPPLY_STATUS_CHARGING;
@@ -1504,12 +899,6 @@ static int bq27xxx_simple_value(int value,
 	return 0;
 }
 
-int bq27xxx_get_battery_percentage(void)
-{
-    return mCapacity;
-}
-EXPORT_SYMBOL(bq27xxx_get_battery_percentage);
-
 static int bq27xxx_battery_get_property(struct power_supply *psy,
 					enum power_supply_property psp,
 					union power_supply_propval *val)
@@ -1541,12 +930,7 @@ static int bq27xxx_battery_get_property(struct power_supply *psy,
 		ret = bq27xxx_battery_current(di, val);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		if(BMT_status.bat_in_recharging_state || BMT_status.bat_full) {
-			val->intval = 100;
-			di->fake_capacity = 100;
-		}
-		else
-			ret = bq27xxx_simple_value(di->cache.capacity, val);
+		ret = bq27xxx_simple_value(di->cache.capacity, val);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
 		ret = bq27xxx_battery_capacity_level(di, val);
@@ -1607,51 +991,12 @@ static void bq27xxx_external_power_changed(struct power_supply *psy)
 	schedule_delayed_work(&di->work, 0);
 }
 
-static int bq27xxx_soft_reset(struct bq27xxx_device_info *di)
-{
-	int i = 0;
-	u16 flags;
-
-	dev_warn(di->dev, "%s: Enter. \n", __func__);
-
-	dev_warn(di->dev, "%s: Enter cfg update mode\n", __func__);
-	enter_cfg_update_mode(di);
-
-	dev_warn(di->dev, "%s: cmd - %04x\n", __func__, BQ274XX_SOFT_RESET);
-	control_cmd_wr(di, BQ274XX_SOFT_RESET);
-
-	while (i < CFG_UPDATE_POLLING_RETRY_LIMIT) {
-		i++;
-		flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
-		if (!(flags & (1 << 4)))
-			break;
-		msleep(100);
-	}
-
-	if (i == CFG_UPDATE_POLLING_RETRY_LIMIT) {
-		dev_err(di->dev, "%s: Exit. soft reset failed %04x!\n", __func__, flags);
-		return 0;
-	}
-
-	if (seal(di)) {
-		dev_warn(di->dev, "%s: Exit. soft reset successfully! \n", __func__);
-		return 1;
-	}
-	else {
-		dev_warn(di->dev, "%s: Exit. soft reset seal failed!\n", __func__);
-		return 0;
-	}
-}
-
 static int __maybe_unused bq27xxx_powersupply_init(struct bq27xxx_device_info *di,
 				    const char *name)
 {
 	int ret;
 	struct power_supply_desc *psy_desc;
 	struct power_supply_config psy_cfg = { .drv_data = di, };
-	int terminate_voltage = 0;
-	int socu = 0;
-	int fcc = 0;
 
 	psy_desc = devm_kzalloc(di->dev, sizeof(*psy_desc), GFP_KERNEL);
 	if (!psy_desc)
@@ -1677,28 +1022,6 @@ static int __maybe_unused bq27xxx_powersupply_init(struct bq27xxx_device_info *d
 	dev_info(di->dev, "support ver. %s enabled\n", DRIVER_VERSION);
 
 	bq27xxx_battery_update(di);
-
-	if (di->chip == BQ27421) {
-		/*if socu is far greater than soc, align soc with socu. */
-		socu = bq27xxx_battery_read_socu(di);
-		fcc = bq27xxx_battery_read_fcc(di)/1000;
-
-		dev_warn(di->dev, "%s: soc: %d; socu: %d; fcc: %d\n",
-				__func__, di->cache.capacity, socu, fcc);
-		if ( ((abs(di->cache.capacity - socu) > 9) && (socu >= 0)) || (fcc > 800)  ) {
-			bq27xxx_soft_reset(di);
-			rom_mode_gauge_dm_init(di);
-		}
-		else {
-			terminate_voltage = get_terminate_voltage(di);
-			dev_warn(di->dev, "%s: terminate_voltage:%d\n",
-				__func__, terminate_voltage);
-
-			if (3200 == terminate_voltage || 3400 == terminate_voltage) {
-				rom_mode_gauge_dm_init(di);
-			}
-		}
-	}
 
 	return 0;
 }
@@ -1746,7 +1069,6 @@ static int bq27xxx_battery_i2c_read(struct bq27xxx_device_info *di, u8 reg,
 	unsigned char data[2];
 	int ret;
 
-	memset(msg, 0, sizeof(msg));
 	if (!client->adapter)
 		return -ENODEV;
 
@@ -1773,59 +1095,6 @@ static int bq27xxx_battery_i2c_read(struct bq27xxx_device_info *di, u8 reg,
 
 	return ret;
 }
-
-static int bq27xxx_write_i2c(struct bq27xxx_device_info *di, u8 reg, int value, bool single)
-{
-	struct i2c_client *client = to_i2c_client(di->dev);
-	struct i2c_msg msg;
-	unsigned char data[4];
-	int ret;
-
-	if (!client->adapter)
-		return -ENODEV;
-
-	memset(&msg, 0, sizeof(msg));
-	data[0] = reg;
-	if (single) {
-		data[1] = (unsigned char)value;
-		msg.len = 2;
-	} else {
-		put_unaligned_le16(value, &data[1]);
-		msg.len = 3;
-	}
-
-	msg.buf = data;
-	msg.addr = client->addr;
-	msg.flags = 0;
-
-	ret = i2c_transfer(client->adapter, &msg, 1);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
-
-static int bq27xxx_read_i2c_blk(struct bq27xxx_device_info *di, u8 reg,
-	u8 *data, u8 len)
-{
-	int i;
-	for (i = 0; i < len; i++)
-		data[i] = di->bus.read(di, reg+i, true);
-
-	return 0;
-}
-
-static int bq27xxx_write_i2c_blk(struct bq27xxx_device_info *di, u8 reg,
-	u8 *data, u8 sz)
-{
-	int i;
-
-	for (i = 0; i < sz; i++)
-		di->bus.write(di, reg+i, data[i], true);
-
-	return 0;
-}
-
 
 static int bq27xxx_battery_i2c_probe(struct i2c_client *client,
 				     const struct i2c_device_id *id)
@@ -1858,12 +1127,7 @@ static int bq27xxx_battery_i2c_probe(struct i2c_client *client,
 	di->dev = &client->dev;
 	di->chip = id->driver_data;
 	di->bus.read = &bq27xxx_battery_i2c_read;
-	di->bus.write = &bq27xxx_write_i2c;
-	di->bus.blk_read = bq27xxx_read_i2c_blk;
-	di->bus.blk_write = bq27xxx_write_i2c_blk;
 	di->regs = bq27xxx_regs[di->chip];
-	di->dm_regs = bq274xx_dm_regs;
-	di->dm_regs_count = ARRAY_SIZE(bq274xx_dm_regs);
 
 	retval = bq27xxx_powersupply_init(di, name);
 	if (retval)
@@ -1909,11 +1173,6 @@ static int bq27xxx_battery_i2c_remove(struct i2c_client *client)
 
 	return 0;
 }
-
-static struct i2c_board_info __initdata i2c_bq27421_boardinfo =
-{
-	I2C_BOARD_INFO("bq27421", (0x55))
-};
 
 static const struct i2c_device_id bq27xxx_id[] = {
 	{ "bq27200", BQ27000 },
@@ -2088,9 +1347,7 @@ static int __init bq27xxx_battery_init(void)
 {
 	int ret;
 
-	i2c_register_board_info(1, &i2c_bq27421_boardinfo, 1);
 	ret = bq27xxx_battery_i2c_init();
-
 	if (ret)
 		return ret;
 

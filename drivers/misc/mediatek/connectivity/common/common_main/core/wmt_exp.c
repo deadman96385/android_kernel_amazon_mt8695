@@ -139,9 +139,9 @@ INT32 mtk_wcn_wmt_psm_ctrl(MTK_WCN_BOOL flag)
 		wmt_lib_ps_ctrl(0);
 		WMT_INFO_FUNC("disable PSM\n");
 	} else {
-		wmt_lib_ps_set_idle_time(1000);
+		wmt_lib_ps_set_idle_time(5000);
 		wmt_lib_ps_ctrl(1);
-		WMT_INFO_FUNC("enable PSM, idle to sleep time = 1000 ms\n");
+		WMT_INFO_FUNC("enable PSM, idle to sleep time = 5000 ms\n");
 	}
 #else
 	WMT_INFO_FUNC("WMT PS not supported\n");
@@ -354,7 +354,6 @@ INT32 mtk_wcn_wmt_sdio_deep_sleep_flag_cb_reg(PF_WMT_SDIO_DEEP_SLEEP flag_cb)
 }
 EXPORT_SYMBOL(mtk_wcn_wmt_sdio_deep_sleep_flag_cb_reg);
 #endif
-
 INT32 mtk_wcn_wmt_sdio_rw_cb_reg(PF_WMT_SDIO_DEBUG reg_rw_cb)
 {
 	wmt_lib_sdio_reg_rw_cb(reg_rw_cb);

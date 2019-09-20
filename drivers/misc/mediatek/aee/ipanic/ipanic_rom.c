@@ -18,7 +18,7 @@
 #include <asm/cacheflush.h>
 #include <linux/kdebug.h>
 #include <linux/module.h>
-#include <mrdump.h>
+#include <mt-plat/mrdump.h>
 #ifdef CONFIG_MTK_RAM_CONSOLE
 #include <mt-plat/mtk_ram_console.h>
 #endif
@@ -28,7 +28,7 @@
 #include <linux/reboot.h>
 #include "ipanic.h"
 #include <asm/system_misc.h>
-#include <mmprofile.h>
+/* #include <mmprofile.h> */
 
 static u32 ipanic_iv = 0xaabbccdd;
 static spinlock_t ipanic_lock;
@@ -522,12 +522,12 @@ int ipanic(struct notifier_block *this, unsigned long event, void *ptr)
 		emergency_restart();
 	ipanic_mrdump_mini(AEE_REBOOT_MODE_KERNEL_PANIC, "kernel PANIC");
 	if (!ipanic_data_is_valid(IPANIC_DT_KERNEL_LOG)) {
-		ipanic_klog_region(&dumper);
+		/* ipanic_klog_region(&dumper); */
 		errno = ipanic_data_to_sd(IPANIC_DT_KERNEL_LOG, &dumper);
 		if (errno == -1)
 			aee_nested_printf("$");
 	}
-	ipanic_klog_region(&dumper);
+	/* ipanic_klog_region(&dumper); */
 	errno = ipanic_data_to_sd(IPANIC_DT_OOPS_LOG, &dumper);
 	if (errno == -1)
 		aee_nested_printf("$");
@@ -539,13 +539,12 @@ int ipanic(struct notifier_block *this, unsigned long event, void *ptr)
 	ipanic_data_to_sd(IPANIC_DT_EVENTS_LOG, (void *)2);
 	ipanic_data_to_sd(IPANIC_DT_RADIO_LOG, (void *)3);
 	aee_wdt_dump_info();
-	ipanic_klog_region(&dumper);
+	/* ipanic_klog_region(&dumper); */
 	ipanic_data_to_sd(IPANIC_DT_WDT_LOG, &dumper);
 #ifdef CONFIG_MTK_WQ_DEBUG
-	if (aee_rr_curr_exp_type() != 1)
-		wq_debug_dump();
+	wq_debug_dump();
 #endif
-	ipanic_klog_region(&dumper);
+	/* ipanic_klog_region(&dumper); */
 	ipanic_data_to_sd(IPANIC_DT_WQ_LOG, &dumper);
 	ipanic_data_to_sd(IPANIC_DT_MMPROFILE, 0);
 	ipanic_data_to_sd(IPANIC_DT_ATF_LOG, &atf_log);
@@ -553,7 +552,7 @@ int ipanic(struct notifier_block *this, unsigned long event, void *ptr)
 	errno = ipanic_header_to_sd(0);
 	if (!IS_ERR(ERR_PTR(errno)))
 		mrdump_mini_ipanic_done();
-	ipanic_klog_region(&dumper);
+	/* ipanic_klog_region(&dumper); */
 	ipanic_data_to_sd(IPANIC_DT_LAST_LOG, &dumper);
 	LOGD("ipanic done^_^");
 	ipanic_hdr = ipanic_header();
@@ -587,7 +586,7 @@ void ipanic_recursive_ke(struct pt_regs *regs, struct pt_regs *excp_regs, int cp
 	cpu_proc_fin();
 #endif
 	mrdump_mini_ke_cpu_regs(excp_regs);
-	mrdump_mini_per_cpu_regs(cpu, regs, current);
+	mrdump_mini_per_cpu_regs(cpu, regs);
 	inner_dcache_flush_all();
 	if (!has_mt_dump_support())
 		emergency_restart();
@@ -596,7 +595,7 @@ void ipanic_recursive_ke(struct pt_regs *regs, struct pt_regs *excp_regs, int cp
 	ipanic_data_to_sd(IPANIC_DT_CURRENT_TSK, 0);
 	ipanic_kick_wdt();
 	memset(&dumper, 0x0, sizeof(struct kmsg_dumper));
-	ipanic_klog_region(&dumper);
+	/* ipanic_klog_region(&dumper); */
 	ipanic_data_to_sd(IPANIC_DT_KERNEL_LOG, &dumper);
 	errno = ipanic_header_to_sd(0);
 	if (!IS_ERR(ERR_PTR(errno)))
@@ -664,15 +663,6 @@ static void ipanic_oops_done(struct aee_oops *oops, int erase)
 		ipanic_erase();
 }
 
-void ipanic_zap_console_sem(void)
-{
-	if (console_trylock())
-		pr_err("we can get console_sem\n");
-	else
-		pr_err("we cannot get console_sem\n");
-	console_unlock();
-}
-
 static int ipanic_die(struct notifier_block *self, unsigned long cmd, void *ptr)
 {
 	struct kmsg_dumper dumper;
@@ -683,32 +673,38 @@ static int ipanic_die(struct notifier_block *self, unsigned long cmd, void *ptr)
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_KE_IPANIC_DIE);
 #endif
 	aee_disable_api();
-	smp_send_stop();
+	if (aee_rr_curr_exp_type() == 1)
+		__mrdump_create_oops_dump(AEE_REBOOT_MODE_WDT, dargs->regs, "WDT/HWT");
+	else
+		__mrdump_create_oops_dump(AEE_REBOOT_MODE_KERNEL_OOPS, dargs->regs, "Kernel Oops");
 
 	__show_regs(dargs->regs);
+	dump_stack();
 #ifdef CONFIG_MTK_RAM_CONSOLE
 	aee_rr_rec_scp();
+#endif
+#ifdef CONFIG_SCHED_DEBUG
+	if (aee_rr_curr_exp_type() == 1)
+		sysrq_sched_debug_show_at_AEE();
 #endif
 #ifdef CONFIG_MTK_WQ_DEBUG
 	wq_debug_dump();
 #endif
 
 	mrdump_mini_ke_cpu_regs(dargs->regs);
-	__disable_dcache__inner_flush_dcache_L1__inner_flush_dcache_L2();
+	/* __disable_dcache__inner_flush_dcache_L1__inner_flush_dcache_L2(); */
 
 #if defined(CONFIG_MTK_MLC_NAND_SUPPORT) || defined(CONFIG_MTK_TLC_NAND_SUPPORT)
 	LOGE("MLC/TLC project, disable ipanic flow\n");
 	ipanic_enable = 0; /*for mlc/tlc nand project, only enable lk flow*/
 #endif
 
-	if (!has_mt_dump_support()) {
-		ipanic_zap_console_sem();
+	if (!has_mt_dump_support())
 		emergency_restart();
-	}
 
 	ipanic_mrdump_mini(AEE_REBOOT_MODE_KERNEL_PANIC, "kernel Oops");
 	memset(&dumper, 0x0, sizeof(struct kmsg_dumper));
-	ipanic_klog_region(&dumper);
+	/* ipanic_klog_region(&dumper); */
 	ipanic_data_to_sd(IPANIC_DT_KERNEL_LOG, &dumper);
 	ipanic_data_to_sd(IPANIC_DT_CURRENT_TSK, dargs->regs);
 	return NOTIFY_DONE;

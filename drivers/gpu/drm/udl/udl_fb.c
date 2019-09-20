@@ -256,15 +256,10 @@ static int udl_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 {
 	unsigned long start = vma->vm_start;
 	unsigned long size = vma->vm_end - vma->vm_start;
-	unsigned long offset;
+	unsigned long offset = vma->vm_pgoff << PAGE_SHIFT;
 	unsigned long page, pos;
 
-	if (vma->vm_pgoff > (~0UL >> PAGE_SHIFT))
-		return -EINVAL;
-
-	offset = vma->vm_pgoff << PAGE_SHIFT;
-
-	if (offset > info->fix.smem_len || size > info->fix.smem_len - offset)
+	if (offset + size > info->fix.smem_len)
 		return -EINVAL;
 
 	pos = (unsigned long)info->fix.smem_start + offset;
@@ -461,7 +456,7 @@ static const struct drm_framebuffer_funcs udlfb_funcs = {
 static int
 udl_framebuffer_init(struct drm_device *dev,
 		     struct udl_framebuffer *ufb,
-		     struct drm_mode_fb_cmd2 *mode_cmd,
+		     const struct drm_mode_fb_cmd2 *mode_cmd,
 		     struct udl_gem_object *obj)
 {
 	int ret;
@@ -629,7 +624,7 @@ void udl_fbdev_unplug(struct drm_device *dev)
 struct drm_framebuffer *
 udl_fb_user_fb_create(struct drm_device *dev,
 		   struct drm_file *file,
-		   struct drm_mode_fb_cmd2 *mode_cmd)
+		   const struct drm_mode_fb_cmd2 *mode_cmd)
 {
 	struct drm_gem_object *obj;
 	struct udl_framebuffer *ufb;

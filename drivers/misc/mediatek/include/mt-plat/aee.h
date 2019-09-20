@@ -102,13 +102,7 @@ struct aee_user_thread_maps {
 	unsigned char *Userthread_maps; /*8k stack ,define to char only for match 64bit/32bit*/
 };
 
-#ifdef CONFIG_MTK_PRINTK_UART_CONSOLE
-extern int printk_disable_uart;
-#endif
 
-#ifdef CONFIG_MTK_RAM_CONSOLE
-extern void aee_rr_rec_hang_detect_timeout_count(unsigned int);
-#endif
 
 struct aee_oops {
 	struct list_head list;
@@ -278,19 +272,12 @@ void aee_wdt_printf(const char *fmt, ...);
 
 void aee_fiq_ipi_cpu_stop(void *arg, void *regs, void *svc_sp);
 
-extern void rtc_mark_wdt_aee(void) __attribute__((weak));
-
 #if defined(CONFIG_MTK_AEE_DRAM_CONSOLE)
 void aee_dram_console_reserve_memory(void);
 #else
 static inline void aee_dram_console_reserve_memory(void)
 {
 }
-#endif
-
-#ifdef CONFIG_MACH_MT6763
-extern void msdc_hang_detect_dump(u32 id);
-extern void mtk_wdt_mode_config(bool dual_mode_en, bool irq, bool ext_en, bool ext_pol, bool wdt_en);
 #endif
 
 extern void *aee_excp_regs;	/* To store latest exception, in case of stack corruption */

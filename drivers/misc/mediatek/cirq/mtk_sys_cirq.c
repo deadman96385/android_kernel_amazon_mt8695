@@ -23,11 +23,11 @@
 #include <linux/smp.h>
 #include <linux/types.h>
 #include <linux/irqchip/arm-gic.h>
-#include <linux/irqchip/mtk-gic.h>
+#include <linux/irqchip/mtk-gic-extend.h>
+#include <linux/io.h>
 
 #include "mtk_sys_cirq.h"
-#include <mt-plat/sync_write.h>
-#include <mt-plat/mtk_io.h>
+
 #ifdef CONFIG_OF
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -81,13 +81,13 @@ static int mt_cirq_get_mask(unsigned int cirq_num)
 		return -1;
 	}
 
-	st = readl(IOMEM((cirq_num / 32) * 4 + CIRQ_MASK_BASE));
+	st = readl_relaxed((cirq_num / 32) * 4 + CIRQ_MASK_BASE);
 	return !!(st & bit);
 }
 
 static int mt_cirq_get_mask_vec(int i)
 {
-	return readl(i*4 + CIRQ_MASK_BASE);
+	return readl_relaxed(i*4 + CIRQ_MASK_BASE);
 }
 
 /*
@@ -162,7 +162,7 @@ static int mt_cirq_mask(unsigned int cirq_num)
 		return -1;
 	}
 
-	mt_reg_sync_writel(bit, (cirq_num / 32) * 4 + CIRQ_MASK_SET_BASE);
+	writel_relaxed(bit, (cirq_num / 32) * 4 + CIRQ_MASK_SET_BASE);
 	return 0;
 }
 
@@ -182,7 +182,7 @@ static int mt_cirq_unmask(unsigned int cirq_num)
 		return -1;
 	}
 
-	mt_reg_sync_writel(bit, (cirq_num / 32) * 4 + CIRQ_MASK_CLR_BASE);
+	writel_relaxed(bit, (cirq_num / 32) * 4 + CIRQ_MASK_CLR_BASE);
 	return 0;
 }
 
@@ -204,7 +204,7 @@ static int mt_cirq_get_sens(unsigned int cirq_num)
 		return -1;
 	}
 
-	st = readl(IOMEM((cirq_num / 32) * 4 + CIRQ_SENS_BASE));
+	st = readl_relaxed((cirq_num / 32) * 4 + CIRQ_SENS_BASE);
 	return !!(st & bit);
 }
 
@@ -235,7 +235,7 @@ static int mt_cirq_set_sens(unsigned int cirq_num, unsigned int sens)
 		return -1;
 	}
 
-	mt_reg_sync_writel(bit, base);
+	writel_relaxed(bit, base);
 	return 0;
 }
 
@@ -257,7 +257,7 @@ static int mt_cirq_get_pol(unsigned int cirq_num)
 		return -1;
 	}
 
-	st = readl(IOMEM((cirq_num / 32) * 4 + CIRQ_POL_BASE));
+	st = readl_relaxed((cirq_num / 32) * 4 + CIRQ_POL_BASE);
 	return !!(st & bit);
 }
 
@@ -288,7 +288,7 @@ static int mt_cirq_set_pol(unsigned int cirq_num, unsigned int pol)
 		return -1;
 	}
 
-	mt_reg_sync_writel(bit, base);
+	writel_relaxed(bit, base);
 	return 0;
 }
 
@@ -302,11 +302,11 @@ void mt_cirq_enable(void)
 
 	mt_cirq_ack_all();
 
-	st = readl(IOMEM(CIRQ_CON));
+	st = readl_relaxed(CIRQ_CON);
 	st |=
 	    (CIRQ_CON_EN << CIRQ_CON_EN_BITS) | (CIRQ_CON_EDGE_ONLY <<
 						 CIRQ_CON_EDGE_ONLY_BITS);
-	mt_reg_sync_writel((st & CIRQ_CON_BITS_MASK), CIRQ_CON);
+	writel_relaxed((st & CIRQ_CON_BITS_MASK), CIRQ_CON);
 }
 EXPORT_SYMBOL(mt_cirq_enable);
 
@@ -327,7 +327,7 @@ static bool mt_cirq_get_pending(unsigned int cirq_num)
 		return -1;
 	}
 
-	st = readl(IOMEM((cirq_num / 32) * 4 + CIRQ_STA_BASE));
+	st = readl_relaxed((cirq_num / 32) * 4 + CIRQ_STA_BASE);
 	st = st & bit;
 	return st;
 }
@@ -340,9 +340,9 @@ void mt_cirq_disable(void)
 	unsigned int st;
 
 
-	st = readl(IOMEM(CIRQ_CON));
+	st = readl_relaxed(CIRQ_CON);
 	st &= ~(CIRQ_CON_EN << CIRQ_CON_EN_BITS);
-	mt_reg_sync_writel((st & CIRQ_CON_BITS_MASK), CIRQ_CON);
+	writel_relaxed((st & CIRQ_CON_BITS_MASK), CIRQ_CON);
 }
 EXPORT_SYMBOL(mt_cirq_disable);
 
@@ -377,7 +377,7 @@ void mt_cirq_flush(void)
 		pr_debug("[CIRQ] cirq_pattern %ld, cirq_p %d,",
 		cirq_pattern_list, mt_cirq_get_pending(cirq_pattern_list));
 		pr_debug("cirq_s %d, cirq_con 0x%x\n",
-		mt_cirq_get_sens(cirq_pattern_list), readl(IOMEM(CIRQ_CON)));
+		mt_cirq_get_sens(cirq_pattern_list), readl_relaxed(CIRQ_CON));
 	}
 
 	mt_cirq_unmask_all();
@@ -478,9 +478,8 @@ void mt_cirq_clone_sens(void)
 		irq_num = CIRQ_TO_IRQ_NUM(cirq_num);
 
 		if (cirq_num == 0 || irq_num % 16 == 0) {
-			st = readl(IOMEM
-				   (GIC_DIST_BASE + GIC_DIST_CONFIG +
-				    (irq_num / 16 * 4)));
+			st = readl_relaxed(GIC_DIST_BASE + GIC_DIST_CONFIG +
+				    (irq_num / 16 * 4));
 		}
 
 		bit = 0x2 << ((irq_num % 16) * 2);
@@ -506,9 +505,8 @@ void mt_cirq_clone_mask(void)
 		irq_num = CIRQ_TO_IRQ_NUM(cirq_num);
 
 		if (cirq_num == 0 || irq_num % 32 == 0) {
-			st = readl(IOMEM
-				   (GIC_DIST_BASE + GIC_DIST_ENABLE_SET +
-				    (irq_num / 32 * 4)));
+			st = readl_relaxed(GIC_DIST_BASE + GIC_DIST_ENABLE_SET +
+				    (irq_num / 32 * 4));
 		}
 
 		bit = 0x1 << (irq_num % 32);
@@ -680,7 +678,7 @@ struct __check_irq_type {
 };
 #undef __X_DEFINE_IRQ
 struct __check_irq_type __check_irq_type[] = {
-#include <x_define_irq.h>
+#include <mach/x_define_irq.h>
 	{.num = -1,},
 };
 
@@ -715,7 +713,7 @@ void mt_cirq_dump_reg(void)
 				 sens,
 				 mask,
 				 pen);
-			irq_iter = cirq_num + CIRQ_SPI_START;
+			irq_iter = cirq_num + 32;
 			if (__check_irq_type[irq_iter].num ==
 			    CIRQ_TO_IRQ_NUM(cirq_num)) {
 				if (__check_irq_type[irq_iter].sensitivity !=
@@ -902,3 +900,4 @@ int __init mt_cirq_init(void)
 }
 
 arch_initcall(mt_cirq_init);
+

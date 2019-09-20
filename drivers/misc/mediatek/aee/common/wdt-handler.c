@@ -27,21 +27,17 @@
 #include <linux/hardirq.h>
 #include <linux/mm.h>
 #include <linux/stacktrace.h>
-#include <linux/reboot.h>
 #include <asm/stacktrace.h>
 #include <asm/memory.h>
 #include <asm/traps.h>
-#if defined(CONFIG_FIQ_GLUE)
-#include <mach/fiq_smp_call.h>
-#endif
-#include <mach/wd_api.h>
-#include <mt-plat/mtk_ram_console.h>
-#include <mt-plat/mrdump.h>
+/* #include <asm/fiq_smp_call.h> */
+/* #include <mach/wd_api.h> */
 #ifndef __aarch64__
 #include <smp.h>
 #endif
 #include "aee-common.h"
 #include <mrdump_private.h>
+#include <mt-plat/mtk_ram_console.h>
 
 #undef WDT_DEBUG_VERBOSE
 /* #define WDT_DEBUG_VERBOSE */
@@ -83,7 +79,6 @@ static struct stacks_buffer stacks_buffer_bin[NR_CPUS];
 struct regs_buffer {
 	struct pt_regs regs;
 	int real_len;
-	struct task_struct *tsk;
 };
 static struct regs_buffer regs_buffer_bin[NR_CPUS];
 
@@ -103,7 +98,7 @@ void aee_wdt_dump_info(void)
 
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_KE_WDT_INFO);
 	if (wdt_log_length == 0) {
-		pr_notice("\n No log for WDT\n");
+		LOGE("\n No log for WDT\n");
 		mt_dump_sched_traces();
 #ifdef CONFIG_SCHED_DEBUG
 		/* sysrq_sched_debug_show_at_KE(); */
@@ -112,24 +107,24 @@ void aee_wdt_dump_info(void)
 	}
 
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_KE_WDT_PERCPU);
-	pr_info("==========================================");
-	for (cpu = 0; cpu < NR_CPUS; cpu++) {
+	LOGE("==========================================");
+	for (cpu = 0; cpu < num_possible_cpus(); cpu++) {
 		if ((wdt_percpu_log_buf[cpu]) && (wdt_percpu_log_length[cpu])) {
-			/* pr_info( "=====> wdt_percpu_log_buf[%d], length=%d ", cpu, wdt_percpu_log_length[cpu]); */
-			pr_info("%s", wdt_percpu_log_buf[cpu]);
-			pr_info("Backtrace : ");
+			/* LOGE( "=====> wdt_percpu_log_buf[%d], length=%d ", cpu, wdt_percpu_log_length[cpu]); */
+			LOGE("%s", wdt_percpu_log_buf[cpu]);
+			LOGE("Backtrace : ");
 			for (i = 0; i < MAX_EXCEPTION_FRAME; i++) {
 				if (wdt_percpu_stackframe[cpu][i] == 0)
 					break;
-				pr_info("%08lx, ", wdt_percpu_stackframe[cpu][i]);
+				LOGE("%08lx, ", wdt_percpu_stackframe[cpu][i]);
 			}
-			pr_info("==========================================");
+			LOGE("==========================================");
 		}
 	}
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_KE_WDT_LOG);
 	/* printk temporary buffer printk_buf[1024]. To avoid char loss, add 4 bytes here */
 	while (wdt_log_length > 0) {
-		pr_info("%s", printk_buf);
+		LOGE("%s", printk_buf);
 		printk_buf += 1020;
 		wdt_log_length -= 1020;
 	}
@@ -141,9 +136,9 @@ void aee_wdt_dump_info(void)
 
 	for_each_process(task) {
 		if (task->state == 0) {
-			pr_notice("PID: %d, name: %s\n", task->pid, task->comm);
+			LOGE("PID: %d, name: %s\n", task->pid, task->comm);
 			show_stack(task, NULL);
-			pr_notice("\n");
+			LOGE("\n");
 		}
 	}
 
@@ -207,7 +202,7 @@ static void aee_dump_cpu_reg_bin(int cpu, void *regs_ptr)
 			      ((struct pt_regs *)regs_ptr)->ARM_r0);
 }
 
-/* dump the stack into buffer */
+	/* dump the stack into buffer */
 static void aee_wdt_dump_stack_bin(unsigned int cpu, unsigned long bottom, unsigned long top)
 {
 	int i, count = 0;
@@ -326,7 +321,7 @@ static void aee_save_reg_stack_sram(int cpu)
 		aee_sram_fiq_log(str_buf);
 	}
 
-	mrdump_mini_per_cpu_regs(cpu, &regs_buffer_bin[cpu].regs, regs_buffer_bin[cpu].tsk);
+	mrdump_mini_per_cpu_regs(cpu, &regs_buffer_bin[cpu].regs);
 }
 
 #ifdef CONFIG_SMP
@@ -376,7 +371,7 @@ void aee_smp_send_stop(void)
 	cpumask_clear_cpu(cpu, &mask);
 	/* mt_fiq_printf("\n fiq_smp_call_function\n"); */
 #ifndef CONFIG_TRUSTY_WDT_FIQ_ARMV7_SUPPORT
-	fiq_smp_call_function(aee_fiq_ipi_cpu_stop, NULL, 0);
+	/* fiq_smp_call_function(aee_fiq_ipi_cpu_stop, NULL, 0); */
 #endif
 
 	/* Wait up to one second for other CPUs to stop */
@@ -419,15 +414,15 @@ void aee_wdt_irq_info(void)
 	unsigned long long t;
 	unsigned long nanosec_rem;
 	int res = 0, cpu;
-	struct wd_api *wd_api = NULL;
+       /* struct wd_api *wd_api = NULL; */
 
-	res = get_wd_api(&wd_api);
+       /*res = get_wd_api(&wd_api); */
 
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_IRQ_KICK);
 	if (res)
 		aee_wdt_printf("aee_wdt_irq_info, get wd api error\n");
 	else
-		wd_api->wd_restart(WD_TYPE_NOLOCK);
+		/* wd_api->wd_restart(WD_TYPE_NOLOCK); */
 
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_IRQ_SMP_STOP);
 #ifdef CONFIG_SMP
@@ -435,7 +430,7 @@ void aee_wdt_irq_info(void)
 #endif
 
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_IRQ_STACK);
-	for (cpu = 1; cpu < NR_CPUS; cpu++)
+	for (cpu = 1; cpu < num_possible_cpus(); cpu++)
 		aee_save_reg_stack_sram(cpu);
 	aee_sram_fiq_log("\n\n");
 
@@ -464,15 +459,11 @@ void aee_wdt_irq_info(void)
 	mt_aee_dump_sched_traces();
 #endif
 
-#ifdef CONFIG_SCHED_DEBUG
-	sysrq_sched_debug_show_at_AEE();
-#endif
-
 	/* avoid lock prove to dump_stack in __debug_locks_off() */
 	xchg(&debug_locks, 0);
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_IRQ_DONE);
 	aee_rr_rec_exp_type(1);
-	emergency_restart();
+	BUG();
 }
 
 #if defined(CONFIG_FIQ_GLUE)
@@ -505,7 +496,6 @@ void aee_wdt_fiq_info(void *arg, void *regs, void *svc_sp)
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_FIQ_STACK);
 	aee_wdt_dump_stack_bin(cpu, ((struct pt_regs *)regs)->ARM_sp,
 			       ((struct pt_regs *)regs)->ARM_sp + WDT_SAVE_STACK_SIZE);
-	regs_buffer_bin[cpu].tsk = current;
 	aee_save_reg_stack_sram(cpu);
 
 	if (atomic_xchg(&wdt_enter_fiq, 1) != 0) {
@@ -520,7 +510,6 @@ void aee_wdt_fiq_info(void *arg, void *regs, void *svc_sp)
 	}
 
 	aee_rr_rec_fiq_step(AEE_FIQ_STEP_WDT_FIQ_DONE);
-
 	aee_wdt_irq_info();
 }
 #endif				/* CONFIG_FIQ_GLUE */
@@ -530,12 +519,12 @@ static int __init aee_wdt_init(void)
 	int i;
 
 	atomic_set(&wdt_enter_fiq, 0);
-	for (i = 0; i < NR_CPUS; i++) {
+	for (i = 0; i < num_possible_cpus(); i++) {
 		wdt_percpu_log_buf[i] = kzalloc(WDT_PERCPU_LOG_SIZE, GFP_KERNEL);
+		if (wdt_percpu_log_buf[i] == NULL)
+			LOGE("\n aee_common_init : kmalloc fail\n");
 		wdt_percpu_log_length[i] = 0;
 		wdt_percpu_preempt_cnt[i] = 0;
-		if (wdt_percpu_log_buf[i] == NULL)
-			pr_notice("\n aee_common_init : kmalloc fail\n");
 	}
 	memset_io(wdt_log_buf, 0, sizeof(wdt_log_buf));
 	memset_io(regs_buffer_bin, 0, sizeof(regs_buffer_bin));

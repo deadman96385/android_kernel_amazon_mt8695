@@ -30,8 +30,6 @@
 extern u32 get_devinfo_with_index(u32 index);
 extern u32 devinfo_ready(void);
 extern u32 devinfo_get_size(void);
-extern void devinfo_set_size(u32 size);
-extern void devinfo_set_info(u32 *info);
 extern u32 get_hrid_size(void);
 extern u32 get_hrid(unsigned char *rid, unsigned char *rid_sz);
 

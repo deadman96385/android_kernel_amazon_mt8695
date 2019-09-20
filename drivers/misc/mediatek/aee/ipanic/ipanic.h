@@ -32,7 +32,7 @@
 
 #define AEE_IPANIC_MAGIC 0xaee0dead
 #define AEE_IPANIC_PHDR_VERSION   0x10
-#define IPANIC_NR_SECTIONS		64
+#define IPANIC_NR_SECTIONS		32
 #if (AEE_IPANIC_PHDR_VERSION >= 0x10)
 #define IPANIC_USERSPACE_READ		1
 #endif
@@ -46,19 +46,19 @@
 			pr_debug(fmt, ##__VA_ARGS__);	\
 	} while (0)
 
-#define LOG_NOTICE(fmt, ...)			\
+#define LOG_ERROR(fmt, ...)			\
 	do {	\
 		if (aee_in_nested_panic())			\
 			aee_nested_printf(fmt, ##__VA_ARGS__);	\
 		else						\
-			pr_notice(fmt, ##__VA_ARGS__);	\
+			pr_err(fmt, ##__VA_ARGS__);	\
 	} while (0)
 
 #define LOGV(fmt, msg...)
 #define LOGD LOG_DEBUG
 #define LOGI LOG_DEBUG
-#define LOGW LOG_NOTICE
-#define LOGE LOG_NOTICE
+#define LOGW LOG_ERROR
+#define LOGE LOG_ERROR
 
 struct ipanic_data_header {
 	u32 type;		/* data type(0-31) */
@@ -240,7 +240,7 @@ extern int card_dump_func_read(unsigned char *buf, unsigned int len, unsigned lo
 extern int card_dump_func_write(unsigned char *buf, unsigned int len, unsigned long long offset,
 				int dev);
 extern unsigned int reset_boot_up_device(int type);	/* force to re-initialize the emmc host controller */
-extern void mrdump_mini_per_cpu_regs(int cpu, struct pt_regs *regs, struct task_struct *tsk);
+extern void mrdump_mini_per_cpu_regs(int cpu, struct pt_regs *regs);
 extern void mrdump_mini_ke_cpu_regs(struct pt_regs *regs);
 extern void mrdump_mini_add_misc(unsigned long addr, unsigned long size, unsigned long start,
 				 char *name);
@@ -264,6 +264,5 @@ extern void sysrq_sched_debug_show_at_AEE(void);
 extern void wq_debug_dump(void);
 #endif
 extern void __disable_dcache__inner_flush_dcache_L1__inner_flush_dcache_L2(void);
-extern int console_trylock(void);
 
 #endif

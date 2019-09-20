@@ -286,8 +286,10 @@ static _osal_inline_ INT32 stp_dbg_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 bu
 		}
 		/* show coredump start info on UI */
 		/* osal_dbg_assert_aee("MT662x f/w coredump start", "MT662x firmware coredump start"); */
+#ifdef	CONFIG_MTK_AEE_FEATURE
 #if STP_DBG_AEE_EXP_API
 		aee_kernel_dal_show("CONSYS coredump start ....\n");
+#endif
 #endif
 		/* parsing data, and check end srting */
 		ret = stp_dbg_core_dump_check_end(buf, len);
@@ -503,9 +505,10 @@ INT32 stp_dbg_core_dump_flush(INT32 rst, MTK_WCN_BOOL coredump_is_timeout)
 
 	/* show coredump end info on UI */
 	/* osal_dbg_assert_aee("MT662x f/w coredump end", "MT662x firmware coredump ends"); */
+#ifdef	CONFIG_MTK_AEE_FEATURE
 #if STP_DBG_AEE_EXP_API
 	if (coredump_is_timeout)
-		aee_kernel_dal_show("++ CONSYS coredump tiemout or fail, pass received coredump to AEE ++\n");
+		aee_kernel_dal_show("++ CONSYS coredump tiemout ,pass received coredump to AEE ++\n");
 	else
 		aee_kernel_dal_show("++ CONSYS coredump get successfully ++\n");
 	/* call AEE driver API */
@@ -516,6 +519,7 @@ INT32 stp_dbg_core_dump_flush(INT32 rst, MTK_WCN_BOOL coredump_is_timeout)
 	aed_combo_exception(NULL, 0, (const PINT32)pbuf, len, (const PINT8)g_core_dump->info);
 #endif
 
+#endif
 #endif
 
 	/* reset */
@@ -634,6 +638,7 @@ INT32 stp_dbg_trigger_collect_ftrace(PUINT8 pbuf, INT32 len)
 {
 	if (!pbuf)
 		STP_DBG_ERR_FUNC("Parameter error\n");
+#ifdef CONFIG_MTK_AEE_FEATURE
 
 	if (g_core_dump) {
 		osal_strncpy(&g_core_dump->info[0], pbuf, len);
@@ -642,7 +647,7 @@ INT32 stp_dbg_trigger_collect_ftrace(PUINT8 pbuf, INT32 len)
 		STP_DBG_INFO_FUNC("g_core_dump is not initialized\n");
 		aed_combo_exception(NULL, 0, (const PINT32)pbuf, len, (const PINT8)pbuf);
 	}
-
+#endif
 	return 0;
 }
 

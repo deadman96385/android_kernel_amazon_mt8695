@@ -22,6 +22,17 @@
 
 struct phy;
 
+enum phy_mode {
+	PHY_MODE_INVALID,
+	PHY_MODE_USB_HOST,
+	PHY_MODE_USB_DEVICE,
+	PHY_MODE_USB_OTG,
+	PHY_MODE_SGMII,
+	PHY_MODE_10GKR,
+	PHY_MODE_UFS_HS_A,
+	PHY_MODE_UFS_HS_B,
+};
+
 /**
  * struct phy_ops - set of function pointers for performing phy operations
  * @init: operation to be performed for initializing phy
@@ -35,6 +46,7 @@ struct phy_ops {
 	int	(*exit)(struct phy *phy);
 	int	(*power_on)(struct phy *phy);
 	int	(*power_off)(struct phy *phy);
+	int	(*set_mode)(struct phy *phy, enum phy_mode mode);
 	struct module *owner;
 };
 
@@ -119,6 +131,7 @@ int phy_init(struct phy *phy);
 int phy_exit(struct phy *phy);
 int phy_power_on(struct phy *phy);
 int phy_power_off(struct phy *phy);
+int phy_set_mode(struct phy *phy, enum phy_mode mode);
 static inline int phy_get_bus_width(struct phy *phy)
 {
 	return phy->attrs.bus_width;
@@ -218,6 +231,13 @@ static inline int phy_power_on(struct phy *phy)
 }
 
 static inline int phy_power_off(struct phy *phy)
+{
+	if (!phy)
+		return 0;
+	return -ENOSYS;
+}
+
+static inline int phy_set_mode(struct phy *phy, enum phy_mode mode)
 {
 	if (!phy)
 		return 0;

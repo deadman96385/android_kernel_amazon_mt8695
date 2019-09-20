@@ -114,6 +114,8 @@
 #include <net/busy_poll.h>
 #include "udp_impl.h"
 
+#include <net/ra_nat.h>
+
 struct udp_table udp_table __read_mostly;
 EXPORT_SYMBOL(udp_table);
 
@@ -1745,11 +1747,6 @@ static inline int udp4_csum_init(struct sk_buff *skb, struct udphdr *uh,
 		err = udplite_checksum_init(skb, uh);
 		if (err)
 			return err;
-
-		if (UDP_SKB_CB(skb)->partial_cov) {
-			skb->csum = inet_compute_pseudo(skb, proto);
-			return 0;
-		}
 	}
 
 	return skb_checksum_init_zero_check(skb, proto, uh->check,
@@ -2037,6 +2034,8 @@ void udp_v4_early_demux(struct sk_buff *skb)
 
 int udp_rcv(struct sk_buff *skb)
 {
+	hwnat_magic_tag_set_zero(skb);
+
 	return __udp4_lib_rcv(skb, &udp_table, IPPROTO_UDP);
 }
 

@@ -21,6 +21,7 @@
 #include <linux/mmc/core.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/pm.h>
+#include <linux/dma-direction.h>
 
 struct mmc_ios {
 	unsigned int	clock;			/* clock rate */
@@ -79,6 +80,11 @@ struct mmc_ios {
 #define MMC_SET_DRIVER_TYPE_C	2
 #define MMC_SET_DRIVER_TYPE_D	3
 };
+
+static inline enum dma_data_direction mmc_get_dma_dir(struct mmc_data *data)
+{
+	return data->flags & MMC_DATA_WRITE ? DMA_TO_DEVICE : DMA_FROM_DEVICE;
+}
 
 struct mmc_host_ops {
 	/*
@@ -145,12 +151,6 @@ struct mmc_host_ops {
 	 */
 	int	(*multi_io_quirk)(struct mmc_card *card,
 				  unsigned int direction, int blk_size);
-	//BEGIN MTK legacy patch for kernel-3.10
-	void	(*tuning)(struct mmc_host *host, struct mmc_request *req);
-	void	(*send_stop)(struct mmc_host *host, struct mmc_request *req);
-	void	(*dma_error_reset)(struct mmc_host *host);
-	bool	(*check_written_data)(struct mmc_host *host, struct mmc_request *req);
-	//END MTK legacy patch for kernel-3.10
 };
 
 struct mmc_card;

@@ -1991,6 +1991,10 @@ int cdc_parse_cdc_header(struct usb_cdc_parsed_header *hdr,
 			goto next_desc;
 		}
 		if ((buflen < elength) || (elength < 3)) {
+			dev_info(&intf->dev, "invalid descriptor buffer length\n");
+			break;
+		}
+		if ((buflen < elength) || (elength < 3)) {
 			dev_err(&intf->dev, "invalid descriptor buffer length\n");
 			break;
 		}

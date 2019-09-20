@@ -292,7 +292,6 @@ int __weak mt_get_gpio_ies_base(unsigned long pin)
 {
 	return 0;
 }
-
 INT32 wmt_gpio_init(struct platform_device *pdev)
 {
 	INT32 iret = 0;
@@ -457,7 +456,6 @@ INT32 wmt_gpio_deinit(VOID)
 
 	return iret;
 }
-
 VOID _wmt_dump_gpio_regs(INT32 idx)
 {
 	ULONG idxl = (ULONG)idx;

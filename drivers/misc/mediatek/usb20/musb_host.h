@@ -14,6 +14,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
  * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
@@ -69,9 +74,6 @@ struct musb_qh {
 	u16 frame;		/* for periodic schedule */
 	unsigned iso_idx;	/* in urb->iso_frame_desc[] */
 	struct sg_mapping_iter sg_miter;	/* for highmem in PIO mode */
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-	u8 is_use_qmu;
-#endif
 };
 
 /* map from control or bulk queue head to the first qh on that ring */
@@ -105,16 +107,5 @@ static inline struct urb *next_urb(struct musb_qh *qh)
 		return NULL;
 	return list_entry(queue->next, struct urb, urb_list);
 }
-extern u16 musb_h_flush_rxfifo(struct musb_hw_ep *hw_ep, u16 csr);
 
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-extern void musb_ep_set_qh(struct musb_hw_ep *ep, int isRx, struct musb_qh *qh);
-extern struct musb_qh *musb_ep_get_qh(struct musb_hw_ep *ep, int isRx);
-extern void musb_advance_schedule(struct musb *musb, struct urb *urb,
-				  struct musb_hw_ep *hw_ep, int is_in);
-#endif
-enum {
-	QH_FREE_RESCUE_INTERRUPT,
-	QH_FREE_RESCUE_EP_DISABLE,
-};
 #endif				/* _MUSB_HOST_H */

@@ -629,7 +629,6 @@ static const struct file_operations ffs_ep0_operations = {
 
 
 /* "Normal" endpoints operations ********************************************/
-
 static void ffs_epfile_io_complete(struct usb_ep *_ep, struct usb_request *req)
 {
 	ENTER();
@@ -816,6 +815,7 @@ static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 			spin_unlock_irq(&epfile->ffs->eps_lock);
 		} else {
 			DECLARE_COMPLETION_ONSTACK(done);
+			bool interrupted = false;
 
 			req = ep->req;
 			req->buf      = data;
@@ -831,9 +831,18 @@ static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 			if (unlikely(ret < 0)) {
 				/* nop */
 			} else if (unlikely(
-				   wait_for_completion_interruptible(&done))) {
-				ret = -EINTR;
+				wait_for_completion_interruptible(&done))) {
+				/*
+				 * To avoid race condition with ffs_epfile_io_complete,
+				 * dequeue the request first then check
+				 * status. usb_ep_dequeue API should guarantee no race
+				 * condition with req->complete callback.
+				 */
+				pr_info("adbd is killing its done member equal to %u\n", done.done);
+				reinit_completion(&done);
+				req->context  = NULL;
 				usb_ep_dequeue(ep->ep, req);
+				interrupted = ep->status < 0;
 			} else {
 				/*
 				 * XXX We may end up silently droping data
@@ -842,7 +851,7 @@ static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 				 * to maxpacketsize), we may end up with more
 				 * data then user space has space for.
 				 */
-				ret = ep->status;
+				ret = interrupted ? -EINTR : ep->status;
 				if (io_data->read && ret > 0) {
 					ret = copy_to_iter(data, ret, &io_data->data);
 					if (!ret)
@@ -1333,6 +1342,7 @@ ffs_fs_kill_sb(struct super_block *sb)
 	if (sb->s_fs_info) {
 		ffs_release_dev(sb->s_fs_info);
 		ffs_data_closed(sb->s_fs_info);
+		ffs_data_put(sb->s_fs_info);
 	}
 }
 

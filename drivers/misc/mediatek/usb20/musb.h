@@ -33,6 +33,8 @@ enum musb_mode {
 	MUSB_OTG		/* Mini-AB connector */
 };
 
+struct clk;
+
 enum musb_fifo_style {
 	MUSB_FIFO_RXTX,		/* add MUSB_ prefix to avoid confilicts with musbfsh.h, gang */
 	MUSB_FIFO_TX,

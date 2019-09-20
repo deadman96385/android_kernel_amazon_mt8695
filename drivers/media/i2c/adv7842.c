@@ -3018,6 +3018,25 @@ static int adv7842_subscribe_event(struct v4l2_subdev *sd,
 	}
 }
 
+static int adv7842_registered(struct v4l2_subdev *sd)
+{
+	struct adv7842_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	int err;
+
+	err = cec_register_adapter(state->cec_adap, &client->dev);
+	if (err)
+		cec_delete_adapter(state->cec_adap);
+	return err;
+}
+
+static void adv7842_unregistered(struct v4l2_subdev *sd)
+{
+	struct adv7842_state *state = to_state(sd);
+
+	cec_unregister_adapter(state->cec_adap);
+}
+
 /* ----------------------------------------------------------------------- */
 
 static const struct v4l2_ctrl_ops adv7842_ctrl_ops = {
@@ -3316,6 +3335,16 @@ static int adv7842_probe(struct i2c_client *client,
 	err = adv7842_core_init(sd);
 	if (err)
 		goto err_entity;
+
+#if IS_ENABLED(CONFIG_VIDEO_ADV7842_CEC)
+	state->cec_adap = cec_allocate_adapter(&adv7842_cec_adap_ops,
+		state, dev_name(&client->dev),
+		CEC_CAP_TRANSMIT | CEC_CAP_LOG_ADDRS |
+		CEC_CAP_PASSTHROUGH | CEC_CAP_RC, ADV7842_MAX_ADDRS);
+	err = PTR_ERR_OR_ZERO(state->cec_adap);
+	if (err)
+		goto err_entity;
+#endif
 
 	v4l2_info(sd, "%s found @ 0x%x (%s)\n", client->name,
 		  client->addr << 1, client->adapter->name);

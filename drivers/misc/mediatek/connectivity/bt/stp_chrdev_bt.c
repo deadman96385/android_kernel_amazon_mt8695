@@ -25,10 +25,8 @@
 #include <linux/poll.h>
 #include <linux/time.h>
 #include <linux/delay.h>
-#include <linux/wakelock.h>
 #include <linux/device.h>
 #include <linux/printk.h>
-#include <linux/uio.h>
 
 #include "wmt_exp.h"
 #include "stp_exp.h"
@@ -58,8 +56,8 @@ static UINT32 gDbgLevel = BT_LOG_INFO;
 #define VERSION "2.0"
 
 #define COMBO_IOC_MAGIC             0xb0
-#define COMBO_IOCTL_FW_ASSERT       _IOW(COMBO_IOC_MAGIC, 0, int)
-#define COMBO_IOCTL_BT_SET_PSM      _IOW(COMBO_IOC_MAGIC, 1, bool)
+#define COMBO_IOCTL_FW_ASSERT       _IOWR(COMBO_IOC_MAGIC, 0, int)
+#define COMBO_IOCTL_BT_SET_PSM      _IOWR(COMBO_IOC_MAGIC, 1, bool)
 #define COMBO_IOCTL_BT_IC_HW_VER    _IOR(COMBO_IOC_MAGIC, 2, void*)
 #define COMBO_IOCTL_BT_IC_FW_VER    _IOR(COMBO_IOC_MAGIC, 3, void*)
 
@@ -77,20 +75,12 @@ static UINT8 i_buf[BT_BUFFER_SIZE]; /* Input buffer for read */
 static UINT8 o_buf[BT_BUFFER_SIZE]; /* Output buffer for write */
 
 static struct semaphore wr_mtx, rd_mtx;
-static struct wake_lock bt_wakelock;
 /* Wait queue for poll and read */
 static wait_queue_head_t inq;
 static DECLARE_WAIT_QUEUE_HEAD(BT_wq);
 static INT32 flag;
-/*
- * Reset flag for whole chip reset scenario, to indicate reset status:
- *   0 - normal, no whole chip reset occurs
- *   1 - reset start
- *   2 - reset end, have not sent Hardware Error event yet
- *   3 - reset end, already sent Hardware Error event
- */
-static volatile UINT32 rstflag;
-static UINT8 HCI_EVT_HW_ERROR[] = {0x04, 0x10, 0x01, 0x00};
+/* Reset flag for whole chip reset senario */
+static volatile INT32 rstflag;
 
 /*******************************************************************
  * WHOLE CHIP RESET message handler
@@ -101,61 +91,36 @@ static VOID bt_cdev_rst_cb(ENUM_WMTDRV_TYPE_T src,
 {
 	ENUM_WMTRSTMSG_TYPE_T rst_msg;
 
-	if (sz > sizeof(ENUM_WMTRSTMSG_TYPE_T)) {
-		BT_WARN_FUNC("Invalid message format!\n");
-		return;
-	}
+	if (sz <= sizeof(ENUM_WMTRSTMSG_TYPE_T)) {
+		memcpy((PINT8)&rst_msg, (PINT8)buf, sz);
+		BT_DBG_FUNC("src = %d, dst = %d, type = %d, buf = 0x%x sz = %d, max = %d\n", src,
+			     dst, type, rst_msg, sz, WMTRSTMSG_RESET_MAX);
+		if ((src == WMTDRV_TYPE_WMT) && (dst == WMTDRV_TYPE_BT)
+		    && (type == WMTMSG_TYPE_RESET)) {
+			if (rst_msg == WMTRSTMSG_RESET_START) {
+				BT_INFO_FUNC("BT reset start!\n");
+				rstflag = 1;
+				wake_up_interruptible(&inq);
 
-	memcpy((PINT8)&rst_msg, (PINT8)buf, sz);
-	BT_DBG_FUNC("src = %d, dst = %d, type = %d, buf = 0x%x sz = %d, max = %d\n",
-		    src, dst, type, rst_msg, sz, WMTRSTMSG_RESET_MAX);
-	if ((src == WMTDRV_TYPE_WMT) && (dst == WMTDRV_TYPE_BT) && (type == WMTMSG_TYPE_RESET)) {
-		switch (rst_msg) {
-		case WMTRSTMSG_RESET_START:
-			BT_INFO_FUNC("Whole chip reset start!\n");
-			rstflag = 1;
-			break;
-
-		case WMTRSTMSG_RESET_END:
-		case WMTRSTMSG_RESET_END_FAIL:
-			if (rst_msg == WMTRSTMSG_RESET_END)
-				BT_INFO_FUNC("Whole chip reset end!\n");
-			else
-				BT_INFO_FUNC("Whole chip reset fail!\n");
-			rstflag = 2;
-			flag = 1;
-			wake_up_interruptible(&inq);
-			wake_up(&BT_wq);
-			break;
-
-		default:
-			break;
+			} else if (rst_msg == WMTRSTMSG_RESET_END) {
+				BT_INFO_FUNC("BT reset end!\n");
+				rstflag = 2;
+				wake_up_interruptible(&inq);
+			}
 		}
-	}
+	} else
+		BT_WARN_FUNC("Invalid message format!\n");
 }
 
 VOID BT_event_cb(VOID)
 {
 	BT_DBG_FUNC("BT_event_cb\n");
 
-	/*
-	 * Hold wakelock for 100ms to avoid system enter suspend in such case:
-	 *   FW has sent data to host, STP driver received the data and put it
-	 *   into BT rx queue, then send sleep command and release wakelock as
-	 *   quick sleep mechanism for low power, BT driver will wake up stack
-	 *   hci thread stuck in poll or read.
-	 *   But before hci thread comes to read data, system enter suspend,
-	 *   hci command timeout timer keeps counting during suspend period till
-	 *   expires, then the RTC interrupt wakes up system, command timeout
-	 *   handler is executed and meanwhile the event is received.
-	 *   This will false trigger FW assert and should never happen.
-	 */
-	wake_lock_timeout(&bt_wakelock, msecs_to_jiffies(100));
+	flag = 1;
 
 	/*
-	 * Finally, wake up any reader blocked in poll or read
-	 */
-	flag = 1;
+	* Finally, wake up any reader blocked in poll or read
+	*/
 	wake_up_interruptible(&inq);
 	wake_up(&BT_wq);
 }
@@ -164,78 +129,26 @@ unsigned int BT_poll(struct file *filp, poll_table *wait)
 {
 	UINT32 mask = 0;
 
-	if ((mtk_wcn_stp_is_rxqueue_empty(BT_TASK_INDX) && rstflag == 0) ||
-	    (rstflag == 1) || (rstflag == 3)) {
-		/*
-		 * BT rx queue is empty, or whole chip reset start, or already sent Hardware Error event
-		 * for whole chip reset end, add to wait queue.
-		 */
+/* down(&wr_mtx); */
+	/*
+	 * The buffer is circular; it is considered full
+	 * if "wp" is right behind "rp". "left" is 0 if the
+	 * buffer is empty, and it is "1" if it is completely full.
+	 */
+	if (mtk_wcn_stp_is_rxqueue_empty(BT_TASK_INDX)) {
 		poll_wait(filp, &inq, wait);
-		/*
-		 * Check if condition changes before poll_wait return, in case of
-		 * wake_up_interruptible is called before add_wait_queue, otherwise,
-		 * do_poll will get into sleep and never be waken up until timeout.
-		 */
-		if (!((mtk_wcn_stp_is_rxqueue_empty(BT_TASK_INDX) && rstflag == 0) ||
-		      (rstflag == 1) || (rstflag == 3)))
+
+		if (!mtk_wcn_stp_is_rxqueue_empty(BT_TASK_INDX) || rstflag)
+			/* BT Rx queue has valid data, or whole chip reset occurs */
 			mask |= POLLIN | POLLRDNORM;	/* Readable */
 	} else {
-		/* BT rx queue has valid data, or whole chip reset end, have not sent Hardware Error event yet */
 		mask |= POLLIN | POLLRDNORM;	/* Readable */
 	}
 
 	/* Do we need condition here? */
 	mask |= POLLOUT | POLLWRNORM;	/* Writable */
-
+/* up(&wr_mtx); */
 	return mask;
-}
-
-ssize_t BT_write_iter(struct kiocb *iocb, struct iov_iter *from)
-{
-	INT32 retval = 0;
-	size_t count = iov_iter_count(from);
-
-	down(&wr_mtx);
-
-	BT_DBG_FUNC("count %zd\n", count);
-
-	if (rstflag) {
-		BT_ERR_FUNC("whole chip reset occurs! rstflag=%d\n", rstflag);
-		retval = -EIO;
-		goto OUT;
-	}
-
-	if (count > 0) {
-		if (count > BT_BUFFER_SIZE) {
-			count = BT_BUFFER_SIZE;
-			BT_WARN_FUNC("Shorten write count from %zd to %d\n", count, BT_BUFFER_SIZE);
-		}
-
-		if (copy_from_iter(o_buf, count, from) != count) {
-			retval = -EFAULT;
-			goto OUT;
-		}
-
-		retval = mtk_wcn_stp_send_data(o_buf, count, BT_TASK_INDX);
-		if (retval < 0)
-			BT_ERR_FUNC("mtk_wcn_stp_send_data fail, retval %d\n", retval);
-		else if (retval == 0) {
-			/* Device cannot process data in time, STP queue is full and no space is available for write,
-			 * native program should not call BT_write with no delay.
-			 */
-			BT_ERR_FUNC("Packet length %zd, sent bytes %d, no space is available!\n", count, retval);
-			retval = -EAGAIN;
-		} else
-			BT_DBG_FUNC("Packet length %zd, sent bytes %d\n", count, retval);
-
-	} else {
-		BT_ERR_FUNC("Packet length %zd is not allowed\n", count);
-		retval = -EINVAL;
-	}
-
-OUT:
-	up(&wr_mtx);
-	return retval;
 }
 
 ssize_t BT_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
@@ -247,15 +160,20 @@ ssize_t BT_write(struct file *filp, const char __user *buf, size_t count, loff_t
 	BT_DBG_FUNC("count %zd pos %lld\n", count, *f_pos);
 
 	if (rstflag) {
-		BT_ERR_FUNC("whole chip reset occurs! rstflag=%d\n", rstflag);
-		retval = -EIO;
+		if (rstflag == 1) {	/* Reset start */
+			retval = -88;
+			BT_INFO_FUNC("detect whole chip reset start\n");
+		} else if (rstflag == 2) {	/* Reset end */
+			retval = -99;
+			BT_INFO_FUNC("detect whole chip reset end\n");
+		}
 		goto OUT;
 	}
 
 	if (count > 0) {
 		if (count > BT_BUFFER_SIZE) {
 			count = BT_BUFFER_SIZE;
-			BT_WARN_FUNC("Shorten write count from %zd to %d\n", count, BT_BUFFER_SIZE);
+			BT_WARN_FUNC("Shorten count %zd to BT_BUFFER_SIZE\n", count);
 		}
 
 		if (copy_from_user(o_buf, buf, count)) {
@@ -267,7 +185,7 @@ ssize_t BT_write(struct file *filp, const char __user *buf, size_t count, loff_t
 		if (retval < 0)
 			BT_ERR_FUNC("mtk_wcn_stp_send_data fail, retval %d\n", retval);
 		else if (retval == 0) {
-			/* Device cannot process data in time, STP queue is full and no space is available for write,
+			/* Device cannot process data in time, BT queue is full and no space is available for write,
 			 * native program should not call BT_write with no delay.
 			 */
 			BT_ERR_FUNC("Packet length %zd, sent bytes %d, no space is available!\n", count, retval);
@@ -287,6 +205,7 @@ OUT:
 
 ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
+	static int chip_reset_count;
 	INT32 retval = 0;
 
 	down(&rd_mtx);
@@ -294,84 +213,55 @@ ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	BT_DBG_FUNC("count %zd pos %lld\n", count, *f_pos);
 
 	if (rstflag) {
-		while (rstflag != 2) {
-			/*
-			 * If nonblocking mode, return directly.
-			 * O_NONBLOCK is specified during open()
-			 */
-			if (filp->f_flags & O_NONBLOCK) {
-				BT_ERR_FUNC("Non-blocking read, whole chip reset occurs! rstflag=%d\n", rstflag);
-				retval = -EIO;
-				goto OUT;
-			}
-
-			wait_event(BT_wq, flag != 0);
-			flag = 0;
+		if (rstflag == 1) {	/* Reset start */
+			retval = -88;
+			if ((chip_reset_count%500) == 0)
+				BT_INFO_FUNC("detect whole chip reset start, %d\n", chip_reset_count);
+			chip_reset_count++;
+		} else if (rstflag == 2) {	/* Reset end */
+			retval = -99;
+			BT_INFO_FUNC("detect whole chip reset end\n");
+			chip_reset_count = 0;
 		}
-		/*
-		 * Reset end, send Hardware Error event to stack only once.
-		 * To avoid high frequency read from stack before process is killed, set rstflag to 3
-		 * to block poll and read after Hardware Error event is sent.
-		 */
-		BT_INFO_FUNC("Send Hardware Error event to stack to restart Bluetooth\n");
-		memcpy(i_buf, HCI_EVT_HW_ERROR, sizeof(HCI_EVT_HW_ERROR));
-		retval = sizeof(HCI_EVT_HW_ERROR);
-		rstflag = 3;
-
-		if (copy_to_user(buf, i_buf, retval)) {
-			retval = -EFAULT;
-			rstflag = 2;
-		}
-
 		goto OUT;
 	}
 
 	if (count > BT_BUFFER_SIZE) {
 		count = BT_BUFFER_SIZE;
-		BT_WARN_FUNC("Shorten read count from %zd to %d\n", count, BT_BUFFER_SIZE);
+		BT_WARN_FUNC("Shorten count %zd to BT_BUFFER_SIZE\n", count);
 	}
 
-	do {
+	retval = mtk_wcn_stp_receive_data(i_buf, count, BT_TASK_INDX);
+	if (retval < 0) {
+		BT_ERR_FUNC("mtk_wcn_stp_receive_data fail, retval %d\n", retval);
+		goto OUT;
+	}
+
+	while (retval == 0) {	/* Got nothing, wait for STP's signal */
+		/*
+		* If nonblocking mode, return directly.
+		* O_NONBLOCK is specified during open()
+		*/
+		if (filp->f_flags & O_NONBLOCK) {
+			BT_DBG_FUNC("Non-blocking read, return directly\n");
+			retval = -EAGAIN;
+			goto OUT;
+		}
+
+		wait_event(BT_wq, flag != 0);
+		flag = 0;
+
 		retval = mtk_wcn_stp_receive_data(i_buf, count, BT_TASK_INDX);
 		if (retval < 0) {
 			BT_ERR_FUNC("mtk_wcn_stp_receive_data fail, retval %d\n", retval);
 			goto OUT;
-		} else if (retval == 0) {	/* Got nothing, wait for STP's signal */
-			/*
-			 * If nonblocking mode, return directly.
-			 * O_NONBLOCK is specified during open()
-			 */
-			if (filp->f_flags & O_NONBLOCK) {
-				BT_ERR_FUNC("Non-blocking read, no data is available!\n");
-				retval = -EAGAIN;
-				goto OUT;
-			}
-
-			wait_event(BT_wq, flag != 0);
-			flag = 0;
-		} else {	/* Got something from STP driver */
-			BT_DBG_FUNC("Read bytes %d\n", retval);
-			break;
-		}
-	} while (!mtk_wcn_stp_is_rxqueue_empty(BT_TASK_INDX) && rstflag == 0);
-
-	if (retval == 0) {
-		if (rstflag != 2) {	/* Should never happen */
-			WARN(1, "Blocking read is waken up with no data but rstflag=%d\n", rstflag);
-			retval = -EIO;
-			goto OUT;
-		} else {	/* Reset end, send Hardware Error event only once */
-			BT_INFO_FUNC("Send Hardware Error event to stack to restart Bluetooth\n");
-			memcpy(i_buf, HCI_EVT_HW_ERROR, sizeof(HCI_EVT_HW_ERROR));
-			retval = sizeof(HCI_EVT_HW_ERROR);
-			rstflag = 3;
 		}
 	}
 
+	/* Got something from STP driver */
+	BT_DBG_FUNC("Read bytes %d\n", retval);
 	if (copy_to_user(buf, i_buf, retval)) {
 		retval = -EFAULT;
-		if (rstflag == 3)
-			rstflag = 2;
 		goto OUT;
 	}
 
@@ -384,7 +274,7 @@ OUT:
 long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	INT32 retval = 0;
-	UINT32 reason;
+	MTK_WCN_BOOL bRet = MTK_WCN_BOOL_TRUE;
 	UINT32 ver = 0;
 
 	BT_DBG_FUNC("cmd: 0x%08x\n", cmd);
@@ -392,17 +282,13 @@ long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case COMBO_IOCTL_FW_ASSERT:
 		/* Trigger FW assert for debug */
-		reason = (UINT32)arg & 0xFFFF;
-		BT_INFO_FUNC("Host trigger FW assert......, reason:%d\n", reason);
-		if (reason == 31) /* HCI command timeout */
-			BT_INFO_FUNC("HCI command timeout OpCode 0x%04x\n", ((UINT32)arg >> 16) & 0xFFFF);
-
-		if (mtk_wcn_wmt_assert(WMTDRV_TYPE_BT, reason) == MTK_WCN_BOOL_TRUE) {
+		BT_INFO_FUNC("Host trigger FW assert......, reason: %lu\n", arg);
+		bRet = mtk_wcn_wmt_assert(WMTDRV_TYPE_BT, (UINT32)arg);
+		if (bRet == MTK_WCN_BOOL_TRUE)
 			BT_INFO_FUNC("Host trigger FW assert succeed\n");
-			retval = 0;
-		} else {
+		else {
 			BT_ERR_FUNC("Host trigger FW assert failed\n");
-			retval = -EBUSY;
+			retval = -EIO;
 		}
 		break;
 	case COMBO_IOCTL_BT_SET_PSM:
@@ -426,7 +312,7 @@ long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 	default:
 		BT_ERR_FUNC("Unknown cmd: 0x%08x\n", cmd);
-		retval = -EOPNOTSUPP;
+		retval = -EINVAL;
 		break;
 	}
 
@@ -449,25 +335,25 @@ static int BT_open(struct inode *inode, struct file *file)
 	}
 
 	BT_INFO_FUNC("WMT turn on BT OK!\n");
+	rstflag = 0;
 
-	if (mtk_wcn_stp_is_ready() == MTK_WCN_BOOL_FALSE) {
+	if (mtk_wcn_stp_is_ready()) {
 
+		mtk_wcn_stp_set_bluez(0);
+
+		BT_INFO_FUNC("Now it's in MTK Bluetooth Mode\n");
+		BT_INFO_FUNC("STP is ready!\n");
+
+		BT_DBG_FUNC("Register BT event callback!\n");
+		mtk_wcn_stp_register_event_cb(BT_TASK_INDX, BT_event_cb);
+	} else {
 		BT_ERR_FUNC("STP is not ready!\n");
 		mtk_wcn_wmt_func_off(WMTDRV_TYPE_BT);
 		return -EIO;
 	}
 
-	mtk_wcn_stp_set_bluez(0);
-
-	BT_INFO_FUNC("Now it's in MTK Bluetooth Mode\n");
-	BT_INFO_FUNC("STP is ready!\n");
-
-	BT_DBG_FUNC("Register BT event callback!\n");
-	mtk_wcn_stp_register_event_cb(BT_TASK_INDX, BT_event_cb);
-
 	BT_DBG_FUNC("Register BT reset callback!\n");
 	mtk_wcn_wmt_msgcb_reg(WMTDRV_TYPE_BT, bt_cdev_rst_cb);
-	rstflag = 0;
 
 	sema_init(&wr_mtx, 1);
 	sema_init(&rd_mtx, 1);
@@ -496,7 +382,6 @@ const struct file_operations BT_fops = {
 	.release = BT_close,
 	.read = BT_read,
 	.write = BT_write,
-	.write_iter = BT_write_iter,
 	/* .ioctl = BT_ioctl, */
 	.unlocked_ioctl = BT_unlocked_ioctl,
 	.compat_ioctl = BT_compat_ioctl,
@@ -536,8 +421,6 @@ static int BT_init(void)
 
 	/* Initialize wait queue */
 	init_waitqueue_head(&(inq));
-	/* Initialize wake lock */
-	wake_lock_init(&bt_wakelock, WAKE_LOCK_SUSPEND, "bt_drv");
 
 	return 0;
 
@@ -564,8 +447,6 @@ error:
 static void BT_exit(void)
 {
 	dev_t dev = MKDEV(BT_major, 0);
-	/* Destroy wake lock*/
-	wake_lock_destroy(&bt_wakelock);
 
 #if CREATE_NODE_DYNAMIC
 	if (stpbt_dev && !IS_ERR(stpbt_dev)) {

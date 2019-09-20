@@ -618,14 +618,6 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 			 * nothing to return
 			 */
 			return NULL;
-		} else {
-			//BEGIN MTK legacy patch from kernel-3.10
-			host->ops->send_stop(host,host->areq->mrq);
-			do {
-				host->ops->tuning(host, host->areq->mrq);
-			} while (host->ops->check_written_data(host, host->areq->mrq));
-			err = host->areq->err_check(host->card, host->areq);
-			//END MTK legacy patch from kernel-3.10
 		}
 		/*
 		 * Check BKOPS urgency for each R1 response
@@ -2837,14 +2829,6 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 			err = host->bus_ops->pre_suspend(host);
 		if (!err)
 			break;
-
-		if (!mmc_card_is_removable(host)) {
-			dev_warn(mmc_dev(host),
-				 "pre_suspend failed for non-removable host: "
-				 "%d\n", err);
-			/* Avoid removing non-removable hosts */
-			break;
-		}
 
 		/* Calling bus_ops->remove() with a claimed host can deadlock */
 		host->bus_ops->remove(host);

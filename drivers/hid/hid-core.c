@@ -1254,6 +1254,24 @@ static void hid_input_field(struct hid_device *hid, struct hid_field *field,
 		    value[n] - min < field->maxusage &&
 		    field->usage[value[n] - min].hid == HID_UP_KEYBOARD + 1)
 			goto exit;
+
+		if (field->usage->hid == HID_DC_BATTERYSTRENGTH &&
+			hid->ll_driver->battery_level_ind &&
+			value[n] != hid->received_battery_level) {
+			hid_info(hid, "old battery level is %d; new value[%d]=%d\n",
+			hid->received_battery_level, n, value[n]);
+
+			hid->received_battery_level = value[n];
+
+			/* Convert New Battery Level into Percentage */
+			hid->battery_level = ((hid->received_battery_level -
+						field->logical_minimum) * 100) /
+						(field->logical_maximum -
+						field->logical_minimum);
+			hid->ll_driver->battery_level_ind(hid,
+						hid->battery_level);
+			hid_info(hid, "new normalized battery level is %d\n", hid->battery_level);
+		}
 	}
 
 	for (n = 0; n < count; n++) {
@@ -2062,6 +2080,22 @@ static const struct hid_device_id hid_have_special_driver[] = {
 	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_NINTENDO, USB_DEVICE_ID_NINTENDO_WIIMOTE) },
 	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_NINTENDO, USB_DEVICE_ID_NINTENDO_WIIMOTE2) },
 	{ HID_USB_DEVICE(USB_VENDOR_ID_RAZER, USB_DEVICE_ID_RAZER_BLADE_14) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_abi123) },
+	{ HID_USB_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_abi123) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abj123) },
+	{ HID_USB_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abj123) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abk123) },
+	{ HID_USB_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abk123) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abl123) },
+	{ HID_USB_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abl123) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abc123) },
+	{ HID_USB_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abc123) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abm123) },
+	{ HID_USB_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abm123) },
+	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_US_KB) },
+	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_UK_KB) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_ASPEN_KB_US) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_ASPEN_KB_UK) },
 	{ }
 };
 

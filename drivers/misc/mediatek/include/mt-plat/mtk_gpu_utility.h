@@ -33,12 +33,6 @@ MTK_GPU_DVFS_TYPE_LIST
 #undef MTK_GPU_DVFS_TYPE_ITEM
 MTK_GPU_DVFS_TYPE;
 
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 /* returning false indicated no implement */
 
 /* unit: x bytes */
@@ -98,9 +92,5 @@ bool mtk_unregister_gpu_power_change(const char *name);
 
 /* GPU POWER NOTIFY should be called by GPU only */
 void mtk_notify_gpu_power_change(int power_on);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

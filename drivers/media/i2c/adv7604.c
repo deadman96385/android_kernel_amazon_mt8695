@@ -2376,6 +2376,25 @@ static int adv76xx_subscribe_event(struct v4l2_subdev *sd,
 	}
 }
 
+static int adv76xx_registered(struct v4l2_subdev *sd)
+{
+	struct adv76xx_state *state = to_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	int err;
+
+	err = cec_register_adapter(state->cec_adap, &client->dev);
+	if (err)
+		cec_delete_adapter(state->cec_adap);
+	return err;
+}
+
+static void adv76xx_unregistered(struct v4l2_subdev *sd)
+{
+	struct adv76xx_state *state = to_state(sd);
+
+	cec_unregister_adapter(state->cec_adap);
+}
+
 /* ----------------------------------------------------------------------- */
 
 static const struct v4l2_ctrl_ops adv76xx_ctrl_ops = {
@@ -3223,6 +3242,17 @@ static int adv76xx_probe(struct i2c_client *client,
 	err = adv76xx_core_init(sd);
 	if (err)
 		goto err_entity;
+
+#if IS_ENABLED(CONFIG_VIDEO_ADV7604_CEC)
+	state->cec_adap = cec_allocate_adapter(&adv76xx_cec_adap_ops,
+		state, dev_name(&client->dev),
+		CEC_CAP_TRANSMIT | CEC_CAP_LOG_ADDRS |
+		CEC_CAP_PASSTHROUGH | CEC_CAP_RC, ADV76XX_MAX_ADDRS);
+	err = PTR_ERR_OR_ZERO(state->cec_adap);
+	if (err)
+		goto err_entity;
+#endif
+
 	v4l2_info(sd, "%s found @ 0x%x (%s)\n", client->name,
 			client->addr << 1, client->adapter->name);
 

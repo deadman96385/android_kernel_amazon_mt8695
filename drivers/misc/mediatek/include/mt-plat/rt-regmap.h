@@ -15,7 +15,7 @@
 #include <linux/debugfs.h>
 #include <linux/i2c.h>
 
-/* #define RT_REGMAP_VERSION	"1.1.12_G" */
+/* #define RT_REGMAP_VERSION	"1.1.11_G" */
 
 enum rt_access_mode {
 	RT_1BYTE_MODE = 1,
@@ -149,8 +149,6 @@ struct rt_register {
 		.wbit_mask = rt_writable_mask_##_addr,\
 	}
 
-typedef struct rt_register *rt_register_map_t;
-
 #define RT_REG(_addr) (&rt_register_##_addr)
 
 /* rt_regmap_properties
@@ -167,7 +165,7 @@ struct rt_regmap_properties {
 	const char *name;
 	const char *aliases;
 	int register_num;
-	const rt_register_map_t *rm;
+	struct rt_register **rm;
 	struct rt_access_group *group;
 	enum rt_data_format rt_format;
 	unsigned char rt_regmap_mode;

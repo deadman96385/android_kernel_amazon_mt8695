@@ -402,6 +402,8 @@ static int pci_device_probe(struct device *dev)
 	struct pci_dev *pci_dev = to_pci_dev(dev);
 	struct pci_driver *drv = to_pci_driver(dev->driver);
 
+	pci_assign_irq(pci_dev);
+
 	error = pcibios_alloc_irq(pci_dev);
 	if (error < 0)
 		return error;
@@ -463,6 +465,8 @@ static void pci_device_shutdown(struct device *dev)
 
 	if (drv && drv->shutdown)
 		drv->shutdown(pci_dev);
+	pci_msi_shutdown(pci_dev);
+	pci_msix_shutdown(pci_dev);
 
 #ifdef CONFIG_KEXEC_CORE
 	/*

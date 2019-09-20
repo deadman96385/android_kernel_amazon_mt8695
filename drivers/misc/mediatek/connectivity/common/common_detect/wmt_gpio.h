@@ -91,7 +91,6 @@ typedef struct _WMT_GPIO_STATE_INFO {
 	INT32 dir;
 	INT32 ies;
 } WMT_GPIO_STATE_INFO;
-
 typedef struct _GPIO_CTRL_INFO {
 	struct pinctrl *pinctrl_info;
 	GPIO_CTRL_STATE gpio_ctrl_state[GPIO_PIN_ID_MAX];
@@ -112,8 +111,6 @@ extern int mt_get_gpio_out_base(unsigned long pin);
 extern int mt_get_gpio_pull_enable_base(unsigned long pin);
 extern int mt_get_gpio_dir_base(unsigned long pin);
 extern int mt_get_gpio_ies_base(unsigned long pin);
-
-
 /*******************************************************************************
 *                  F U N C T I O N   D E C L A R A T I O N S
 ********************************************************************************

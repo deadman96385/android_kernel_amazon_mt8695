@@ -19,13 +19,20 @@ ifeq ($(MTK_ALPS_BOX_SUPPORT),yes)
 ccflags-y += -DMTK_ALPS_BOX_SUPPORT
 endif
 
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
+#QMU Flags
+ccflags-$(CONFIG_MTK_MUSB_QMU_SUPPORT) += -DMUSB_QMU_SUPPORT
+##ccflags-$(CONFIG_MTK_MUSB_QMU_SUPPORT) += -DQMU_TASKLET
 
 #Platform
-obj-$(CONFIG_MACH_MT8167) += $(subst ",,$(CONFIG_MTK_PLATFORM))/
-obj-$(CONFIG_MACH_MT6763) += $(subst ",,$(CONFIG_MTK_PLATFORM))/
-obj-$(CONFIG_MACH_MT6739) += $(subst ",,$(CONFIG_MTK_PLATFORM))/
-obj-$(CONFIG_ARCH_MT2601) += $(subst ",,$(CONFIG_MTK_PLATFORM))/
+ifneq (,$(filter y,$(CONFIG_MACH_MT2701) $(CONFIG_MACH_MT8521P) $(CONFIG_MACH_MT7623)))
+    MDI_IP_FOLDER:=mt2701
+endif
+
+MTK_MDI_IP_SRC:= $(MDI_IP_FOLDER)/
+
+#IP dependent part
+obj-y += \
+    $(MTK_MDI_IP_SRC)
 
 #Driver
 obj-$(CONFIG_USB_MTK_HDRC) += musb_hdrc.o
@@ -33,13 +40,7 @@ musb_hdrc-$(CONFIG_USB_MTK_HDRC) := musb_core.o
 musb_hdrc-$(CONFIG_USB_MTK_HDRC) += musb_gadget_ep0.o musb_gadget.o
 musb_hdrc-$(CONFIG_USB_MTK_HDRC) += musb_virthub.o musb_host.o
 musb_hdrc-$(CONFIG_USB_MTK_HDRC) += musbhsdma.o
-musb_hdrc-$(CONFIG_DEBUG_FS) += musb_debugfs.o
+musb_hdrc-$(CONFIG_USB_MTK_HDRC) += musb_debugfs.o
 
 # QMU Realted
 obj-$(CONFIG_MTK_MUSB_QMU_SUPPORT) += mtk_qmu.o musb_qmu.o
-ifeq ($(CONFIG_MTK_MUSB_QMU_SUPPORT),y)
-subdir-ccflags-$(CONFIG_ARCH_MT8163) += -DMUSB_QMU_LIMIT_SUPPORT -DMUSB_QMU_LIMIT_RXQ_NUM=4 -DMUSB_QMU_LIMIT_TXQ_NUM=4
-endif
-ifeq ($(CONFIG_MTK_MUSB_QMU_SUPPORT),y)
-subdir-ccflags-$(CONFIG_MACH_MT8167) += -DMUSB_QMU_LIMIT_SUPPORT -DMUSB_QMU_LIMIT_RXQ_NUM=4 -DMUSB_QMU_LIMIT_TXQ_NUM=4
-endif

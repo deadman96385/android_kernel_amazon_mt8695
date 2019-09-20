@@ -77,6 +77,8 @@
 #include <linux/capability.h>
 #include <linux/user_namespace.h>
 
+#include <net/ra_nat.h>
+
 struct kmem_cache *skbuff_head_cache __read_mostly;
 static struct kmem_cache *skbuff_fclone_cache __read_mostly;
 int sysctl_max_skb_frags __read_mostly = MAX_SKB_FRAGS;
@@ -672,6 +674,8 @@ static void skb_release_all(struct sk_buff *skb)
 
 void __kfree_skb(struct sk_buff *skb)
 {
+	hwnat_set_headroom_zero(skb);
+	hwnat_set_tailroom_zero(skb);
 	skb_release_all(skb);
 	kfree_skbmem(skb);
 }
@@ -1148,6 +1152,10 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 	       skb_shinfo(skb),
 	       offsetof(struct skb_shared_info, frags[skb_shinfo(skb)->nr_frags]));
 
+	/*hwnat copy headroom*/
+	hwnat_copy_headroom(data, skb);
+	/*hwnat copy tailroom*/
+	hwnat_copy_tailroom(data, size, skb);
 	/*
 	 * if shinfo is shared we must drop the old head gracefully, but if it
 	 * is not we can just drop the old head and let the existing refcount
@@ -3571,7 +3579,7 @@ int sock_queue_err_skb(struct sock *sk, struct sk_buff *skb)
 
 	skb_queue_tail(&sk->sk_error_queue, skb);
 	if (!sock_flag(sk, SOCK_DEAD))
-		sk->sk_error_report(sk);
+		sk->sk_data_ready(sk);
 	return 0;
 }
 EXPORT_SYMBOL(sock_queue_err_skb);

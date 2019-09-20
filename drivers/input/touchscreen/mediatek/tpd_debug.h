@@ -1,15 +1,15 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2 as
-* published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See http://www.gnu.org/licenses/gpl-2.0.html for more details.
-*/
+ * Copyright (C) 2016 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
+ */
 
 #ifndef TPD_DEBUG_H
 #define TPD_DEBUG_H
@@ -77,8 +77,6 @@ extern int tpd_type_cap;
 void tpd_em_log_output(int raw_x, int raw_y, int cal_x, int cal_y, int p, int down);
 void tpd_em_log_store(int raw_x, int raw_y, int cal_x, int cal_y, int p, int down);
 void tpd_em_log_release(void);
-void tpd_enable_em_log(int enable);
-
 #ifndef CREATE_TRACE_POINTS
 #define CREATE_TRACE_POINTS
 #endif
@@ -94,6 +92,7 @@ noinline void MET_touch(int raw_x, int raw_y, int cal_x, int cal_y, int p, int d
 
 #define TPD_EM_PRINT(raw_x, raw_y, cal_x, cal_y, p, down)                           \
 	do {                                                                            \
+		MET_touch(raw_x, raw_y, cal_x, cal_y, p, down);                         \
 		if (tpd_em_log) {                                                           \
 			if (!tpd_em_log_to_fs) {                                                \
 				tpd_em_log_output(raw_x, raw_y, cal_x, cal_y, p, down);             \
@@ -101,12 +100,16 @@ noinline void MET_touch(int raw_x, int raw_y, int cal_x, int cal_y, int p, int d
 				tpd_em_log_store(raw_x, raw_y, cal_x, cal_y, p, down);              \
 				tpd_em_log_output(raw_x, raw_y, cal_x, cal_y, p, down);                \
 			}                                                                       \
-		} else {                                                                      \
+			if (down == 1)                                                          \
+				tpd_down_status = 1;                                                \
+			else if (down == 0)                                                     \
+				tpd_down_status = 0;                                                \
+		}                                                                           \
+		else {                                                                      \
 			if (tpd_em_log_to_fs) {                                                 \
 				tpd_em_log_release();                                               \
 			}                                                                       \
 		}                                                                           \
-		MET_touch(raw_x, raw_y, cal_x, cal_y, p, down);                         \
 	} while (0)
 
 #ifdef TPD_DEBUG_TRACK

@@ -39,7 +39,6 @@
 #include "osal_typedef.h"
 #include "mtk_wcn_consys_hw.h"
 #include <linux/of_reserved_mem.h>
-#include <linux/pinctrl/consumer.h>
 
 /*******************************************************************************
 *                              C O N S T A N T S
@@ -75,7 +74,6 @@ const struct of_device_id apwmt_of_ids[] = {
 	{.compatible = "mediatek,mt6757-consys",},
 	{.compatible = "mediatek,mt8167-consys",},
 	{.compatible = "mediatek,mt6759-consys",},
-	{.compatible = "mediatek,mt6758-consys",},
 	{}
 };
 struct CONSYS_BASE_ADDRESS conn_reg;
@@ -157,15 +155,12 @@ static INT32 mtk_wmt_probe(struct platform_device *pdev)
 
 	if (iRet)
 		return iRet;
-
 	if (wmt_consys_ic_ops->consys_ic_clk_get_from_dts)
 		iRet = wmt_consys_ic_ops->consys_ic_clk_get_from_dts(pdev);
 	else
 		iRet = -1;
-
 	if (iRet)
 		return iRet;
-
 	if (gConEmiPhyBase) {
 		if (wmt_consys_ic_ops->consys_ic_emi_mpu_set_region_protection)
 			wmt_consys_ic_ops->consys_ic_emi_mpu_set_region_protection();
@@ -210,7 +205,6 @@ static INT32 mtk_wmt_probe(struct platform_device *pdev)
 
 	if (wmt_consys_ic_ops->consys_ic_store_reset_control)
 		wmt_consys_ic_ops->consys_ic_store_reset_control(pdev);
-
 	return 0;
 }
 
@@ -220,7 +214,6 @@ static INT32 mtk_wmt_remove(struct platform_device *pdev)
 		if (wmt_consys_ic_ops->consys_ic_need_store_pdev() == MTK_WCN_BOOL_TRUE)
 			pm_runtime_disable(&pdev->dev);
 	}
-
 	if (g_pdev)
 		g_pdev = NULL;
 
@@ -307,7 +300,6 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
 		}
 		if (wmt_consys_ic_ops->consys_ic_hw_vcn18_ctrl)
 			wmt_consys_ic_ops->consys_ic_hw_vcn18_ctrl(DISABLE);
-
 		if (wmt_consys_ic_ops->consys_ic_set_if_pinmux)
 			wmt_consys_ic_ops->consys_ic_set_if_pinmux(DISABLE);
 	}
@@ -499,9 +491,7 @@ int reserve_memory_consys_fn(struct reserved_mem *rmem)
 	return 0;
 }
 
-#ifdef CONFIG_OF_RESERVED_MEM
 RESERVEDMEM_OF_DECLARE(reserve_memory_test, "mediatek,consys-reserve-memory", reserve_memory_consys_fn);
-#endif
 
 
 INT32 mtk_wcn_consys_hw_init(VOID)
@@ -510,6 +500,7 @@ INT32 mtk_wcn_consys_hw_init(VOID)
 
 	if (wmt_consys_ic_ops == NULL)
 		wmt_consys_ic_ops = mtk_wcn_get_consys_ic_ops();
+
 
 	iRet = platform_driver_register(&mtk_wmt_dev_drv);
 	if (iRet)

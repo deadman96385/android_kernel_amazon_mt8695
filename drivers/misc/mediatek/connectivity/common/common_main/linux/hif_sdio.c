@@ -42,6 +42,7 @@
 #include <linux/proc_fs.h>
 #include "hif_sdio.h"
 #include "wmt_gpio.h"
+
 /* #include "hif_sdio_chrdev.h" */
 
 #define mmc_power_up_ext(x)
@@ -111,6 +112,7 @@ static _osal_inline_ INT32 hif_sdio_stp_off(VOID);
 static _osal_inline_ INT32 hif_sdio_wifi_on(VOID);
 
 static _osal_inline_ INT32 hif_sdio_wifi_off(VOID);
+
 
 static _osal_inline_ INT32 hif_sdio_deep_sleep_info_init(VOID);
 
@@ -579,6 +581,7 @@ INT32 hif_sdio_wake_up_ctrl(MTK_WCN_HIF_SDIO_CLTCTX ctx)
 	mutex_unlock(&(g_hif_sdio_ds_info_list[i].lock));
 	return ret;
 }
+
 
 /*!
  * \brief MTK hif sdio client registration function
@@ -1827,7 +1830,7 @@ static INT32 hif_sdio_probe(struct sdio_func *func, const struct sdio_device_id 
 	MTK_WCN_HIF_SDIO_CLT_PROBE_WORKERINFO *clt_probe_worker_info = 0;
 #endif
 
-	HIF_SDIO_DBG_FUNC("start!\n");
+	HIF_SDIO_INFO_FUNC("start!\n");
 	HIF_SDIO_ASSERT(func);
 #if !(DELETE_HIF_SDIO_CHRDEV)
 	hif_sdio_match_chipid_by_dev_id(id);
@@ -1836,7 +1839,7 @@ static INT32 hif_sdio_probe(struct sdio_func *func, const struct sdio_device_id 
 	HIF_SDIO_INFO_FUNC("vendor(0x%x) device(0x%x) num(0x%x)\n", func->vendor, func->device,
 			   func->num);
 	for (i = 0; i < func->card->num_info; i++)
-		HIF_SDIO_DBG_FUNC("card->info[%d]: %s\n", i, func->card->info[i]);
+		HIF_SDIO_INFO_FUNC("card->info[%d]: %s\n", i, func->card->info[i]);
 
 	/* 4 <1> Check if this  is supported by us (mtk_sdio_id_tbl) */
 	ret = hif_sdio_check_supported_sdio_id(func->vendor, func->device);
@@ -1931,7 +1934,7 @@ static INT32 hif_sdio_probe(struct sdio_func *func, const struct sdio_device_id 
 		goto out;
 	}
 
-	HIF_SDIO_DBG_FUNC("cur_blksize(%d) max(%d), host max blk_size(%d) blk_count(%d)\n",
+	HIF_SDIO_INFO_FUNC("cur_blksize(%d) max(%d), host max blk_size(%d) blk_count(%d)\n",
 			   func->cur_blksize, func->max_blksize,
 			   func->card->host->max_blk_size, func->card->host->max_blk_count);
 
@@ -2170,7 +2173,7 @@ static _osal_inline_ INT32 hif_sdio_stp_on(VOID)
 
 	const MTK_WCN_HIF_SDIO_FUNCINFO *func_info = NULL;
 
-	HIF_SDIO_DBG_FUNC("hif_sdio_stp_on, start!\n");
+	HIF_SDIO_INFO_FUNC("hif_sdio_stp_on, start!\n");
 
 	/* 4 <1> If stp client drv has not been probed, return error code */
 	/* MT6620 */
@@ -2244,7 +2247,7 @@ stp_on_exist:
 			HIF_SDIO_WARN_FUNC("sdio_claim_irq() for stp fail(%d)\n", ret);
 			return ret;
 		}
-		HIF_SDIO_DBG_FUNC("sdio_claim_irq() for stp ok\n");
+		HIF_SDIO_INFO_FUNC("sdio_claim_irq() for stp ok\n");
 
 		/* 4 <5> If this struct sdio_func *func is supported by any driver in */
 		/* 4 g_hif_sdio_clt_drv_list, schedule another task to call client's .hif_clt_probe() */
@@ -2273,7 +2276,7 @@ stp_on_exist:
 							 func_info->blk_sz, probe_index), 1);
 
 
-		HIF_SDIO_DBG_FUNC("hif_sdio_stp_on, ok!\n");
+		HIF_SDIO_INFO_FUNC("hif_sdio_stp_on, ok!\n");
 
 		return 0;
 #else
@@ -2310,7 +2313,7 @@ static _osal_inline_ INT32 hif_sdio_stp_off(VOID)
 	UINT16 func_num = 0;
 	const MTK_WCN_HIF_SDIO_FUNCINFO *func_info = NULL;
 
-	HIF_SDIO_DBG_FUNC("hif_sdio_stp_off, start!\n");
+	HIF_SDIO_INFO_FUNC("hif_sdio_stp_off, start!\n");
 
 	/* 4 <1> If stp client drv has not been probed, return error code */
 	/* MT6620 */

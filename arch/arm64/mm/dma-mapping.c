@@ -524,7 +524,7 @@ static int __init dma_debug_do_init(void)
 	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
 	return 0;
 }
-fs_initcall(dma_debug_do_init);
+core_initcall(dma_debug_do_init);
 
 
 #ifdef CONFIG_IOMMU_DMA

@@ -567,7 +567,6 @@ again:
 	 * From this point on, mapping will be re-verified if necessary and
 	 * page lock will be acquired only if it is unavoidable
 	 */
-
 	mapping = READ_ONCE(page_head->mapping);
 
 	/*

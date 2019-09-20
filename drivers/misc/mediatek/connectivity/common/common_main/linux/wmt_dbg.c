@@ -102,7 +102,6 @@ static INT32 wmt_dbg_func0_reg_read(INT32 par1, INT32 address, INT32 value);
 static INT32 wmt_dbg_func0_reg_write(INT32 par1, INT32 address, INT32 value);
 static INT32 wmt_dbg_stp_sdio_reg_read(INT32 par1, INT32 address, INT32 value);
 static INT32 wmt_dbg_stp_sdio_reg_write(INT32 par1, INT32 address, INT32 value);
-
 static const WMT_DEV_DBG_FUNC wmt_dev_dbg_func[] = {
 	[0x0] = wmt_dbg_psm_ctrl,
 	[0x1] = wmt_dbg_quick_sleep_ctrl,
@@ -543,10 +542,6 @@ INT32 wmt_dbg_fwinfor_from_emi(INT32 par1, INT32 par2, INT32 par3)
 	if (offset == 1) {
 		do {
 			pAddr = (PUINT32) wmt_plat_get_emi_virt_add(0x24);
-			if (pAddr == NULL) {
-				WMT_ERR_FUNC("get virtual emi address 0x24 fail!\n");
-				return -1;
-			}
 			cur_idx_pagedtrace = *pAddr;
 
 			if (cur_idx_pagedtrace > prev_idx_pagedtrace) {
@@ -935,16 +930,7 @@ static INT32 wmt_dbg_jtag_flag_ctrl(INT32 par1, INT32 par2, INT32 par3)
 {
 	UINT32 en_flag = par2;
 
-	switch (en_flag) {
-	case 1:
-	case 2:
-		/* gen2 consys does not support 2-wire jtag*/
-		wmt_lib_jtag_flag_set(en_flag);
-		WMT_INFO_FUNC("enable %s mcu jtag pinmux setting\n", en_flag == 1 ? "7-wire" : "2-wire");
-		break;
-	default:
-		WMT_INFO_FUNC("enable mcu jtag does not support %d options\n", en_flag);
-	}
+	wmt_lib_jtag_flag_set(en_flag);
 
 	return 0;
 }

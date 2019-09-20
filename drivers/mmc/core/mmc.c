@@ -20,6 +20,13 @@
 #include <linux/mmc/card.h>
 #include <linux/mmc/mmc.h>
 
+#ifdef CONFIG_AMAZON_METRICS_LOG
+#include <linux/metricslog.h>
+#include <linux/vmalloc.h>
+#define LMK_METRIC_TAG "kernel"
+#define METRICS_LIFETIME_DATA_LEN 128
+#endif
+
 #include "core.h"
 #include "host.h"
 #include "bus.h"
@@ -109,6 +116,28 @@ static int mmc_decode_cid(struct mmc_card *card)
 		pr_err("%s: card has unknown MMCA version %d\n",
 			mmc_hostname(card->host), card->csd.mmca_vsn);
 		return -EINVAL;
+	}
+
+	/*add to print emmc vendor*/
+	switch(card->cid.manfid){
+	case 0x11:
+		pr_info("[%s]: EMMC Vendor: TOSHIBA\n", __func__);
+		break;
+	case 0x13:
+		pr_info("[%s]: EMMC Vendor: MICRON\n", __func__);
+		break;
+	case 0x15:
+		pr_info("[%s]: EMMC Vendor: SAMSUNG\n", __func__);
+		break;
+	case 0x45:
+		pr_info("[%s]: EMMC Vendor: SANDISK\n", __func__);
+		break;
+	case 0x90:
+		pr_info("[%s]: EMMC Vendor: HYNIX\n", __func__);
+		break;
+	default:
+		pr_info("[%s]: Unknown EMMC Vendor, manfid is 0X%x\n", __func__, card->cid.manfid);
+		break;
 	}
 
 	return 0;
@@ -345,6 +374,10 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	unsigned int part_size;
 	struct device_node *np;
 	bool broken_hpi = false;
+
+#ifdef CONFIG_AMAZON_METRICS_LOG
+	char *buf;
+#endif
 
 	/* Version is coded in the CSD_STRUCTURE byte in the EXT_CSD register */
 	card->ext_csd.raw_ext_csd_structure = ext_csd[EXT_CSD_STRUCTURE];
@@ -598,6 +631,21 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 			ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A];
 		card->ext_csd.device_life_time_est_typ_b =
 			ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B];
+
+		pr_info("[%s]: Device life time estimation type A:%x, life time estimation type B:%x\n", __func__,
+						card->ext_csd.device_life_time_est_typ_a, card->ext_csd.device_life_time_est_typ_b);
+#ifdef CONFIG_AMAZON_METRICS_LOG
+		buf = vmalloc(METRICS_LIFETIME_DATA_LEN * sizeof(char));
+		if(buf != NULL){
+			snprintf(buf, METRICS_LIFETIME_DATA_LEN,
+				"emmc:info:est_life_time_type_a_%x=1, est_life_time_type_b_%x=1;CT;1:NR",
+				card->ext_csd.device_life_time_est_typ_a, card->ext_csd.device_life_time_est_typ_b);
+			log_to_metrics(ANDROID_LOG_INFO, LMK_METRIC_TAG, buf);
+			vfree(buf);
+		} else {
+			pr_warn("allocate metrics buf error for emmc");
+		}
+#endif
 	}
 out:
 	return err;
@@ -1686,33 +1734,6 @@ err:
 	return err;
 }
 
-static int mmc_cache_ctrl(struct mmc_host *host, u8 enable)
-{
-	struct mmc_card *card = host->card;
-	unsigned int timeout;
-	int err = 0;
-
-	if (card && mmc_card_mmc(card) &&
-			(card->ext_csd.cache_size > 0)) {
-		enable = !!enable;
-
-		if (card->ext_csd.cache_ctrl ^ enable) {
-			timeout = enable ? card->ext_csd.generic_cmd6_time : 0;
-			err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
-					EXT_CSD_CACHE_CTRL, enable, timeout);
-			if (err)
-				pr_err("%s: cache %s error %d\n",
-						mmc_hostname(card->host),
-						enable ? "on" : "off",
-						err);
-			else
-				card->ext_csd.cache_ctrl = enable;
-		}
-	}
-
-	return err;
-}
-
 static int mmc_can_sleep(struct mmc_card *card)
 {
 	return (card && card->ext_csd.rev >= 3);
@@ -1765,26 +1786,6 @@ static int mmc_sleep(struct mmc_host *host)
 out_release:
 	mmc_retune_release(host);
 	return err;
-}
-
-static int mmc_awake(struct mmc_host *host)
-{
-	struct mmc_command cmd = {0};
-	struct mmc_card *card = host->card;
-	int err;
-
-	cmd.opcode = MMC_SLEEP_AWAKE;
-	cmd.arg = card->rca << 16;
-
-	cmd.flags = MMC_RSP_R1B | MMC_CMD_AC;
-	err = mmc_wait_for_cmd(host, &cmd, 0);
-	if (err)
-		return err;
-
-	err = mmc_select_card(host->card);
-
-	return err;
-
 }
 
 static int mmc_can_poweroff_notify(const struct mmc_card *card)
@@ -1885,29 +1886,20 @@ static int _mmc_suspend(struct mmc_host *host, bool is_suspend)
 			goto out;
 	}
 
-	/*
-	 * Turn off cache if eMMC reversion before v5.0
-	 */
-	if (host->card->ext_csd.rev < 7)
-		err = mmc_cache_ctrl(host, 0);
-	else
-		err = mmc_flush_cache(host->card);
+	err = mmc_flush_cache(host->card);
 	if (err)
 		goto out;
 
 	if (mmc_can_poweroff_notify(host->card) &&
 		((host->caps2 & MMC_CAP2_FULL_PWR_CYCLE) || !is_suspend))
 		err = mmc_poweroff_notify(host->card, notify_type);
-	else if (mmc_can_sleep(host->card)) {
+	else if (mmc_can_sleep(host->card))
 		err = mmc_sleep(host);
-		if (!err && mmc_card_keep_power(host))
-			mmc_card_set_sleep(host->card);
-	} else if (!mmc_host_is_spi(host))
+	else if (!mmc_host_is_spi(host))
 		err = mmc_deselect_cards(host);
 
 	if (!err) {
-		if (!mmc_card_keep_power(host))
-			mmc_power_off(host);
+		mmc_power_off(host);
 		mmc_card_set_suspended(host->card);
 	}
 out:
@@ -1947,23 +1939,9 @@ static int _mmc_resume(struct mmc_host *host)
 	if (!mmc_card_suspended(host->card))
 		goto out;
 
-	if (!mmc_card_keep_power(host))
-		mmc_power_up(host, host->card->ocr);
-
-	if (mmc_card_is_sleep(host->card) && mmc_can_sleep(host->card)) {
-		err = mmc_awake(host);
-		if (err)
-			return err;
-		mmc_card_clr_sleep(host->card);
-	} else
-		err = mmc_init_card(host, host->card->ocr, host->card);
+	mmc_power_up(host, host->card->ocr);
+	err = mmc_init_card(host, host->card->ocr, host->card);
 	mmc_card_clr_suspended(host->card);
-
-	/*
-	 * Turn on cache if eMMC reversion before v5.0
-	 */
-	if (host->card->ext_csd.rev < 7)
-		err = mmc_cache_ctrl(host, 1);
 
 out:
 	mmc_release_host(host);

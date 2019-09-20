@@ -43,7 +43,6 @@ ssize_t expdb_read(struct file *filp, char *buf, size_t len, loff_t off)
 
 char *expdb_read_size(int off, int len)
 {
-	/*
 	int ret;
 	struct file *filp;
 	char *data;
@@ -51,7 +50,7 @@ char *expdb_read_size(int off, int len)
 
 	filp = NULL;
 	do {
-		filp = expdb_open();
+		/*filp = expdb_open();*/
 		if (timeout++ > 0) {
 			LOGE("open expdb partition fail [%ld]!\n", PTR_ERR(filp));
 			return NULL;
@@ -67,6 +66,4 @@ char *expdb_read_size(int off, int len)
 		LOGE("read from expdb fail [%d]!\n", ret);
 	}
 	return data;
-	*/
-	return NULL;
 }

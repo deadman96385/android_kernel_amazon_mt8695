@@ -32,49 +32,42 @@
 #ifdef CONFIG_OF
 #include <linux/of_fdt.h>
 #endif
-#include <asm/setup.h>
-#include <asm/atomic.h>
-#include <mach/mt_reg_base.h>
-#include <mach/mt_typedefs.h>
-#include <mach/mt_boot_common.h>
+#include <linux/atomic.h>
+#include <mtk_boot_common.h>
 
 
-typedef enum {
-	BOOT_UNINIT = 0,
-	BOOT_INITIALIZING = 1,
-	BOOT_INITIALIZED = 2,
-} BOOT_INIT_STATE;
+enum {
+	BM_UNINIT = 0,
+	BM_INITIALIZING = 1,
+	BM_INITIALIZED = 2,
+} BM_INIT_STATE;
 
-/* this vairable will be set by mt_fixup.c */
-BOOTMODE g_boot_mode __nosavedata = UNKNOWN_BOOT;
-boot_reason_t g_boot_reason __nosavedata = BR_UNKNOWN;
+enum boot_mode_t g_boot_mode = UNKNOWN_BOOT;
+static atomic_t g_boot_init = ATOMIC_INIT(BM_UNINIT);
+static atomic_t g_boot_errcnt = ATOMIC_INIT(0);
+static atomic_t g_boot_status = ATOMIC_INIT(0);
 
 #ifdef CONFIG_OF
-static atomic_t g_boot_init = ATOMIC_INIT(BOOT_UNINIT);
+struct tag_bootmode {
+	u32 size;
+	u32 tag;
+	u32 bootmode;
+};
 static int __init dt_get_boot_common(unsigned long node, const char *uname, int depth, void *data)
 {
-	struct tag *tags = NULL;
-	char *ptr = NULL, *br_ptr = NULL;
+	struct tag_bootmode *tags = NULL;
 
 	if (depth != 1 || (strcmp(uname, "chosen") != 0 && strcmp(uname, "chosen@0") != 0))
 		return 0;
 
-	tags = (struct tag *)of_get_flat_dt_prop(node, "atag,boot", NULL);
+	tags = (struct tag_bootmode *)of_get_flat_dt_prop(node, "atag,boot", NULL);
 
-	if (tags)
-		g_boot_mode = tags->u.boot.bootmode;
-	else
+	if (tags) {
+		g_boot_mode = tags->bootmode;
+		atomic_set(&g_boot_status, 1);
+	} else {
 		pr_warn("'atag,boot' is not found\n");
-
-	ptr = (char *)of_get_flat_dt_prop(node, "bootargs", NULL);
-	if (ptr) {
-		if ((br_ptr = strstr(ptr, "boot_reason=")) != 0)
-			g_boot_reason = br_ptr[12] - '0';	/* get boot reason */
-		else
-			pr_warn("'boot_reason=' is not found\n");
-		pr_debug("%s\n", ptr);
-	} else
-		pr_warn("'bootargs' is not found\n");
+	}
 
 	/* break now */
 	return 1;
@@ -82,83 +75,170 @@ static int __init dt_get_boot_common(unsigned long node, const char *uname, int 
 #endif
 
 
-void init_boot_common(unsigned int line)
+static void __init init_boot_common(unsigned int line)
 {
 #ifdef CONFIG_OF
 	int rc;
 
-	if (BOOT_INITIALIZING == atomic_read(&g_boot_init)) {
-		pr_warn("%s (%d) state(%d)\n", __func__, line, atomic_read(&g_boot_init));
+	if (atomic_read(&g_boot_init) == BM_INITIALIZING) {
+		pr_warn("%s (%d) state(%d,%d)\n", __func__, line, atomic_read(&g_boot_init),
+			g_boot_mode);
+		atomic_inc(&g_boot_errcnt);
 		return;
 	}
 
-	if (BOOT_UNINIT == atomic_read(&g_boot_init))
-		atomic_set(&g_boot_init, BOOT_INITIALIZING);
+	if (atomic_read(&g_boot_init) == BM_UNINIT)
+		atomic_set(&g_boot_init, BM_INITIALIZING);
 	else
 		return;
 
-	if ((UNKNOWN_BOOT != g_boot_mode) &&(BR_UNKNOWN != g_boot_reason))
+	if (g_boot_mode != UNKNOWN_BOOT) {
+		atomic_set(&g_boot_init, BM_INITIALIZED);
+		pr_warn("%s (%d) boot_mode = %d\n", __func__, line, g_boot_mode);
 		return;
+	}
 
-	pr_info("%s %d [%d %d] [%d]\n", __func__, line, g_boot_mode, g_boot_reason,
-		atomic_read(&g_boot_init));
+	pr_debug("%s %d %d %d\n", __func__, line, g_boot_mode, atomic_read(&g_boot_init));
 	rc = of_scan_flat_dt(dt_get_boot_common, NULL);
-	if (0 != rc)
-		atomic_set(&g_boot_init, BOOT_INITIALIZED);
+	if (rc != 0)
+		atomic_set(&g_boot_init, BM_INITIALIZED);
 	else
-		atomic_set(&g_boot_init, BOOT_UNINIT);
-	pr_info("%s %d [%d %d] [%d]\n", __func__, line, g_boot_mode, g_boot_reason,
-		atomic_read(&g_boot_init));
+		pr_warn("of_scan_flat_dt() = %d", rc);
+	pr_debug("%s %d %d %d\n", __func__, line, g_boot_mode, atomic_read(&g_boot_init));
 #endif
 }
 
-/* return boot reason */
-boot_reason_t get_boot_reason(void)
-{
-	init_boot_common(__LINE__);
-	return g_boot_reason;
-}
-
-/* set boot reason */
-void set_boot_reason(boot_reason_t br)
-{
-	g_boot_reason = br;
-}
-
 /* return boot mode */
-BOOTMODE get_boot_mode(void)
+unsigned int get_boot_mode(void)
 {
-	init_boot_common(__LINE__);
+	if (atomic_read(&g_boot_init) != BM_INITIALIZED) {
+		pr_warn("%s (%d) state(%d,%d)\n", __func__, __LINE__, atomic_read(&g_boot_init),
+			g_boot_mode);
+	}
 	return g_boot_mode;
 }
-
-/* set boot mode */
-void set_boot_mode(BOOTMODE bm)
-{
-	g_boot_mode = bm;
-}
+EXPORT_SYMBOL(get_boot_mode);
 
 /* for convenience, simply check is meta mode or not */
 bool is_meta_mode(void)
 {
-	init_boot_common(__LINE__);
-
-	if (g_boot_mode == META_BOOT) {
-		return true;
-	} else {
-		return false;
+	if (atomic_read(&g_boot_init) != BM_INITIALIZED) {
+		pr_warn("%s (%d) state(%d,%d)\n", __func__, __LINE__, atomic_read(&g_boot_init),
+			g_boot_mode);
 	}
+
+	if (g_boot_mode == META_BOOT)
+		return true;
+	else
+		return false;
 }
+EXPORT_SYMBOL(is_meta_mode);
 
 bool is_advanced_meta_mode(void)
 {
-	init_boot_common(__LINE__);
-
-	if (g_boot_mode == ADVMETA_BOOT) {
-		return true;
-	} else {
-		return false;
+	if (atomic_read(&g_boot_init) != BM_INITIALIZED) {
+		pr_warn("%s (%d) state(%d,%d)\n", __func__, __LINE__, atomic_read(&g_boot_init),
+			g_boot_mode);
 	}
+
+	if (g_boot_mode == ADVMETA_BOOT)
+		return true;
+	else
+		return false;
+}
+EXPORT_SYMBOL(is_advanced_meta_mode);
+
+static ssize_t boot_show(struct kobject *kobj, struct attribute *a, char *buf)
+{
+	return sprintf(buf, "%d\n", get_boot_mode());
+}
+
+static ssize_t boot_store(struct kobject *kobj, struct attribute *a, const char *buf, size_t count)
+{
+	return count;
+}
+
+/* boot object */
+static struct kobject boot_kobj;
+static const struct sysfs_ops boot_sysfs_ops = {
+	.show = boot_show,
+	.store = boot_store,
+};
+
+/* boot attribute */
+struct attribute boot_attr = { BOOT_SYSFS_ATTR, 0644 };
+
+static struct attribute *boot_attrs[] = {
+	&boot_attr,
+	NULL
+};
+
+/* boot type */
+static struct kobj_type boot_ktype = {
+	.sysfs_ops = &boot_sysfs_ops,
+	.default_attrs = boot_attrs
+};
+
+/* boot device node */
+static dev_t boot_dev_num;
+static struct cdev boot_cdev;
+static const struct file_operations boot_fops = {
+	.owner = THIS_MODULE,
+	.open = NULL,
+	.release = NULL,
+	.write = NULL,
+	.read = NULL,
+	.unlocked_ioctl = NULL
+};
+
+/* boot device class */
+static struct class *boot_class;
+static struct device *boot_device;
+
+static int __init create_sysfs(void)
+{
+	int ret;
+
+	/* allocate device major number */
+	if (alloc_chrdev_region(&boot_dev_num, 0, 1, BOOT_DEV_NAME) < 0) {
+		pr_warn("fail to register chrdev\n");
+		return -1;
+	}
+
+	/* add character driver */
+	cdev_init(&boot_cdev, &boot_fops);
+	ret = cdev_add(&boot_cdev, boot_dev_num, 1);
+	if (ret < 0) {
+		pr_warn("fail to add cdev\n");
+		return ret;
+	}
+
+	/* create class (device model) */
+	boot_class = class_create(THIS_MODULE, BOOT_DEV_NAME);
+	if (IS_ERR(boot_class)) {
+		pr_warn("fail to create class\n");
+		return -1;
+	}
+
+	boot_device = device_create(boot_class, NULL, boot_dev_num, NULL, BOOT_DEV_NAME);
+	if (IS_ERR(boot_device)) {
+		pr_warn("fail to create device\n");
+		return -1;
+	}
+
+	/* add kobject */
+	ret = kobject_init_and_add(&boot_kobj, &boot_ktype, &(boot_device->kobj), BOOT_SYSFS);
+	if (ret < 0) {
+		pr_warn("fail to add kobject\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static void __exit destroy_sysfs(void)
+{
+	cdev_del(&boot_cdev);
 }
 
 static int boot_mode_proc_show(struct seq_file *p, void *v)
@@ -200,24 +280,27 @@ static const struct file_operations boot_mode_proc_fops = {
 	.release = single_release,
 };
 
-extern struct proc_dir_entry proc_root;
-
-static int __init boot_common_init(void)
+static int __init boot_common_core(void)
 {
+	init_boot_common(__LINE__);
 	/* create proc entry at /proc/boot_mode */
-	proc_create_data("boot_mode", S_IRUGO, &proc_root, &boot_mode_proc_fops, NULL);
+	if (proc_create_data("boot_mode", S_IRUGO, NULL, &boot_mode_proc_fops, NULL) == NULL)
+		pr_warn("create procfs fail");
 
+	/* create sysfs entry at /sys/class/BOOT/BOOT/boot */
+	create_sysfs();
 	return 0;
 }
 
-static void __exit boot_common_exit(void)
+static int __init boot_common_init(void)
 {
-
+	pr_debug("boot_mode = %d, state(%d,%d,%d)", g_boot_mode,
+		 atomic_read(&g_boot_init), atomic_read(&g_boot_errcnt),
+		 atomic_read(&g_boot_status));
+	return 0;
 }
+
+pure_initcall(boot_common_core);
 module_init(boot_common_init);
-module_exit(boot_common_exit);
 MODULE_DESCRIPTION("MTK Boot Information Common Driver");
 MODULE_LICENSE("GPL");
-EXPORT_SYMBOL(is_meta_mode);
-EXPORT_SYMBOL(is_advanced_meta_mode);
-EXPORT_SYMBOL(get_boot_mode);

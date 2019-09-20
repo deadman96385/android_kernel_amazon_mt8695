@@ -1406,6 +1406,30 @@ static bool adv7511_check_edid_status(struct v4l2_subdev *sd)
 	return false;
 }
 
+static int adv7511_registered(struct v4l2_subdev *sd)
+{
+	struct adv7511_state *state = get_adv7511_state(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	int err;
+
+	err = cec_register_adapter(state->cec_adap, &client->dev);
+	if (err)
+		cec_delete_adapter(state->cec_adap);
+	return err;
+}
+
+static void adv7511_unregistered(struct v4l2_subdev *sd)
+{
+	struct adv7511_state *state = get_adv7511_state(sd);
+
+	cec_unregister_adapter(state->cec_adap);
+}
+
+static const struct v4l2_subdev_internal_ops adv7511_int_ops = {
+	.registered = adv7511_registered,
+	.unregistered = adv7511_unregistered,
+};
+
 /* ----------------------------------------------------------------------- */
 /* Setup ADV7511 */
 static void adv7511_init_setup(struct v4l2_subdev *sd)
@@ -1534,6 +1558,19 @@ static int adv7511_probe(struct i2c_client *client, const struct i2c_device_id *
 	INIT_DELAYED_WORK(&state->edid_handler, adv7511_edid_handler);
 
 	adv7511_init_setup(sd);
+
+#if IS_ENABLED(CONFIG_VIDEO_ADV7511_CEC)
+	state->cec_adap = cec_allocate_adapter(&adv7511_cec_adap_ops,
+		state, dev_name(&client->dev), CEC_CAP_TRANSMIT |
+		CEC_CAP_LOG_ADDRS | CEC_CAP_PASSTHROUGH | CEC_CAP_RC,
+		ADV7511_MAX_ADDRS);
+	err = PTR_ERR_OR_ZERO(state->cec_adap);
+	if (err) {
+		destroy_workqueue(state->work_queue);
+		goto err_unreg_pktmem;
+	}
+#endif
+
 	adv7511_set_isr(sd, true);
 	adv7511_check_monitor_present_status(sd);
 

@@ -671,7 +671,6 @@ INT32 wmt_core_init_script(struct init_script *script, INT32 count)
 
 	return (i == count) ? 0 : -1;
 }
-
 static INT32 wmt_core_trigger_assert(VOID)
 {
 	INT32 ret = 0;
@@ -804,7 +803,6 @@ static INT32 wmt_core_stp_init(VOID)
 	WMT_DBG_FUNC("disable deep sleep featrue before the first command to firmware\n");
 	wmt_lib_deep_sleep_flag_set(MTK_WCN_BOOL_FALSE);
 #endif
-
 	iRet = wmt_core_hw_check();
 	if (iRet) {
 		WMT_ERR_FUNC("hw_check fail:%d\n", iRet);
@@ -989,7 +987,6 @@ static INT32 wmt_core_hw_check(VOID)
 	case 0x0551:
 	case 0x8167:
 	case 0x0507:
-	case 0x0688:
 		p_ops = &wmt_ic_ops_soc;
 		break;
 #endif
@@ -1366,7 +1363,7 @@ static INT32 opfunc_func_off(P_WMT_OP pWmtOp)
 			gMtkWmtCtx.eDrvStatus[drvType] = DRV_STS_POWER_OFF;
 		else if (drvType == WMTDRV_TYPE_COREDUMP)
 			gMtkWmtCtx.eDrvStatus[drvType] = DRV_STS_POWER_OFF;
-			iRet = 0;
+		iRet = 0;
 	}
 
 	/* shall we put device state to POWER_OFF state when fail? */
@@ -2539,7 +2536,6 @@ MTK_WCN_BOOL wmt_core_trigger_stp_assert(VOID)
 
 	if (mtk_wcn_stp_coredump_flag_get() == 0) {
 		WMT_INFO_FUNC("coredump is disabled, omit trigger STP assert\n");
-		wmt_lib_trigger_reset();
 		return MTK_WCN_BOOL_FALSE;
 	}
 

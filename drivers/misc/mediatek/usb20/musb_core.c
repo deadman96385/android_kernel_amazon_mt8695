@@ -14,6 +14,22 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
+ * NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
 /*
@@ -85,6 +101,7 @@
 #include <linux/io.h>
 #include <linux/idr.h>
 #include <linux/dma-mapping.h>
+#include <linux/interrupt.h>
 
 #if defined(CONFIG_USBIF_COMPLIANCE)
 #include <linux/kthread.h>
@@ -100,89 +117,57 @@
 struct device_node *dts_np;
 #endif
 
-static void (*usb_hal_dpidle_request_fptr)(int);
-void usb_hal_dpidle_request(int mode)
-{
-	if (usb_hal_dpidle_request_fptr)
-		usb_hal_dpidle_request_fptr(mode);
-}
-void register_usb_hal_dpidle_request(void (*function)(int))
-{
-	usb_hal_dpidle_request_fptr = function;
-}
-static void (*usb_hal_disconnect_check_fptr)(void);
-void usb_hal_disconnect_check(void)
-{
-	if (usb_hal_disconnect_check_fptr)
-		usb_hal_disconnect_check_fptr();
-}
-void register_usb_hal_disconnect_check(void (*function)(void))
-{
-	usb_hal_disconnect_check_fptr = function;
-}
-int musb_fake_CDP;
-/* kernel_init_done should be set in early-init stage through init.$platform.usb.rc */
-int kernel_init_done;
-int musb_force_on;
-int musb_host_dynamic_fifo = 1;
-int musb_host_dynamic_fifo_usage_msk;
-module_param(musb_fake_CDP, int, 0644);
-module_param(kernel_init_done, int, 0644);
-module_param(musb_host_dynamic_fifo, int, 0644);
-module_param(musb_host_dynamic_fifo_usage_msk, int, 0644);
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-int mtk_host_qmu_concurrent = 1;
-int mtk_host_qmu_pipe_msk = (PIPE_ISOCHRONOUS + 1) /* | (PIPE_BULK + 1) | (PIPE_INTERRUPT+ 1) */;
-int mtk_host_qmu_force_isoc_restart = 1;
-int mtk_host_active_dev_cnt;
-module_param(mtk_host_qmu_concurrent, int, 0644);
-module_param(mtk_host_qmu_pipe_msk, int, 0644);
-module_param(mtk_host_qmu_force_isoc_restart, int, 0644);
-module_param(mtk_host_active_dev_cnt, int, 0644);
-#ifdef CONFIG_MTK_UAC_POWER_SAVING
-unsigned int low_power_timer_total_trigger_cnt;
-unsigned int low_power_timer_total_wake_cnt;
-int low_power_timer_mode = 1;
-int low_power_timer_mode2_option;
-int usb_on_sram;
-int audio_on_sram;
-int use_mtk_audio = 1;
-module_param(low_power_timer_total_trigger_cnt, int, 0644);
-module_param(low_power_timer_total_wake_cnt, int, 0644);
-module_param(low_power_timer_mode, int, 0644);
-module_param(low_power_timer_mode2_option, int, 0644);
-module_param(usb_on_sram, int, 0644);
-module_param(audio_on_sram, int, 0644);
-module_param(use_mtk_audio, int, 0644);
-#endif
-
+int musb_is_shutting = 0;
+int musb_skip_charge_detect = 0;
+int musb_removed = 0;
+module_param(musb_is_shutting, int, 0644);
+module_param(musb_skip_charge_detect, int, 0644);
+module_param(musb_removed, int, 0644);
+#ifdef MUSB_QMU_SUPPORT
 #include "musb_qmu.h"
-u32 dma_channel_setting, qmu_ioc_setting;
 int mtk_qmu_dbg_level = LOG_WARN;
-int mtk_qmu_max_gpd_num;
-int isoc_ep_end_idx = 3;
-int isoc_ep_gpd_count = 260;
-module_param(mtk_qmu_dbg_level, int, 0644);
-module_param(mtk_qmu_max_gpd_num, int, 0644);
-module_param(isoc_ep_end_idx, int, 0644);
-module_param(isoc_ep_gpd_count, int, 0644);
+u32 dma_burst_setting;
+#ifdef QMU_TASKLET
+int qmu_tasklet = 1;
+void qmu_done_tasklet(unsigned long data)
+{
+	unsigned int qmu_val;
+	unsigned int i;
+	unsigned long flags;
+	struct musb *musb = (struct musb *)data;
+
+	spin_lock_irqsave(&musb->lock, flags);
+
+	qmu_val = musb->qmu_done_intr;
+
+	musb->qmu_done_intr = 0;
+
+	for (i = 1; i <= MAX_QMU_EP; i++) {
+		if (qmu_val & DQMU_M_RX_DONE(i))
+			qmu_done_rx(musb, i);
+		if (qmu_val & DQMU_M_TX_DONE(i))
+			qmu_done_tx(musb, i);
+	}
+	spin_unlock_irqrestore(&musb->lock, flags);
+}
+
+#endif
 #endif
 
 DEFINE_SPINLOCK(usb_io_lock);
-unsigned musb_debug;
-unsigned musb_debug_limit = 1;
-unsigned musb_uart_debug;
-struct musb *mtk_musb;
+unsigned musb_debug = 0;
+unsigned musb_uart_debug = 0;
+struct musb *mtk_musb = NULL;
 unsigned musb_speed = 1;
-u32 usb_irq_number;		/* add for kernel 3.10 */
-bool mtk_usb_power;
+u32 usb_irq_number = 0;		/* add for kernel 3.10 */
+bool mtk_usb_power = false;
 
 struct timeval writeTime;
 struct timeval interruptTime;
 
 #if defined(CONFIG_USBIF_COMPLIANCE)
-struct task_struct *vbus_polling_tsk;
-bool polling_vbus;
+struct task_struct *vbus_polling_tsk = NULL;
+bool polling_vbus = false;
 #endif
 
 static const struct of_device_id apusb_of_ids[] = {
@@ -196,7 +181,6 @@ module_param_named(speed, musb_speed, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "USB speed configuration. default = 1, high speed");
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Debug message level. Default = 0");
-module_param_named(debug_limit, musb_debug_limit, uint, S_IRUGO | S_IWUSR);
 module_param_named(dbg_uart, musb_uart_debug, uint, S_IRUGO | S_IWUSR);
 
 #define TA_WAIT_BCON(m) max_t(int, (m)->a_wait_bcon, OTG_TIME_A_WAIT_BCON)
@@ -269,19 +253,7 @@ void send_otg_event(enum usb_otg_event event)
 EXPORT_SYMBOL_GPL(send_otg_event);
 #endif
 
-void musb_bug(void)
-{
-	char *ptr = NULL;
-
-	DBG(0, "before dump_stack\n");
-	dump_stack();
-	DBG(0, "after dump_stack\n");
-
-	/* make KE happen */
-	*ptr = 10;
-}
-
-void dumpTime(enum writeFunc_enum func, int epnum)
+void dumpTime(writeFunc_enum func, int epnum)
 {
 #if 0
 	struct timeval tv;
@@ -618,7 +590,7 @@ EXPORT_SYMBOL_GPL(musb_set_host_request_flag);
 #endif
 
 #if defined(CONFIG_USBIF_COMPLIANCE)	/* used for musb */
-#if 0
+/*
 void musb_handle_disconnect(struct musb *musb)
 {
 	int epnum, i;
@@ -653,7 +625,7 @@ void musb_handle_disconnect(struct musb *musb)
 		}
 	}
 }
-#endif
+*/
 #endif
 
 /*
@@ -718,9 +690,6 @@ EXPORT_SYMBOL_GPL(musb_hnp_stop);
  * @param devctl
  * @param power
  */
-static struct musb_fifo_cfg ep0_cfg = {
-	.style = MUSB_FIFO_RXTX, .maxpacket = 64, .ep_mode = EP_CONT,
-};
 
 static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb, u8 devctl)
 {
@@ -728,6 +697,8 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb, u8 devctl)
 	irqreturn_t handled = IRQ_NONE;
 
 	DBG(2, "<== DevCtl=%02x, int_usb=0x%x\n", devctl, int_usb);
+
+	USB_LOGGER(MUSB_STAGE0_IRQ, MUSB_STAGE0_IRQ, power, devctl, int_usb);
 
 	/* in host mode, the peripheral may issue remote wakeup.
 	 * in peripheral mode, the host may resume the link.
@@ -874,9 +845,9 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb, u8 devctl)
 				musb->vbuserr_retry--;
 				ignore = 1;
 				/* workaround to let HW state matchine stop waiting for VBUS dropping
-				  * and restart sampling VBUS.
-				  * add this because sometimes a short (~3ms)
-				  * VBUS drop will cause HW state matching waiting forever for VBUS dropping below 0.2V
+				   and restart sampling VBUS.
+				   add this because sometimes a short (~3ms)
+				   VBUS drop will cause HW state matching waiting forever for VBUS dropping below 0.2V
 				 */
 #if 1
 				musb_session_restart(musb);
@@ -927,8 +898,6 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb, u8 devctl)
 		DBG(0, "SUSPEND (%s) devctl %02x\n", otg_state_string(musb->xceiv->otg->state), devctl);
 		handled = IRQ_HANDLED;
 
-		usb_hal_disconnect_check();
-
 		switch (musb->xceiv->otg->state) {
 		case OTG_STATE_A_PERIPHERAL:
 			/* We also come here if the cable is removed, since
@@ -961,17 +930,8 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb, u8 devctl)
 			if (musb->g.otg_srp_reqd) {
 				DBG(0, "HNP: otg_srp_reqd\n");
 				polling_vbus = true;
-				{
-					u32 val = 0;
-
-					val = USBPHY_READ32(0x6c);
-					val = (val & ~(0xff<<0)) | (0x13<<0);
-					USBPHY_WRITE32(0x6c, val);
-
-					val = USBPHY_READ32(0x6c);
-					val = (val & ~(0xff<<8)) | (0x3f<<8);
-					USBPHY_WRITE32(0x6c, val);
-				}
+				USBPHY_WRITE8(0x6c, 0x13);
+				USBPHY_WRITE8(0x6d, 0x3f);
 			}
 #endif
 			break;
@@ -1016,9 +976,7 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb, u8 devctl)
 
 		musb->ep0_stage = MUSB_EP0_START;
 
-		if (musb_host_dynamic_fifo)
-			musb_host_dynamic_fifo_usage_msk = 0;
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 		musb_disable_q_all(musb);
 #endif
 
@@ -1070,11 +1028,8 @@ b_host:
 #endif
 			break;
 		default:
-			/* bypass VBUS check due to MTK HACK VBUS control
-			 * if ((devctl & MUSB_DEVCTL_VBUS)
-			 *  == (3 << MUSB_DEVCTL_VBUS_SHIFT))
-			 */
-			{
+			if ((devctl & MUSB_DEVCTL_VBUS)
+			    == (3 << MUSB_DEVCTL_VBUS_SHIFT)) {
 				musb->xceiv->otg->state = OTG_STATE_A_HOST;
 				hcd->self.is_b_host = 0;
 			}
@@ -1096,7 +1051,7 @@ b_host:
 		    otg_state_string(musb->xceiv->otg->state), MUSB_MODE(musb), devctl);
 		handled = IRQ_HANDLED;
 		musb->is_active = 0;
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 		musb_disable_q_all(musb);
 #endif
 
@@ -1144,7 +1099,8 @@ b_host:
 	if (int_usb & MUSB_INTR_RESET) {
 		handled = IRQ_HANDLED;
 
-		DBG(0, "%s:%d MUSB_INTR_RESET (%s)\n", __func__, __LINE__, otg_state_string(musb->xceiv->otg->state));
+		DBG(0, "MUSB_INTR_RESET (%s)\n", otg_state_string(musb->xceiv->otg->state));
+
 		if ((devctl & MUSB_DEVCTL_HM) != 0) {
 			/*
 			 * Looks like non-HS BABBLE can be ignored, but
@@ -1162,7 +1118,7 @@ b_host:
 			}
 		} else {
 			DBG(2, "BUS RESET as %s\n", otg_state_string(musb->xceiv->otg->state));
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 			musb_disable_q_all(musb);
 #endif
 			switch (musb->xceiv->otg->state) {
@@ -1264,8 +1220,28 @@ void musb_start(struct musb *musb)
 
 	u8 intrusbe;
 
-	DBG(0, "start, is_host=%d is_active=%d\n", musb->is_host, musb->is_active);
+ 	DBG(0, "start, is_host=%d is_active=%d\n", musb->is_host, musb->is_active);
 
+	if (musb->is_active) {
+		if (musb->is_host) {
+			/* remove babble: NOISE_STILL_SOF:1, BABBLE_CLR_EN:0 */
+			intrusbe = musb_readb(regs, MUSB_ULPI_REG_DATA);
+			intrusbe = intrusbe | 0x80;
+			intrusbe = intrusbe & 0xbf;
+			musb_writeb(regs, MUSB_ULPI_REG_DATA, intrusbe);
+			DBG(0, "set ignore babble MUSB_ULPI_REG_DATA=%x\n",
+			    musb_readb(regs, MUSB_ULPI_REG_DATA));
+
+			DBG(0, "we are host now, add more interrupt devctl=%x\n",
+			    musb_readb(mtk_musb->mregs, MUSB_DEVCTL));
+			musb->intrtxe = 0xffff;
+			musb_writew(regs, MUSB_INTRTXE, musb->intrtxe);
+			musb->intrrxe = 0xfffe;
+			musb_writew(regs, MUSB_INTRRXE, musb->intrrxe);
+			musb_writeb(regs, MUSB_INTRUSBE, 0xf7);
+			return;
+		}
+	}
 	musb_platform_enable(musb);
 	musb_generic_disable(musb);
 
@@ -1294,34 +1270,18 @@ void musb_start(struct musb *musb)
 
 	musb_writeb(regs, MUSB_INTRUSBE, intrusbe);
 
-	/* In U2 host mode, USB bus will issue Babble INT if it was interfered by
-	 * external signal,ex:drill nosie.we need to keep session on and continue
-	 * to seed SOF,and same time let hw don't care the babble signal
-	 * remove babble: NOISE_STILL_SOF:1, BABBLE_CLR_EN:0
-	 */
-	intrusbe = musb_readb(regs, MUSB_ULPI_REG_DATA);
-	intrusbe = intrusbe | 0x80;
-	intrusbe = intrusbe & 0xbf;
-	musb_writeb(regs, MUSB_ULPI_REG_DATA, intrusbe);
-	DBG(0, "set ignore babble MUSB_ULPI_REG_DATA=%x\n",
-			musb_readb(regs, MUSB_ULPI_REG_DATA));
-
-	{
-		u8 val = MUSB_POWER_ENSUSPEND;
-
-		if (musb_speed)
-			val |= MUSB_POWER_HSENAB;
-		if (musb->softconnect) {
-			DBG(0, "add softconn\n");
-			val |= MUSB_POWER_SOFTCONN;
-		}
-		musb_writeb(regs, MUSB_POWER, val);
+	if (musb_speed) {
+		/* put into basic highspeed mode and start session */
+		musb_writeb(regs, MUSB_POWER, MUSB_POWER_SOFTCONN | MUSB_POWER_HSENAB
+			    /* ENSUSPEND wedges tusb */
+			    | MUSB_POWER_ENSUSPEND);
+	} else {
+		/* put into basic fullspeed mode and start session */
+		musb_writeb(regs, MUSB_POWER, MUSB_POWER_SOFTCONN
+			    /* ENSUSPEND wedges tusb */
+			    | MUSB_POWER_ENSUSPEND);
 	}
-
-	if (musb->is_host)
-		musb->is_active = 0;
-	else
-		musb->is_active = 1;
+	musb->is_active = 1;
 }
 
 void musb_generic_disable(struct musb *musb)
@@ -1352,21 +1312,14 @@ static void gadget_stop(struct musb *musb)
 {
 	u8 power;
 
-	if (musb->is_host)
-		return;
-
 	power = musb_readb(musb->mregs, MUSB_POWER);
 	power &= ~MUSB_POWER_SOFTCONN;
 	musb_writeb(musb->mregs, MUSB_POWER, power);
 
-	/* notify gadget driver, g.speed judge is very important */
+	/* notify gadget driver */
 	if (musb->g.speed != USB_SPEED_UNKNOWN) {
-		DBG(0, "musb->gadget_driver:%p\n", musb->gadget_driver);
-		if (musb->gadget_driver && musb->gadget_driver->disconnect) {
-			DBG(0, "musb->gadget_driver->disconnect:%p\n", musb->gadget_driver->disconnect);
-
+		if (musb->gadget_driver && musb->gadget_driver->disconnect)
 			musb->gadget_driver->disconnect(&musb->g);
-		}
 		musb->g.speed = USB_SPEED_UNKNOWN;
 	}
 }
@@ -1400,25 +1353,21 @@ void musb_stop(struct musb *musb)
 static void musb_shutdown(struct platform_device *pdev)
 {
 	struct musb *musb = dev_to_musb(&pdev->dev);
-	#ifndef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
 	unsigned long flags;
-	#endif
 
 	DBG(0, "shut down\n");
-	pr_err("%s, start to shut down\n", __func__);
+
 	pm_runtime_get_sync(musb->controller);
 
 	/* musb_gadget_cleanup(musb); */
 
-	#ifndef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
 	spin_lock_irqsave(&musb->lock, flags);
-	#endif
+	musb_is_shutting = 1;
 	musb_generic_disable(musb);
 	musb_platform_disable(musb);
-	pr_err("%s, musb has already disable\n", __func__);
-	#ifndef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
+	musb_is_shutting = 0;
 	spin_unlock_irqrestore(&musb->lock, flags);
-	#endif
+
 	if (musb->is_host) {
 		pr_err("%s, line %d.\n", __func__, __LINE__);
 		musb_platform_set_vbus(mtk_musb, 0);
@@ -1452,47 +1401,45 @@ static int fifo_setup(struct musb *musb, struct musb_hw_ep *hw_ep,
 	maxpacket = 1 << size;
 
 	c_size = size - 3;
-#if 0
-	if (cfg->mode == MUSB_BUF_DOUBLE) {
-		if ((offset + (maxpacket << 1)) > (musb->fifo_size))
-			return -EMSGSIZE;
+/*	if (cfg->mode == MUSB_BUF_DOUBLE) {
+		if ((offset + (maxpacket << 1)) >(musb->fifo_size))
+				return -EMSGSIZE;
 		c_size |= MUSB_FIFOSZ_DPB;
-	} else if ((offset + maxpacket) > (musb->fifo_size))
-		return -EMSGSIZE;
+	}else if ((offset + maxpacket) >(musb->fifo_size))
+				return -EMSGSIZE;*/
 
 	/* configure the FIFO */
-	musb_writeb(mbase, MUSB_INDEX, hw_ep->epnum);
-#endif
+/* musb_writeb(mbase, MUSB_INDEX, hw_ep->epnum); */
 
 	switch (cfg->style) {
 	case MUSB_FIFO_TX:
-		DBG(0, "Tx ep:%d fifo size:%d fifo address:%x\n", hw_ep->epnum, maxpacket,
+		DBG(0, "Tx ep %d fifo size is %d fifo address is %x\n", hw_ep->epnum, maxpacket,
 		    c_off);
-		/* musb_write_txfifosz(mbase, c_size); */
-		/* musb_write_txfifoadd(mbase, c_off); */
+/* musb_write_txfifosz(mbase, c_size); */
+/* musb_write_txfifoadd(mbase, c_off); */
 		hw_ep->tx_double_buffered = !!(c_size & MUSB_FIFOSZ_DPB);
 		hw_ep->max_packet_sz_tx = maxpacket;
 		hw_ep->ep_in.fifo_size = maxpacket;
 		hw_ep->ep_in.fifo_mode = cfg->mode;
 		break;
 	case MUSB_FIFO_RX:
-		DBG(0, "Rx ep:%d fifo size:%d fifo address:%x\n", hw_ep->epnum, maxpacket,
+		DBG(0, "Rx ep %d fifo size is %d fifo address is %x\n", hw_ep->epnum, maxpacket,
 		    c_off);
-		/* musb_write_rxfifosz(mbase, c_size); */
-		/* musb_write_rxfifoadd(mbase, c_off); */
+/* musb_write_rxfifosz(mbase, c_size); */
+/* musb_write_rxfifoadd(mbase, c_off); */
 		hw_ep->rx_double_buffered = !!(c_size & MUSB_FIFOSZ_DPB);
 		hw_ep->max_packet_sz_rx = maxpacket;
 		hw_ep->ep_out.fifo_size = maxpacket;
 		hw_ep->ep_out.fifo_mode = cfg->mode;
 		break;
 	case MUSB_FIFO_RXTX:
-		/* musb_write_txfifosz(mbase, c_size); */
-		/* musb_write_txfifoadd(mbase, c_off); */
+/* musb_write_txfifosz(mbase, c_size); */
+/* musb_write_txfifoadd(mbase, c_off); */
 		hw_ep->rx_double_buffered = !!(c_size & MUSB_FIFOSZ_DPB);
 		hw_ep->max_packet_sz_rx = maxpacket;
 
-		/* musb_write_rxfifosz(mbase, c_size); */
-		/* musb_write_rxfifoadd(mbase, c_off); */
+/* musb_write_rxfifosz(mbase, c_size); */
+/* musb_write_rxfifoadd(mbase, c_off); */
 		hw_ep->tx_double_buffered = hw_ep->rx_double_buffered;
 		hw_ep->max_packet_sz_tx = maxpacket;
 
@@ -1517,6 +1464,10 @@ static int fifo_setup(struct musb *musb, struct musb_hw_ep *hw_ep,
 
 	return offset + (maxpacket << ((c_size & MUSB_FIFOSZ_DPB) ? 1 : 0));
 }
+
+static struct musb_fifo_cfg ep0_cfg = {
+	.style = MUSB_FIFO_RXTX, .maxpacket = 64, .ep_mode = EP_CONT,
+};
 
 static int ep_config_from_table(struct musb *musb)
 {
@@ -1635,9 +1586,6 @@ int ep_config_from_table_for_host(struct musb *musb)
 	int offset;
 	struct musb_hw_ep *hw_ep = musb->endpoints;
 
-	if (musb_host_dynamic_fifo)
-		musb_host_dynamic_fifo_usage_msk = 0;
-
 	if (musb->fifo_cfg_host) {
 		cfg = musb->fifo_cfg_host;
 		n = musb->fifo_cfg_host_size;
@@ -1658,15 +1606,11 @@ int ep_config_from_table_for_host(struct musb *musb)
 			DBG(0, "%s: invalid ep %d\n", musb_driver_name, epn);
 			return -EINVAL;
 		}
-
-		if (!musb_host_dynamic_fifo) {
-			offset = fifo_setup_for_host(musb, hw_ep + epn, cfg++, offset);
-			if (offset < 0) {
-				DBG(0, "%s: mem overrun, ep %d\n", musb_driver_name, epn);
-				return offset;
-			}
+		offset = fifo_setup_for_host(musb, hw_ep + epn, cfg++, offset);
+		if (offset < 0) {
+			DBG(0, "%s: mem overrun, ep %d\n", musb_driver_name, epn);
+			return offset;
 		}
-
 		epn++;
 		musb->nr_endpoints = max(epn, musb->nr_endpoints);
 	}
@@ -1768,7 +1712,7 @@ static int musb_core_init(u16 musb_type, struct musb *musb)
 	DBG(0, "%s: ConfigData=0x%02x (%s)\n", musb_driver_name, reg, aInfo);
 
 	aDate[0] = 0;
-	if (musb_type == MUSB_CONTROLLER_MHDRC) {
+	if (MUSB_CONTROLLER_MHDRC == musb_type) {
 		musb->is_multipoint = 1;
 		type = "M";
 	} else {
@@ -1855,14 +1799,17 @@ irqreturn_t musb_interrupt(struct musb *musb)
 	u32 reg;
 
 	devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-	DBG(1, "usb(%x) tx(%x) rx(%x) queue(%x)\n",
+#ifdef MUSB_QMU_SUPPORT
+	QMU_DBG("usb(%x) tx(%x) rx(%x) queue(%x)\n",
 		musb->int_usb, musb->int_tx, musb->int_rx, musb->int_queue);
 #else
 	DBG(1, "** IRQ %s usb%04x tx%04x rx%04x\n",
 	    (devctl & MUSB_DEVCTL_HM) ? "host" : "peripheral",
 	    musb->int_usb, musb->int_tx, musb->int_rx);
 #endif
+
+	USB_LOGGER(MUSB_INTERRUPT, MUSB_INTERRUPT,
+		   (musb->is_host) ? "Host" : "Dev", musb->int_usb, musb->int_tx, musb->int_rx);
 
 	dumpTime(funcInterrupt, 0);
 
@@ -1881,11 +1828,7 @@ irqreturn_t musb_interrupt(struct musb *musb)
 		else
 			retval |= musb_g_ep0_irq(musb);
 	}
-
-	if (unlikely(!musb->power))
-		return IRQ_HANDLED;
-
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	/* process generic queue interrupt */
 	if (musb->int_queue) {
 		musb_q_irq(musb);
@@ -2152,14 +2095,8 @@ static struct musb *allocate_instance(struct device *dev,
 	musb->config = config;
 	musb->is_ready = false;
 	musb->in_ipo_off = false;
-	musb->st_wq = create_singlethread_workqueue("usb20_st_wq");
 
-	/*BUG_ON(musb->config->num_eps > MUSB_C_NUM_EPS);*/
-	if (musb->config->num_eps > MUSB_C_NUM_EPS) {
-		pr_warn("[MUSB]EPS ERROR HERE\n");
-		return NULL;
-	}
-
+	BUG_ON(musb->config->num_eps > MUSB_C_NUM_EPS);
 	for (epnum = 0, ep = musb->endpoints; epnum < musb->config->num_eps; epnum++, ep++) {
 		ep->musb = musb;
 		ep->epnum = epnum;
@@ -2181,7 +2118,7 @@ static void musb_free(struct musb *musb)
 	sysfs_remove_group(&musb->controller->kobj, &musb_attr_group);
 #endif
 
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	musb_gadget_cleanup(musb);
 	musb_disable_q_all(musb);
 	musb_qmu_exit(musb);
@@ -2280,8 +2217,11 @@ static int musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl
 	musb->xceiv->io_priv = ctrlp;
 #endif
 	musb_platform_enable(musb);
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	musb_qmu_init(musb);
+#ifdef QMU_TASKLET
+	tasklet_init(&musb->qmu_done, qmu_done_tasklet, (unsigned long)musb);
+#endif
 #endif
 	/* usb_phy_recover(); */
 	if (status < 0)
@@ -2345,7 +2285,7 @@ static int musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl
 #endif
 
 	/* attach to the IRQ */
-	if (request_irq(musb->nIrq, musb->isr, IRQF_TRIGGER_LOW, dev_name(dev), musb)) {
+	if (devm_request_irq(musb->controller, musb->nIrq, musb->isr, IRQF_TRIGGER_LOW, dev_name(dev), musb)) {
 		DBG(0, "request_irq %d failed!\n", musb->nIrq);
 		status = -ENODEV;
 		goto fail3;
@@ -2449,6 +2389,8 @@ static int musb_probe(struct platform_device *pdev)
 	unsigned long usb_phy_base;
 
 	pr_info("musb probe\n");
+	DBG(0, "musb_removed to 0\n");
+	musb_removed = 0;
 	if (dts_np) {
 		DBG(0, "dts node from dts_np\n");
 		pdev->dev.of_node = dts_np;
@@ -2459,13 +2401,13 @@ static int musb_probe(struct platform_device *pdev)
 	if (pdev->dev.of_node == NULL)
 		pr_info("USB get node failed\n");
 	base = of_iomap(pdev->dev.of_node, 0);
-	usb_irq_number = irq_of_parse_and_map(pdev->dev.of_node, 0);
+	usb_irq_number = platform_get_irq(pdev, 0);
 	pbase = of_iomap(pdev->dev.of_node, 1);
 
 	usb_mac_base = (unsigned long)base;
 	usb_phy_base = (unsigned long)pbase;
 	irq = usb_irq_number;
-	pr_info("musb probe reg: 0x%lx ,0x%lx , irq:%d\n", usb_mac_base, usb_phy_base,
+	pr_info("musb probe reg: 0x%lx ,0x%lx , irq: %d\n", usb_mac_base, usb_phy_base,
 		usb_irq_number);
 #endif
 #ifdef CONFIG_OF
@@ -2481,8 +2423,8 @@ static int musb_probe(struct platform_device *pdev)
 #endif
 
 #ifdef CONFIG_OF
-	usb_mac_base = (unsigned long)mtk_musb->xceiv->io_priv;
-	pr_info("musb core probe done base 0x%lx\n", usb_mac_base);
+	usb_phy_base = (unsigned long)mtk_musb->xceiv->io_priv;
+	pr_info("musb core probe done base 0x%lx\n", usb_phy_base);
 #endif
 
 	return status;
@@ -2499,6 +2441,8 @@ static int musb_remove(struct platform_device *pdev)
 	 *  - Peripheral mode: peripheral is deactivated (or never-activated)
 	 *  - OTG mode: both roles are deactivated (or never-activated)
 	 */
+	DBG(0, "musb_removed to 1\n");
+	musb_removed = 1;
 	musb_exit_debugfs(musb);
 	musb_shutdown(pdev);
 
@@ -2509,11 +2453,7 @@ static int musb_remove(struct platform_device *pdev)
 	device_init_wakeup(dev, 0);
 
 #ifndef CONFIG_MUSB_PIO_ONLY
-	{
-		int ret;
-
-		ret = dma_set_mask(dev, *dev->parent->dma_mask);
-	}
+	dma_set_mask(dev, *dev->parent->dma_mask);
 #endif
 	return 0;
 }
@@ -2526,9 +2466,8 @@ static void musb_save_context(struct musb *musb)
 	void __iomem *musb_base = musb->mregs;
 	void __iomem *epio;
 
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-	dma_channel_setting = musb_readl(musb->mregs, 0x204);
-	qmu_ioc_setting = musb_readl((musb->mregs + MUSB_QISAR), 0x30);
+#ifdef MUSB_QMU_SUPPORT
+	dma_burst_setting = musb_readl(musb->mregs, 0x204);
 #endif
 
 	musb->context.power = musb_readb(musb_base, MUSB_POWER);
@@ -2570,9 +2509,8 @@ static void musb_restore_context(struct musb *musb)
 	void __iomem *musb_base = musb->mregs;
 	void __iomem *epio;
 
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-	musb_writel(musb->mregs, 0x204, dma_channel_setting);
-	musb_writel((musb->mregs + MUSB_QISAR), 0x30, qmu_ioc_setting);
+#ifdef MUSB_QMU_SUPPORT
+	musb_writel(musb->mregs, 0x204, dma_burst_setting);
 #endif
 
 	musb_writeb(musb_base, MUSB_POWER, musb->context.power);
@@ -2626,9 +2564,6 @@ static int musb_suspend_noirq(struct device *dev)
 
 	/*Turn on USB clock, before reading a batch of regs */
 	mtk_usb_power = true;
-	#ifdef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
-	mt_usb_clock_prepare();
-	#endif
 	usb_enable_clock(true);
 
 	musb_save_context(musb);
@@ -2637,9 +2572,7 @@ static int musb_suspend_noirq(struct device *dev)
 	/*Turn off USB clock, after finishing reading regs */
 	usb_enable_clock(false);
 	mtk_usb_power = false;
-	#ifdef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
-	mt_usb_clock_unprepare();
-	#endif
+
 	/*spin_unlock_irqrestore(&musb->lock, flags); */
 	return 0;
 }
@@ -2651,9 +2584,6 @@ static int musb_resume_noirq(struct device *dev)
 
 	/*Turn on USB clock, before writing a batch of regs */
 	mtk_usb_power = true;
-	#ifdef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
-	mt_usb_clock_prepare();
-	#endif
 	usb_enable_clock(true);
 
 	musb_restore_context(musb);
@@ -2661,9 +2591,6 @@ static int musb_resume_noirq(struct device *dev)
 	/*Turn off USB clock, after finishing writing regs */
 	usb_enable_clock(false);
 	mtk_usb_power = false;
-	#ifdef CONFIG_MTK_MUSB_PORT0_LOWPOWER_MODE
-	mt_usb_clock_unprepare();
-	#endif
 
 	return 0;
 }
@@ -2682,10 +2609,10 @@ static struct platform_driver musb_driver = {
 	.driver = {
 		   .name = (char *)musb_driver_name,
 		   .bus = &platform_bus_type,
-#if (!defined(CONFIG_MACH_MT2701)) && (!defined(CONFIG_ARCH_MT7623))
-			.of_match_table = apusb_of_ids,
+#if 0
+		   .of_match_table = apusb_of_ids,
 #endif
-			.owner = THIS_MODULE,
+		   .owner = THIS_MODULE,
 		   .pm = MUSB_DEV_PM_OPS,
 		   },
 	.probe = musb_probe,
@@ -2710,86 +2637,9 @@ static void __exit musb_cleanup(void)
 	platform_driver_unregister(&musb_driver);
 }
 module_exit(musb_cleanup);
-
-static int usb_test_wakelock_inited;
-static struct wake_lock usb_test_wakelock;
-static int option;
-static int set_option(const char *val, const struct kernel_param *kp)
-{
-	int local_option;
-	int rv;
-
-	/* update module parameter */
-	rv = param_set_int(val, kp);
-	if (rv)
-		return rv;
-
-	/* update local_option */
-	rv = kstrtoint(val, 10, &local_option);
-	if (rv != 0)
-		return rv;
-
-	DBG(0, "option:%d, local_option:%d\n", option, local_option);
-
-	switch (local_option) {
-	case 0:
-		DBG(0, "wake_lock usb_test_wakelock\n");
-		if (!usb_test_wakelock_inited) {
-			DBG(0, "%s wake_lock_init\n", __func__);
-			wake_lock_init(&usb_test_wakelock, WAKE_LOCK_SUSPEND, "usb.test.lock");
-			usb_test_wakelock_inited = 1;
-		}
-		wake_lock(&usb_test_wakelock);
-		break;
-	case 1:
-		DBG(0, "wake_unlock usb_test_wakelock\n");
-		wake_unlock(&usb_test_wakelock);
-		break;
-	default:
-		break;
-	}
-	return 0;
-}
-static struct kernel_param_ops option_param_ops = {
-	.set = set_option,
-	.get = param_get_int,
-};
-module_param_cb(option, &option_param_ops, &option, 0644);
-static int set_musb_force_on(const char *val, const struct kernel_param *kp)
-{
-	int option;
-	int rv;
-
-	rv = kstrtoint(val, 10, &option);
-	if (rv != 0)
-		return rv;
-
-	DBG(0, "musb_force_on:%d, option:%d\n", musb_force_on, option);
-	if (option == 0 || option == 1) {
-		DBG(0, "update to %d\n", option);
-		musb_force_on = option;
-	}
-
-	switch (option) {
-	case 2:
-		DBG(0, "trigger reconnect\n");
-		mt_usb_connect();
-		break;
-	case 3:
-		DBG(0, "disable USB IRQ\n");
-		disable_irq(mtk_musb->nIrq);
-		break;
-	case 4:
-		DBG(0, "enable USB IRQ\n");
-		enable_irq(mtk_musb->nIrq);
-		break;
-	default:
-		break;
-	}
-	return 0;
-}
-static struct kernel_param_ops musb_force_on_param_ops = {
-	.set = set_musb_force_on,
-	.get = param_get_int,
-};
-module_param_cb(musb_force_on, &musb_force_on_param_ops, &musb_force_on, 0644);
+#ifdef MUSB_QMU_SUPPORT
+module_param(mtk_qmu_dbg_level, int, 0644);
+#ifdef QMU_TASKLET
+module_param(qmu_tasklet, int, 0644);
+#endif
+#endif

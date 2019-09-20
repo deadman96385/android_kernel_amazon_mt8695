@@ -12,114 +12,71 @@
 #
 
 #$(call all-subdir-src-or-makefile)
-MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 subdir-ccflags-y += -Werror
-subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/hibcore
 subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include
-subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
-subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
-subdir-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/$(MTK_PLATFORM)
-
-ifeq ($(CONFIG_ARCH_MT2601),y)
-include $(srctree)/drivers/misc/mediatek/Makefile.custom
-endif
-
+subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(CONFIG_MTK_PLATFORM)/include
+subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/
 
 obj-$(CONFIG_MTK_BASE_POWER) += base/
-#obj-$(CONFIG_MEDIATEK_SOLUTION) += sched/
-#obj-$(CONFIG_MEDIATEK_SOLUTION) += mach/
-obj-$(CONFIG_MTK_SERIAL)	+= uart/
-obj-$(CONFIG_MTK_SYS_CIRQ) += cirq/
-
-obj-y += mmp/
-obj-$(CONFIG_MTK_AUXADC)	+= auxadc/
-obj-$(CONFIG_MTK_KEYPAD)	+= keypad/
-obj-$(CONFIG_MTK_M4U)	+= m4u/
-obj-$(CONFIG_MTK_GPT_SCHEME_SUPPORT)	+= partition/
-obj-$(CONFIG_MTK_PWM)	    += pwm/
-
-obj-$(CONFIG_CUSTOM_KERNEL_SENSORHUB) += sensorhub/
-
-ifeq ($(CONFIG_MTK_I2C_EXTENSION),y)
-obj-$(CONFIG_MTK_I2C)  += i2c/
-endif
-obj-$(CONFIG_MTK_LEDS)	+= leds/
-obj-$(CONFIG_MTK_VIBRATOR)	+= vibrator/
-#obj-$(CONFIG_MTK_SM100)	+= tc1_interface/vib_drv/
-obj-$(CONFIG_MTK_ACCDET)	+= accdet/
-obj-y += irtx/
-obj-$(CONFIG_MTK_RTC)	+= rtc/
-obj-$(CONFIG_REG_MONITOR_DRIVER) += reg_monitor/
-obj-$(CONFIG_MTK_PMIC)	+= power/
-ifeq ($(CONFIG_MTK_GAUGE_VERSION),30)
-obj-y	+= power/
-endif
-obj-$(CONFIG_MTK_PMIC_NEW_ARCH)	+= pmic/
-obj-$(CONFIG_MTK_PMIC_WRAP_HAL) += pmic_wrap/
 obj-$(CONFIG_USB_MTK_HDRC) += usb20/
-obj-$(CONFIG_MTK_USBFSH) += usb11/
-obj-$(CONFIG_MTK_GPIO) += gpio/
-obj-$(CONFIG_MTK_MT6306_GPIO_SUPPORT) += gpio/
-obj-$(CONFIG_SECURITY_SELINUX)	+= selinux_warning/
-obj-$(CONFIG_MTK_MEM) += mem/
-obj-$(CONFIG_MTK_MEMORY_LOWPOWER) += memory-lowpower/
-obj-$(CONFIG_MTK_BOOT) += boot/
-obj-y += devinfo/
-obj-$(CONFIG_CRYPTO_DEV_DX_CC63P) += dxcc/
-#obj-$(CONFIG_MTK_LCM) += lcm/
-obj-$(CONFIG_MTK_LCM) += ext_disp/
-obj-$(CONFIG_MTK_FB) += video/
-obj-$(CONFIG_MTK_DYNAMIC_FPS_FRAMEWORK_SUPPORT) += dfrc/
-obj-$(CONFIG_MTK_GPU_SUPPORT) += gpu/
-obj-$(CONFIG_MTK_SMI_EXT)	+= smi/
-obj-$(CONFIG_MTK_SYNC) += sync/
-obj-$(CONFIG_MTK_FREQ_HOPPING) += freqhopping/
-#obj-$(CONFIG_MTK_DRAMC) += dramc/
-#obj-$(CONFIG_MTK_SYNC) += sync/
-obj-$(CONFIG_MTK_FREQ_HOPPING) += freqhopping/
-obj-$(CONFIG_MTK_SECURITY_SW_SUPPORT) +=masp/
-obj-$(CONFIG_MTK_BLOCK_TAG) +=blocktag/
-#obj-$(CONFIG_MEDIATEK_SOLUTION)  += sched/
-obj-y += cameraisp/src/
-obj-$(CONFIG_MTK_CCU)	+= ccu/src/
-obj-$(CONFIG_MTK_CCCI_DEVICES)	+=  ccci_util/
-obj-$(CONFIG_MTK_NET_CCMNI) +=  ccmni/
-obj-$(CONFIG_MTK_ECCCI_DRIVER) +=  eccci/
+obj-$(CONFIG_MTK_ICE_DEBUG) +=ice_debug/
+obj-$(CONFIG_RT_REGMAP) += rt-regmap/
+obj-$(CONFIG_USB_C_SWITCH)	+= usb_c/
 
-#obj-$(CONFIG_MTK_HIBERNATION) += hibcore/
+ifneq ($(wildcard $(srctree)/drivers/misc/mediatek/met_drv/),)
+obj-y += met_drv/
+endif
 
+obj-$(CONFIG_MTK_IN_HOUSE_TEE_SUPPORT) += trustzone/
+ifeq ($(CONFIG_HAVE_MTK_IN_HOUSE_TEE_SUPPORT),y)
+obj-$(CONFIG_TRUSTY) += trustzone/
+endif
+obj-${CONFIG_MTK_HWRNG} += hw_random/
+obj-$(CONFIG_MTK_GIC_EXT) += ext_gic/
+obj-$(CONFIG_MTK_HDMI_SUPPORT) += hdmi/
+obj-$(CONFIG_MTK_SYS_CIRQ) += cirq/
+obj-$(CONFIG_MMC_MTK_SDIO) += mtk_sdio/
+obj-$(CONFIG_MTK_RAM_CONSOLE) += ram_console/
+obj-$(CONFIG_MTK_AEE_FEATURE) += aee/
+obj-$(CONFIG_MTK_EMI) += emi/
+obj-$(CONFIG_MTK_FREQ_HOPPING) += freqhopping/
+obj-$(CONFIG_MTK_IN_HOUSE_TEE_SUPPORT) += gcpu/
+ifeq ($(CONFIG_HAVE_MTK_IN_HOUSE_TEE_SUPPORT),y)
+obj-$(CONFIG_TRUSTY) += gcpu/
+obj-$(CONFIG_MTK_SECURE_EFUSE) += secure_efuse/
+endif
+
+obj-$(CONFIG_MTK_M4U)   += m4u/
+obj-$(CONFIG_MTK_PSEUDO_M4U)   += pseudo_m4u/
+
+obj-$(CONFIG_MMPROFILE) += mmp/
+obj-$(CONFIG_MTK_SCHED_RQAVG_KS) += sched/
+obj-$(CONFIG_MTK_TURNKEY_THERMAL) += thermal/
+obj-$(CONFIG_MTK_IRRX) += irrx/
+ifeq ($(CONFIG_MTK_SENSOR_SUPPORT),y)
+obj-$(CONFIG_MTK_HWMON)	    += hwmon/
+obj-$(CONFIG_CUSTOM_KERNEL_ALSPS) += alsps/
+endif
 obj-$(CONFIG_MTK_COMBO) += connectivity/
 obj-$(CONFIG_MTK_BTIF) += btif/
-
-obj-$(CONFIG_MTK_RAM_CONSOLE)	+= ram_console/
-obj-$(CONFIG_RT_REGMAP) += rt-regmap/
-
-
-obj-y += performance/
-
-# gator driver is platform-independent
-ifneq ($(wildcard $(srctree)/$(src)/gator-driver/),)
-obj-$(CONFIG_GATOR_DRIVER) += gator-driver/
-endif # gator-driver folder exist
-
-
-obj-$(CONFIG_THERMAL)   += thermal/
-
-obj-$(CONFIG_MEDIATEK_SOLUTION)	+= aee/
-#obj-$(CONFIG_MTK_MLOG) += mlog/
-obj-$(CONFIG_MTK_BTCVSD) += btcvsd/
-#obj-$(CONFIG_MTK_DYNAMIC_BOOST) += dynamic_boost/
-
-#widevine drm
-obj-y += sspm/
-ifneq ($(wildcard $(srctree)/drivers/misc/mediatek/cpu_stress/),)
-obj-$(CONFIG_MTK_CPU_STRESS)	+= cpu_stress/
+obj-$(CONFIG_MTK_CONN_MD) += conn_md/
+# for btmtk_btif repo sync from other repo
+BTIF = $(wildcard drivers/misc/mediatek/btmtk_btif/*.c)
+ifneq ($(BTIF),)
+obj-$(CONFIG_MTK_BTMTK_BTIF) += btmtk_btif/
 endif
-obj-$(CONFIG_USB)	+= usb_boost/
-#obj-$(CONFIG_RT_REGMAP) += rt-regmap/
-ifneq ($(CONFIG_ARCH_MT2601),y)
-obj-$(CONFIG_MEDIATEK_SOLUTION)	+= cmo/
-endif
-obj-$(CONFIG_MTK_SMARTPA_SOUND)	+= smartpa/
-#obj-y += mtprintk/
-obj-$(CONFIG_MTK_SOUND)	+= sound/
+obj-$(CONFIG_MTK_UNIFIED_DEBUG_INTERFACE) += udi/
+obj-$(CONFIG_MTK_SYNC) += sync/
+obj-$(CONFIG_MTK_FB) += video/
+obj-$(CONFIG_MTK_VIDEOCODEC_DRIVER) += videocodec/
+obj-$(CONFIG_MTK_MDP) += mdp/
+obj-$(CONFIG_MTK_VQ) += vq/
+obj-y += stc/
+obj-y += systimer/
+obj-y += devinfo/
+obj-$(CONFIG_ARCH_MEDIATEK) += cmo/
+obj-$(CONFIG_MTK_BOOT) += boot/
+obj-$(CONFIG_MTK_BOOT_REASON) += boot_reason/
+obj-$(CONFIG_MTK_SYSTRACKER) += systracker/
+obj-$(CONFIG_MTK_DYNAMIC_BOOST) += dynamic_boost/
+obj-$(CONFIG_MTK_FIQ_CACHE) += fiq_cache/

@@ -1,15 +1,15 @@
 /*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2 as
-* published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See http://www.gnu.org/licenses/gpl-2.0.html for more details.
-*/
+ * Copyright (C) 2016 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
+ */
 
 #ifndef __TPD_H
 #define __TPD_H
@@ -31,7 +31,7 @@
 #include <linux/regulator/consumer.h>
 
 /*debug macros */
-#define TPD_DEBUG
+/*#define TPD_DEBUG */
 #define TPD_DEBUG_CODE
 /* #define TPD_DEBUG_TRACK */
 #define TPD_DMESG(a, arg...) pr_info(TPD_DEVICE ": " a, ##arg)
@@ -121,8 +121,6 @@ struct tpd_dts_info {
 	int use_tpd_button;
 	int tpd_key_num;
 	int tpd_key_local[4];
-	bool tpd_use_ext_gpio;
-	int rst_ext_gpio_num;
 	struct tpd_key_dim_local tpd_key_dim_local[4];
 	struct tpd_filter_t touch_filter;
 };

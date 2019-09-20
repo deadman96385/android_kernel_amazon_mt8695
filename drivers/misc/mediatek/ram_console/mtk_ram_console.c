@@ -35,7 +35,6 @@
 #include "ram_console.h"
 
 #define RAM_CONSOLE_HEADER_STR_LEN 1024
-#define LEGACY_PATTERN 0xDEADBEEF
 
 #define THERMAL_RESERVED_TZS (10)
 static int thermal_num = THERMAL_RESERVED_TZS;
@@ -68,10 +67,6 @@ struct last_reboot_reason {
 	uint8_t hotplug_cb_index;
 	uint64_t hotplug_cb_fp;
 	uint64_t hotplug_cb_times;
-	uint64_t hps_cb_enter_times;
-	uint32_t hps_cb_cpu_bitmask;
-	uint32_t hps_cb_footprint;
-	uint64_t hps_cb_fp_times;
 	uint32_t cpu_caller;
 	uint32_t cpu_callee;
 	uint64_t cpu_up_prepare_ktime;
@@ -87,11 +82,9 @@ struct last_reboot_reason {
 	uint32_t deepidle_data;
 	uint32_t sodi3_data;
 	uint32_t sodi_data;
-	uint32_t mcsodi_data;
 	uint32_t spm_suspend_data;
 	uint32_t spm_common_scenario_data;
 	uint32_t mtk_cpuidle_footprint[NR_CPUS];
-	uint32_t mcdi_footprint[NR_CPUS];
 	uint32_t clk_data[8];
 	uint32_t suspend_debug_flag;
 	uint32_t fiq_cache_step;
@@ -120,14 +113,6 @@ struct last_reboot_reason {
 	uint8_t gpu_dvfs_oppidx;
 	uint8_t gpu_dvfs_status;
 
-	uint32_t ptp_devinfo_0;
-	uint32_t ptp_devinfo_1;
-	uint32_t ptp_devinfo_2;
-	uint32_t ptp_devinfo_3;
-	uint32_t ptp_devinfo_4;
-	uint32_t ptp_devinfo_5;
-	uint32_t ptp_devinfo_6;
-	uint32_t ptp_devinfo_7;
 	uint32_t ptp_e0;
 	uint32_t ptp_e1;
 	uint32_t ptp_e2;
@@ -164,8 +149,6 @@ struct last_reboot_reason {
 	uint64_t ptp_temp;
 	uint8_t ptp_status;
 	uint8_t eem_pi_offset;
-	uint8_t etc_status;
-	uint8_t etc_mode;
 
 
 	int8_t thermal_temp[THERMAL_RESERVED_TZS];
@@ -190,8 +173,6 @@ struct last_reboot_reason {
 	uint32_t scp_pc;
 	uint32_t scp_lr;
 	unsigned long last_init_func;
-	uint8_t pmic_ext_buck;
-	uint32_t hang_detect_timeout_count;
 
 	void *kparams;
 };
@@ -205,21 +186,8 @@ struct reboot_reason_lk {
 	u32 data[0];
 };
 
-/* For 3.10 paired preloader compatible */
-struct legacy_padding_preloader {
-	uint32_t start;
-	uint32_t size;
-	uint8_t hw_status;
-	uint8_t fiq_step;
-	uint8_t reboot_mode;
-	uint8_t __pad;
-	uint32_t pattern;
-};
-
 struct ram_console_buffer {
 	uint32_t sig;
-	struct legacy_padding_preloader lgc_pl;
-
 	/* for size comptible */
 	uint32_t off_pl;
 	uint32_t off_lpl;	/* last preloader: struct reboot_reason_pl */
@@ -248,8 +216,6 @@ static struct ram_console_buffer *ram_console_buffer_pa;
 static DEFINE_SPINLOCK(ram_console_lock);
 
 static atomic_t rc_in_fiq = ATOMIC_INIT(0);
-
-static void ram_console_init_val(void);
 
 #ifdef __aarch64__
 static void *_memcpy(void *dest, const void *src, size_t count)
@@ -463,33 +429,24 @@ static int ram_console_lastk_show(struct ram_console_buffer *buffer, struct seq_
 		seq_write(m, buffer, ram_console_buffer->sz_buffer);
 		return 0;
 	}
-	if (buffer->lgc_pl.pattern == LEGACY_PATTERN) {
+	if (buffer->off_pl == 0 || buffer->off_pl + ALIGN(buffer->sz_pl, 64) != buffer->off_lpl) {
 		/* workaround for compatibility to old preloader & lk (OTA) */
-		wdt_status = buffer->lgc_pl.hw_status;
+		wdt_status = *((unsigned char *)buffer + 12);
 	} else
 		wdt_status = LAST_RRPL_BUF_VAL(buffer, wdt_status);
 
-	seq_printf(m, "hw_s=%u, fiq s=%u, log_s=%u, log_sz=%u, sz_cons=%u.\n",
-		   wdt_status, LAST_RRR_BUF_VAL(buffer, fiq_step), buffer->log_start, buffer->off_console, buffer->sz_console);
-	seq_printf(m, "%s, old_s=%u\n", ram_console_clear ? "C" : "NC", old_wdt_status);
+	seq_printf(m, "ram console header, hw_status: %u, fiq step %u.\n",
+		   wdt_status, LAST_RRR_BUF_VAL(buffer, fiq_step));
+	seq_printf(m, "%s, old status is %u.\n", ram_console_clear ? "Clear" : "Not Clear", old_wdt_status);
 
 #ifdef CONFIG_PSTORE_CONSOLE
 	/*pr_err("ram_console: pstore show start\n");*/
 	pstore_console_show(PSTORE_TYPE_CONSOLE, m, v);
 	/*pr_err("ram_console: pstore show end\n");*/
 #else
-	if (buffer->off_console != 0
-	    && buffer->off_linux + ALIGN(sizeof(struct last_reboot_reason),
-					 64) == buffer->off_console
-	    && buffer->sz_console == buffer->sz_buffer - buffer->off_console
-	    && buffer->log_size <= buffer->sz_console && buffer->log_start <= buffer->sz_console) {
-		seq_write(m, (void *)buffer + buffer->off_console + buffer->log_start,
-			  buffer->log_size - buffer->log_start);
-		seq_write(m, (void *)buffer + buffer->off_console, buffer->log_start);
-	} else {
-		seq_puts(m, "header may be corrupted, dump the raw buffer for reference only\n");
-		seq_write(m, buffer, ram_console_buffer->sz_buffer);
-	}
+	seq_write(m, (void *)buffer + buffer->off_console + buffer->log_start,
+		buffer->log_size - buffer->log_start);
+	seq_write(m, (void *)buffer + buffer->off_console, buffer->log_start);
 #endif
 	return 0;
 }
@@ -499,17 +456,11 @@ static void aee_rr_show_in_log(void)
 	if (ram_console_check_header(ram_console_old))
 		pr_err("ram_console: no valid data\n");
 	else {
-		pr_err("pmic & external buck: 0x%x\n", LAST_RRR_VAL(pmic_ext_buck));
 		pr_err("ram_console: CPU notifier status: %d, %d, 0x%llx, %llu\n",
 				LAST_RRR_VAL(hotplug_cpu_event),
 				LAST_RRR_VAL(hotplug_cb_index),
 				LAST_RRR_VAL(hotplug_cb_fp),
 				LAST_RRR_VAL(hotplug_cb_times));
-		pr_err("ram_console: CPU HPS footprint: %llu, 0x%x, %d, %llu\n",
-				LAST_RRR_VAL(hps_cb_enter_times),
-				LAST_RRR_VAL(hps_cb_cpu_bitmask),
-				LAST_RRR_VAL(hps_cb_footprint),
-				LAST_RRR_VAL(hps_cb_fp_times));
 		pr_err("ram_console: last init function: 0x%lx\n", LAST_RRR_VAL(last_init_func));
 	}
 }
@@ -539,10 +490,7 @@ static int __init ram_console_init(struct ram_console_buffer *buffer, size_t buf
 		old_wdt_status = LAST_RRPL_BUF_VAL(buffer, wdt_status);
 	}
 	ram_console_save_old(buffer, buffer_size);
-	if (buffer->off_pl == 0 || buffer->off_pl + ALIGN(buffer->sz_pl, 64) != buffer->off_lpl) {
-		buffer->lgc_pl.pattern = LEGACY_PATTERN;
-		buffer->off_linux = 128;
-	} else if (buffer->sz_lk != 0 && buffer->off_lk + ALIGN(buffer->sz_lk, 64) == buffer->off_llk)
+	if (buffer->sz_lk != 0 && buffer->off_lk + ALIGN(buffer->sz_lk, 64) == buffer->off_llk)
 		buffer->off_linux = buffer->off_llk + ALIGN(buffer->sz_lk, 64);
 	else
 		buffer->off_linux = 512;	/* OTA:leave enough space for pl/lk */
@@ -552,14 +500,9 @@ static int __init ram_console_init(struct ram_console_buffer *buffer, size_t buf
 	buffer->log_start = 0;
 	buffer->log_size = 0;
 	memset_io((void *)buffer + buffer->off_linux, 0, buffer_size - buffer->off_linux);
-	if (buffer->lgc_pl.pattern == LEGACY_PATTERN) {
-		/* Clear it to prevent legacy PL using wrong fiq_step */
-		buffer->lgc_pl.fiq_step = 0;
-	}
 #ifndef CONFIG_PSTORE
 	register_console(&ram_console);
 #endif
-	ram_console_init_val();
 	ram_console_init_done = 1;
 	return 0;
 }
@@ -629,9 +572,9 @@ static int __init ram_console_early_init(void)
 	struct ram_console_buffer *bufp = NULL;
 	size_t buffer_size = 0;
 #if defined(CONFIG_MTK_RAM_CONSOLE_USING_SRAM)
+#ifdef CONFIG_OF
 	struct mem_desc_t sram = { 0 };
 
-#ifdef CONFIG_OF
 	if (of_scan_flat_dt(dt_get_ram_console, &sram)) {
 		if (sram.start == 0) {
 			sram.start = CONFIG_MTK_RAM_CONSOLE_ADDR;
@@ -651,12 +594,11 @@ static int __init ram_console_early_init(void)
 	}
 #else
 	bufp = ioremap(CONFIG_MTK_RAM_CONSOLE_ADDR, CONFIG_MTK_RAM_CONSOLE_SIZE);
-	if (bufp) {
+	if (bufp)
 		buffer_size = CONFIG_MTK_RAM_CONSOLE_SIZE;
-		ram_console_buffer_pa = (struct ram_console_buffer *)CONFIG_MTK_RAM_CONSOLE_ADDR;
-	} else {
-		pr_err("ram_console: ioremap failed, [0x%x, 0x%x]\n",
-		       (unsigned int)sram.start, (unsigned int)sram.size);
+		ram_console_buffer_pa = CONFIG_MTK_RAM_CONSOLE_ADDR;
+	else {
+		pr_err("ram_console: ioremap failed, [0x%x, 0x%x]\n", sram.start, sram.size);
 		return 0;
 	}
 #endif
@@ -672,7 +614,7 @@ static int __init ram_console_early_init(void)
 	return 0;
 #endif
 
-	pr_err("ram_console: pa=%p, buffer start: 0x%p, size: 0x%zx\n", ram_console_buffer_pa, bufp, buffer_size);
+	pr_err("ram_console: buffer start: 0x%p, size: 0x%zx\n", bufp, buffer_size);
 	mtk_cpu_num = num_present_cpus();
 	return ram_console_init(bufp, buffer_size);
 }
@@ -700,13 +642,24 @@ static int __init ram_console_late_init(void)
 {
 	struct proc_dir_entry *entry;
 
-	entry = proc_create("last_kmsg", 0444, NULL, &ram_console_file_ops);
-	if (!entry) {
-		pr_err("ram_console: failed to create proc entry\n");
-		kfree(ram_console_old);
-		ram_console_old = NULL;
-		return 0;
+	if (ram_console_old->off_console != 0
+		&& ram_console_old->off_linux + ALIGN(sizeof(struct last_reboot_reason), 64) == ram_console_old->off_console
+		&& ram_console_old->sz_console == ram_console_old->sz_buffer - ram_console_old->off_console
+		&& ram_console_old->log_size <= ram_console_old->sz_console && ram_console_old->log_start <= ram_console_old->sz_console)
+	{
+		entry = proc_create("last_kmsg", 0444, NULL, &ram_console_file_ops);
+		if (!entry) {
+				pr_err("ram_console: failed to create proc entry\n");
+				kfree(ram_console_old);
+				ram_console_old = NULL;
+		}
+
 	}
+    else
+    {
+		pr_err("ram_console: log buffer is null\n");
+	}
+
 	return 0;
 }
 
@@ -756,24 +709,11 @@ RESERVEDMEM_OF_DECLARE(reserve_memory_ram_console, "mediatek,ram_console",
 #define LAST_RR_MEMCPY_WITH_ID(rr_item, id, str, len)			\
 	(strlcpy(RR_LINUX->rr_item[id], str, len))
 
-#define LEGACY_LAST_RR_SET(rr_item, value) \
-	do { \
-		if (ram_console_buffer->lgc_pl.pattern == LEGACY_PATTERN) { \
-			ram_console_buffer->lgc_pl.rr_item = value; \
-		} \
-	} while(0)
-
-static void ram_console_init_val(void)
-{
-	LAST_RR_SET(pmic_ext_buck, 0xff);
-}
-
 void aee_rr_rec_reboot_mode(u8 mode)
 {
 	if (!ram_console_init_done || !ram_console_buffer)
 		return;
 	LAST_RR_SET(reboot_mode, mode);
-	LEGACY_LAST_RR_SET(reboot_mode, mode);
 }
 
 void aee_rr_rec_kdump_params(void *params)
@@ -788,7 +728,6 @@ void aee_rr_rec_fiq_step(u8 step)
 	if (!ram_console_init_done || !ram_console_buffer)
 		return;
 	LAST_RR_SET(fiq_step, step);
-	LEGACY_LAST_RR_SET(fiq_step, step);
 }
 
 int aee_rr_curr_fiq_step(void)
@@ -881,34 +820,6 @@ void aee_rr_rec_hotplug_cb_times(unsigned long val)
 	LAST_RR_SET(hotplug_cb_times, val);
 }
 
-void aee_rr_rec_hps_cb_enter_times(unsigned long long val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(hps_cb_enter_times, val);
-}
-
-void aee_rr_rec_hps_cb_cpu_bitmask(unsigned int val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(hps_cb_cpu_bitmask, val);
-}
-
-void aee_rr_rec_hps_cb_footprint(unsigned int val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(hps_cb_footprint, val);
-}
-
-void aee_rr_rec_hps_cb_fp_times(unsigned long long val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(hps_cb_fp_times, val);
-}
-
 void aee_rr_rec_cpu_caller(u32 val)
 {
 	if (!ram_console_init_done || !ram_console_buffer)
@@ -990,13 +901,6 @@ u32 aee_rr_curr_deepidle_val(void)
 	return LAST_RR_VAL(deepidle_data);
 }
 
-void aee_rr_rec_mcdi_val(int id, u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET_WITH_ID(mcdi_footprint, id, val);
-}
-
 void aee_rr_rec_mcdi_wfi_val(u32 val)
 {
 	if (!ram_console_init_done || !ram_console_buffer)
@@ -1016,6 +920,13 @@ void aee_rr_rec_mcdi_r15_val(u32 val)
 	LAST_RR_SET(mcdi_r15, val);
 }
 
+void aee_rr_rec_sodi_val(u32 val)
+{
+	if (!ram_console_init_done || !ram_console_buffer)
+		return;
+	LAST_RR_SET(sodi_data, val);
+}
+
 void aee_rr_rec_sodi3_val(u32 val)
 {
 	if (!ram_console_init_done)
@@ -1030,28 +941,9 @@ u32 aee_rr_curr_sodi3_val(void)
 	return LAST_RR_VAL(sodi3_data);
 }
 
-void aee_rr_rec_sodi_val(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(sodi_data, val);
-}
-
 u32 aee_rr_curr_sodi_val(void)
 {
 	return LAST_RR_VAL(sodi_data);
-}
-
-void aee_rr_rec_mcsodi_val(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(mcsodi_data, val);
-}
-
-u32 aee_rr_curr_mcsodi_val(void)
-{
-	return LAST_RR_VAL(mcsodi_data);
 }
 
 void aee_rr_rec_spm_suspend_val(u32 val)
@@ -1302,62 +1194,6 @@ void aee_rr_rec_gpu_dvfs_status(u8 val)
 u8 aee_rr_curr_gpu_dvfs_status(void)
 {
 	return LAST_RR_VAL(gpu_dvfs_status);
-}
-
-void aee_rr_rec_ptp_devinfo_0(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_0, val);
-}
-
-void aee_rr_rec_ptp_devinfo_1(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_1, val);
-}
-
-void aee_rr_rec_ptp_devinfo_2(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_2, val);
-}
-
-void aee_rr_rec_ptp_devinfo_3(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_3, val);
-}
-
-void aee_rr_rec_ptp_devinfo_4(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_4, val);
-}
-
-void aee_rr_rec_ptp_devinfo_5(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_5, val);
-}
-
-void aee_rr_rec_ptp_devinfo_6(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_6, val);
-}
-
-void aee_rr_rec_ptp_devinfo_7(u32 val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(ptp_devinfo_7, val);
 }
 
 void aee_rr_rec_ptp_e0(u32 val)
@@ -1612,20 +1448,6 @@ void aee_rr_rec_eem_pi_offset(u8 val)
 	LAST_RR_SET(eem_pi_offset, val);
 }
 
-void aee_rr_rec_etc_status(u8 val)
-{
-	if (!ram_console_init_done)
-		return;
-	LAST_RR_SET(etc_status, val);
-}
-
-void aee_rr_rec_etc_mode(u8 val)
-{
-	if (!ram_console_init_done)
-		return;
-	LAST_RR_SET(etc_mode, val);
-}
-
 int aee_rr_init_thermal_temp(int num)
 {
 	if (num < 0 || num >= THERMAL_RESERVED_TZS) {
@@ -1760,46 +1582,6 @@ void aee_rr_rec_ocp_enable(u8 val)
 	if (!ram_console_init_done || !ram_console_buffer)
 		return;
 	LAST_RR_SET(ocp_enable, val);
-}
-
-u32 aee_rr_curr_ptp_devinfo_0(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_0);
-}
-
-u32 aee_rr_curr_ptp_devinfo_1(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_1);
-}
-
-u32 aee_rr_curr_ptp_devinfo_2(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_2);
-}
-
-u32 aee_rr_curr_ptp_devinfo_3(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_3);
-}
-
-u32 aee_rr_curr_ptp_devinfo_4(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_4);
-}
-
-u32 aee_rr_curr_ptp_devinfo_5(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_5);
-}
-
-u32 aee_rr_curr_ptp_devinfo_6(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_6);
-}
-
-u32 aee_rr_curr_ptp_devinfo_7(void)
-{
-	return LAST_RR_VAL(ptp_devinfo_7);
 }
 
 u32 aee_rr_curr_ptp_e0(void)
@@ -1982,16 +1764,6 @@ u8 aee_rr_curr_eem_pi_offset(void)
 	return LAST_RR_VAL(eem_pi_offset);
 }
 
-u8 aee_rr_curr_etc_status(void)
-{
-	return LAST_RR_VAL(etc_status);
-}
-
-u8 aee_rr_curr_etc_mode(void)
-{
-	return LAST_RR_VAL(etc_mode);
-}
-
 s8 aee_rr_curr_thermal_temp(int index)
 {
 	if (index < 0 || index >= thermal_num)
@@ -2128,29 +1900,6 @@ void aee_rr_rec_last_init_func(unsigned long val)
 	LAST_RR_SET(last_init_func, val);
 }
 
-void aee_rr_rec_set_bit_pmic_ext_buck(int bit, int loc)
-{
-	int8_t rr_pmic_ext_buck;
-
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	if ((bit != 0 && bit != 1) || loc > 7)
-		return;
-	rr_pmic_ext_buck = LAST_RR_VAL(pmic_ext_buck);
-	if (bit == 1)
-		rr_pmic_ext_buck |= (1 << loc);
-	else
-		rr_pmic_ext_buck &= ~(1 << loc);
-	LAST_RR_SET(pmic_ext_buck, rr_pmic_ext_buck);
-}
-
-void aee_rr_rec_hang_detect_timeout_count(unsigned int val)
-{
-	if (!ram_console_init_done || !ram_console_buffer)
-		return;
-	LAST_RR_SET(hang_detect_timeout_count, val);
-}
-
 void aee_rr_rec_suspend_debug_flag(u32 val)
 {
 	if (!ram_console_init_done || !ram_console_buffer)
@@ -2172,9 +1921,9 @@ void aee_rr_show_wdt_status(struct seq_file *m)
 	unsigned int wdt_status;
 	struct ram_console_buffer *buffer = ram_console_old;
 
-	if (buffer->lgc_pl.pattern == LEGACY_PATTERN) {
+	if (buffer->off_pl == 0 || buffer->off_pl + ALIGN(buffer->sz_pl, 64) != buffer->off_lpl) {
 		/* workaround for compatibility to old preloader & lk (OTA) */
-		wdt_status = buffer->lgc_pl.hw_status;
+		wdt_status = *((unsigned char *)buffer + 12);
 	} else
 		wdt_status = LAST_RRPL_VAL(wdt_status);
 	seq_printf(m, "WDT status: %d", wdt_status);
@@ -2225,15 +1974,6 @@ void aee_rr_show_hotplug_status(struct seq_file *m)
 		   LAST_RRR_VAL(hotplug_cb_index),
 		   LAST_RRR_VAL(hotplug_cb_fp),
 		   LAST_RRR_VAL(hotplug_cb_times));
-}
-
-void aee_rr_show_hps_status(struct seq_file *m)
-{
-	seq_printf(m, "CPU HPS footprint: %llu, 0x%x, %d, %llu\n",
-		   LAST_RRR_VAL(hps_cb_enter_times),
-		   LAST_RRR_VAL(hps_cb_cpu_bitmask),
-		   LAST_RRR_VAL(hps_cb_footprint),
-		   LAST_RRR_VAL(hps_cb_fp_times));
 }
 
 void aee_rr_show_hotplug_caller_callee_status(struct seq_file *m)
@@ -2303,11 +2043,6 @@ void aee_rr_show_sodi(struct seq_file *m)
 	seq_printf(m, "sodi: 0x%x\n", LAST_RRR_VAL(sodi_data));
 }
 
-void aee_rr_show_mcsodi(struct seq_file *m)
-{
-	seq_printf(m, "mcsodi: 0x%x\n", LAST_RRR_VAL(mcsodi_data));
-}
-
 void aee_rr_show_spm_suspend(struct seq_file *m)
 {
 	seq_printf(m, "spm_suspend: 0x%x\n", LAST_RRR_VAL(spm_suspend_data));
@@ -2321,11 +2056,6 @@ void aee_rr_show_spm_common_scenario(struct seq_file *m)
 void aee_rr_show_mtk_cpuidle_footprint(struct seq_file *m, int cpu)
 {
 	seq_printf(m, "  mtk_cpuidle_footprint: 0x%x\n", LAST_RRR_VAL(mtk_cpuidle_footprint[cpu]));
-}
-
-void aee_rr_show_mcdi_footprint(struct seq_file *m, int cpu)
-{
-	seq_printf(m, "  mcdi footprint: 0x%x\n", LAST_RRR_VAL(mcdi_footprint[cpu]));
 }
 
 void aee_rr_show_clk(struct seq_file *m)
@@ -2443,46 +2173,6 @@ void aee_rr_show_gpu_dvfs_oppidx(struct seq_file *m)
 void aee_rr_show_gpu_dvfs_status(struct seq_file *m)
 {
 	seq_printf(m, "gpu_dvfs_status: 0x%x\n", LAST_RRR_VAL(gpu_dvfs_status));
-}
-
-void aee_rr_show_ptp_devinfo_0(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo0 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_0));
-}
-
-void aee_rr_show_ptp_devinfo_1(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo1 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_1));
-}
-
-void aee_rr_show_ptp_devinfo_2(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo2 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_2));
-}
-
-void aee_rr_show_ptp_devinfo_3(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo3 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_3));
-}
-
-void aee_rr_show_ptp_devinfo_4(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo4 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_4));
-}
-
-void aee_rr_show_ptp_devinfo_5(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo5 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_5));
-}
-
-void aee_rr_show_ptp_devinfo_6(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo6 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_6));
-}
-
-void aee_rr_show_ptp_devinfo_7(struct seq_file *m)
-{
-	seq_printf(m, "EEM devinfo7 = 0x%X\n", LAST_RRR_VAL(ptp_devinfo_7));
 }
 
 void aee_rr_show_ptp_e0(struct seq_file *m)
@@ -2759,16 +2449,6 @@ void aee_rr_show_eem_pi_offset(struct seq_file *m)
 	seq_printf(m, "eem_pi_offset : 0x%x\n", LAST_RRR_VAL(eem_pi_offset));
 }
 
-void aee_rr_show_etc_status(struct seq_file *m)
-{
-	seq_printf(m, "etc_status : 0x%x\n", LAST_RRR_VAL(etc_status));
-}
-
-void aee_rr_show_etc_mode(struct seq_file *m)
-{
-	seq_printf(m, "etc_mode : 0x%x\n", LAST_RRR_VAL(etc_mode));
-}
-
 void aee_rr_show_idvfs_ctrl_reg(struct seq_file *m)
 {
 	seq_printf(m, "idvfs_ctrl_reg = 0x%x\n", LAST_RRR_VAL(idvfs_ctrl_reg));
@@ -2900,16 +2580,6 @@ void aee_rr_show_last_init_func(struct seq_file *m)
 	seq_printf(m, "last init function: 0x%lx\n", LAST_RRR_VAL(last_init_func));
 }
 
-void aee_rr_show_pmic_ext_buck(struct seq_file *m)
-{
-	seq_printf(m, "pmic & external buck: 0x%x\n", LAST_RRR_VAL(pmic_ext_buck));
-}
-
-void aee_rr_show_hang_detect_timeout_count(struct seq_file *m)
-{
-	seq_printf(m, "hang detect time out: 0x%x\n", LAST_RRR_VAL(hang_detect_timeout_count));
-}
-
 void aee_rr_show_isr_el1(struct seq_file *m)
 {
 	seq_printf(m, "isr_el1: %d\n", LAST_RRR_VAL(isr_el1));
@@ -3022,7 +2692,6 @@ last_rr_show_t aee_rr_show[] = {
 	aee_rr_show_deepidle,
 	aee_rr_show_sodi3,
 	aee_rr_show_sodi,
-	aee_rr_show_mcsodi,
 	aee_rr_show_spm_suspend,
 	aee_rr_show_spm_common_scenario,
 	aee_rr_show_vcore_dvfs_opp,
@@ -3048,14 +2717,6 @@ last_rr_show_t aee_rr_show[] = {
 	aee_rr_show_gpu_dvfs_vgpu,
 	aee_rr_show_gpu_dvfs_oppidx,
 	aee_rr_show_gpu_dvfs_status,
-	aee_rr_show_ptp_devinfo_0,
-	aee_rr_show_ptp_devinfo_1,
-	aee_rr_show_ptp_devinfo_2,
-	aee_rr_show_ptp_devinfo_3,
-	aee_rr_show_ptp_devinfo_4,
-	aee_rr_show_ptp_devinfo_5,
-	aee_rr_show_ptp_devinfo_6,
-	aee_rr_show_ptp_devinfo_7,
 	aee_rr_show_ptp_e0,
 	aee_rr_show_ptp_e1,
 	aee_rr_show_ptp_e2,
@@ -3086,13 +2747,9 @@ last_rr_show_t aee_rr_show[] = {
 	aee_rr_show_ptp_cpu_cci_volt_2,
 	aee_rr_show_ptp_cpu_cci_volt_3,
 	aee_rr_show_ptp_gpu_volt,
-	aee_rr_show_ptp_gpu_volt_2,
-	aee_rr_show_ptp_gpu_volt_3,
 	aee_rr_show_ptp_temp,
 	aee_rr_show_ptp_status,
 	aee_rr_show_eem_pi_offset,
-	aee_rr_show_etc_status,
-	aee_rr_show_etc_mode,
 	aee_rr_show_thermal_temp,
 	aee_rr_show_thermal_status,
 	aee_rr_show_thermal_ATM_status,
@@ -3111,10 +2768,7 @@ last_rr_show_t aee_rr_show[] = {
 	aee_rr_show_ocp_enable,
 	aee_rr_show_scp_pc,
 	aee_rr_show_scp_lr,
-	aee_rr_show_hang_detect_timeout_count,
 	aee_rr_show_last_init_func,
-	aee_rr_show_pmic_ext_buck,
-	aee_rr_show_hps_status,
 	aee_rr_show_hotplug_status,
 	aee_rr_show_hotplug_caller_callee_status,
 	aee_rr_show_hotplug_up_prepare_ktime,
@@ -3134,7 +2788,6 @@ last_rr_show_cpu_t aee_rr_show_cpu[] = {
 	aee_rr_show_jiffies_last_irq_exit,
 	aee_rr_show_hotplug_footprint,
 	aee_rr_show_mtk_cpuidle_footprint,
-	aee_rr_show_mcdi_footprint,
 };
 
 last_rr_show_t aee_rr_last_xxx[] = {

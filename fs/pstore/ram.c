@@ -49,6 +49,10 @@ static ulong ramoops_console_size = MIN_MEM_SIZE;
 module_param_named(console_size, ramoops_console_size, ulong, 0400);
 MODULE_PARM_DESC(console_size, "size of kernel console log");
 
+static ulong ramoops_bconsole_size = MIN_MEM_SIZE;
+module_param_named(bconsole_size, ramoops_bconsole_size, ulong, 0400);
+MODULE_PARM_DESC(bconsole_size, "size of kernel bconsole log");
+
 static ulong ramoops_ftrace_size = MIN_MEM_SIZE;
 module_param_named(ftrace_size, ramoops_ftrace_size, ulong, 0400);
 MODULE_PARM_DESC(ftrace_size, "size of ftrace log");
@@ -89,11 +93,13 @@ struct ramoops_context {
 	struct persistent_ram_zone *cprz;
 	struct persistent_ram_zone *fprz;
 	struct persistent_ram_zone *mprz;
+	struct persistent_ram_zone *bprz; /* simple lockless buffer console */
 	phys_addr_t phys_addr;
 	unsigned long size;
 	unsigned int memtype;
 	size_t record_size;
 	size_t console_size;
+	size_t bconsole_size;
 	size_t ftrace_size;
 	size_t pmsg_size;
 	int dump_oops;
@@ -105,6 +111,7 @@ struct ramoops_context {
 	unsigned int console_read_cnt;
 	unsigned int ftrace_read_cnt;
 	unsigned int pmsg_read_cnt;
+	unsigned int bconsole_read_cnt;
 	struct pstore_info pstore;
 };
 
@@ -119,6 +126,7 @@ static int ramoops_pstore_open(struct pstore_info *psi)
 	cxt->console_read_cnt = 0;
 	cxt->ftrace_read_cnt = 0;
 	cxt->pmsg_read_cnt = 0;
+	cxt->bconsole_read_cnt = 0;
 	return 0;
 }
 
@@ -219,6 +227,14 @@ static ssize_t ramoops_pstore_read(u64 *id, enum pstore_type_id *type,
 	if (!prz_ok(prz))
 		prz = ramoops_get_next_prz(&cxt->cprz, &cxt->console_read_cnt,
 					   1, id, type, PSTORE_TYPE_CONSOLE, 0);
+
+	if (!prz_ok(prz)) {
+		prz = ramoops_get_next_prz(&cxt->bprz, &cxt->bconsole_read_cnt,
+					   1, id, type, PSTORE_TYPE_CONSOLE, 0);
+		 pr_notice("pstore: pstore_read bprz type: %d count %d id %llx\n",
+		*type, cxt->bconsole_read_cnt, *id);
+		*id = 2; /* save aee debug log to console-ramoops-2 */
+	}
 	if (!prz_ok(prz))
 		prz = ramoops_get_next_prz(&cxt->fprz, &cxt->ftrace_read_cnt,
 					   1, id, type, PSTORE_TYPE_FTRACE, 0);
@@ -278,9 +294,15 @@ static int notrace ramoops_pstore_write_buf(enum pstore_type_id type,
 	size_t hlen;
 
 	if (type == PSTORE_TYPE_CONSOLE) {
+		if (reason == 0) {
 		if (!cxt->cprz)
 			return -ENOMEM;
 		persistent_ram_write(cxt->cprz, buf, size);
+		} else {
+			if (!cxt->bprz)
+				return -ENOMEM;
+			persistent_ram_write(cxt->bprz, buf, size);
+		}
 		return 0;
 	} else if (type == PSTORE_TYPE_FTRACE) {
 		if (!cxt->fprz)
@@ -557,6 +579,10 @@ static int ramoops_parse_dt(struct platform_device *pdev,
 	if (ret < 0)
 		return ret;
 
+	ret = ramoops_parse_dt_size(pdev, "bconsole-size", &pdata->bconsole_size);
+	if (ret < 0)
+		return ret;
+
 	ret = ramoops_parse_dt_size(pdev, "ftrace-size", &pdata->ftrace_size);
 	if (ret < 0)
 		return ret;
@@ -627,6 +653,7 @@ static int ramoops_probe(struct platform_device *pdev)
 	cxt->memtype = pdata->mem_type;
 	cxt->record_size = pdata->record_size;
 	cxt->console_size = pdata->console_size;
+	cxt->bconsole_size = pdata->bconsole_size;
 	cxt->ftrace_size = pdata->ftrace_size;
 	cxt->pmsg_size = pdata->pmsg_size;
 	cxt->dump_oops = pdata->dump_oops;
@@ -634,7 +661,7 @@ static int ramoops_probe(struct platform_device *pdev)
 
 	paddr = cxt->phys_addr;
 
-	dump_mem_sz = cxt->size - cxt->console_size - cxt->ftrace_size
+	dump_mem_sz = cxt->size - cxt->console_size - cxt->bconsole_size - cxt->ftrace_size
 			- cxt->pmsg_size;
 	err = ramoops_init_przs(dev, cxt, &paddr, dump_mem_sz);
 	if (err)
@@ -644,6 +671,11 @@ static int ramoops_probe(struct platform_device *pdev)
 			       cxt->console_size, 0);
 	if (err)
 		goto fail_init_cprz;
+
+	err = ramoops_init_prz(dev, cxt, &cxt->bprz, &paddr,
+			       cxt->bconsole_size, 0);
+	if (err)
+		goto fail_init_bprz;
 
 	err = ramoops_init_prz(dev, cxt, &cxt->fprz, &paddr, cxt->ftrace_size,
 			       LINUX_VERSION_CODE);
@@ -704,6 +736,8 @@ fail_clear:
 fail_init_mprz:
 	kfree(cxt->fprz);
 fail_init_fprz:
+	kfree(cxt->bprz);
+fail_init_bprz:
 	kfree(cxt->cprz);
 fail_init_cprz:
 	ramoops_free_przs(cxt);

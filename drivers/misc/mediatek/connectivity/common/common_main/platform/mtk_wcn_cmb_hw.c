@@ -88,7 +88,7 @@ INT32 mtk_wcn_cmb_hw_pwr_off(VOID)
 	INT32 iRet = 0;
 	UINT32 chip_id = 0x0;
 
-	WMT_DBG_FUNC("CMB-HW, hw_pwr_off start\n");
+	WMT_INFO_FUNC("CMB-HW, hw_pwr_off start\n");
 
 	/*1. disable irq --> should be done when do wmt-ic swDeinit period */
 	/* TODO:[FixMe][GeorgeKuo] clarify this */
@@ -126,12 +126,7 @@ INT32 mtk_wcn_cmb_hw_pwr_off(VOID)
 	/*7. deinit gps_lna */
 	iRet += wmt_plat_gpio_ctrl(PIN_GPS_LNA, PIN_STA_DEINIT);
 
-	/*8. set uart tx/rx to UART mode */
-	if (chip_id == 0x6630) {
-		iRet += wmt_plat_gpio_ctrl(PIN_UART_GRP, PIN_STA_MUX);
-	}
-
-	WMT_DBG_FUNC("CMB-HW, hw_pwr_off finish\n");
+	WMT_INFO_FUNC("CMB-HW, hw_pwr_off finish\n");
 	return iRet;
 }
 
@@ -209,10 +204,9 @@ INT32 mtk_wcn_cmb_hw_pwr_on(VOID)
 	osal_sleep_ms(gPwrSeqTime.onStableTime);
 
 	/*set UART Tx/Rx to UART mode */
-	if (0x6630 == chip_id || 0x6632 == chip_id) {
+	if (0x6630 == chip_id || 0x6632 == chip_id)
 		iRet += wmt_plat_gpio_ctrl(PIN_UART_RX, PIN_STA_IN_NP);
-		iRet += wmt_plat_gpio_ctrl(PIN_UART_RX, PIN_STA_MUX);
-	}
+
 
 	/*7. set audio interface to CMB_STUB_AIF_1, BT PCM ON, I2S OFF */
 	/* BT PCM bus default mode. Real control is done by audio */
@@ -228,13 +222,13 @@ INT32 mtk_wcn_cmb_hw_pwr_on(VOID)
 		iRet += wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_INIT);
 		WMT_INFO_FUNC("CMB-HW, BGF_EINT IRQ registered and disabled\n");
 	} else {
-		WMT_DBG_FUNC("CMB-HW, no need to register BGF_EINT for MT6630 & MT6632 SDIO mode\n");
+		WMT_INFO_FUNC("CMB-HW, no need to register BGF_EINT for MT6630 & MT6632 SDIO mode\n");
 	}
 
 	/* 8.1 set ALL_EINT pin to correct state even it is not used currently */
 	iRet += wmt_plat_gpio_ctrl(PIN_ALL_EINT, PIN_STA_MUX);
 	iRet += wmt_plat_eirq_ctrl(PIN_ALL_EINT, PIN_STA_INIT);
-	WMT_DBG_FUNC("CMB-HW, hw_pwr_on finish (%d)\n", iRet);
+	WMT_INFO_FUNC("CMB-HW, hw_pwr_on finish (%d)\n", iRet);
 
 	_pwr_first_time = 0;
 	return iRet;
@@ -279,10 +273,8 @@ INT32 mtk_wcn_cmb_hw_rst(VOID)
 	osal_sleep_ms(gPwrSeqTime.onStableTime);
 
 	/*set UART Tx/Rx to UART mode */
-	if (0x6630 == chip_id || 0x6632 == chip_id) {
+	if (0x6630 == chip_id || 0x6632 == chip_id)
 		iRet += wmt_plat_gpio_ctrl(PIN_UART_RX, PIN_STA_IN_NP);
-		iRet += wmt_plat_gpio_ctrl(PIN_UART_RX, PIN_STA_MUX);
-	}
 
 	WMT_INFO_FUNC("CMB-HW, hw_rst finish, eirq should be enabled after this step\n");
 	return 0;
@@ -322,7 +314,7 @@ INT32 mtk_wcn_cmb_hw_init(P_PWR_SEQ_TIME pPwrSeqTime)
 		WMT_DBG_FUNC("setting hw init sequence parameters\n");
 		osal_memcpy(&gPwrSeqTime, pPwrSeqTime, osal_sizeof(gPwrSeqTime));
 	} else {
-		WMT_DBG_FUNC
+		WMT_WARN_FUNC
 		    ("invalid pPwrSeqTime parameter, use default hw init sequence parameters\n");
 		gPwrSeqTime.ldoStableTime = DFT_LDO_STABLE_TIME;
 		gPwrSeqTime.offStableTime = DFT_OFF_STABLE_TIME;

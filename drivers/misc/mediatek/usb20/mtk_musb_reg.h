@@ -225,14 +225,6 @@
 #define MUSB_OPSTATE    0x620
 #define OTG_IDLE 0
 
-/*
-  * MD Direct Tethering related Registers
-  */
-
-#define MUSB_USB_MDL1INTM	0x744
-#define MUSB_QIMCR			0xc08
-#define MUSB_QIMSR			0xc0c
-#define MUSB_USBGCSR		0xb00
 
 /* These are always controlled through the INDEX register */
 #define MUSB_TXFIFOSZ		0x62	/* 8-bit (see masks) */
@@ -351,29 +343,24 @@
 #define A_HFS_WHNP	(1<<6)	/* EN: FS idle of A device will transfer to HFS_HSUS state first */
 #define DIS_B_WTDIS	(1<<5)	/* Disables B device entering C_OPM_B_WTDIS states before switching to host mode */
 #define HHS_SUSP_DIS	(1<<4)	/* EN: host-hs-suspend entering OPM_FS_WTCON state first
-								*while receiving disconnect signal
-								*/
+								   while receiving disconnect signal */
 #define DIS_CHARGE_VBUS	(1<<3)	/* EN: Disables B device charging VBUS function for OTG2.0 feature */
 #define HSUS_RESUME_INT	(1<<2)	/* EN: hsus mode of host initializing resuming interrupt
-								   *while receiving resume K as waiting for HNP
-								   */
+								   while receiving resume K as waiting for HNP */
 #define HSUS_RESUME	(1<<1)	/* EN: hnpsus-mode of host entering host-normal mode as
-							   *receiving resume K while waiting for HNP
-							   */
+							   receiving resume K while waiting for HNP */
 #define OTG20_EN	(1<<0)	/* Enables OTG 2.0 feature */
 
 /* OTG20 Related Control Register H */
 #define DIS_AUTORST	(1<<1)	/* Informs whether HW sends bus reset automatically
-							   *while B-device changes to host with HNP
-							   */
+							   while B-device changes to host with HNP */
 #define CON_DEB_SHORT	(1<<0)	/* EN: to decrease A device connection denounce waiting timing */
 
 /* QMU Registers */
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 #define MUSB_QMUBASE	(0x800)
 #define MUSB_QISAR	(0xc00)
 #define MUSB_QIMR	(0xc04)
-#define MUSB_GPZCR (0xc34)
 #endif
 
 static inline void musb_write_txfifosz(void __iomem *mbase, u8 c_size)

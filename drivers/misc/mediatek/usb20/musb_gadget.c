@@ -15,6 +15,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
  * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
@@ -50,11 +55,7 @@
 
 #include "musb_core.h"
 
-/* GADGET only support all-ep QMU, otherwise downgrade to non-QMU */
-#ifdef MUSB_QMU_LIMIT_SUPPORT
-#undef CONFIG_MTK_MUSB_QMU_SUPPORT
-#endif
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 #include "musb_qmu.h"
 #endif
 
@@ -114,7 +115,7 @@
 static inline void map_dma_buffer(struct musb_request *request,
 				  struct musb *musb, struct musb_ep *musb_ep)
 {
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 	int compatible = true;
 	struct dma_controller *dma = musb->dma_controller;
 #endif
@@ -125,7 +126,7 @@ static inline void map_dma_buffer(struct musb_request *request,
 
 
 	request->map_state = UN_MAPPED;
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 	if (!is_dma_capable() || !musb_ep->dma)
 		return;
 
@@ -142,20 +143,11 @@ static inline void map_dma_buffer(struct musb_request *request,
 #endif
 
 	if (request->request.dma == DMA_ADDR_INVALID) {
-		dma_addr_t dma_addr;
-		int ret;
-
-		dma_addr = dma_map_single(musb->controller,
+		request->request.dma = dma_map_single(musb->controller,
 						      request->request.buf,
 						      length,
 						      request->tx
-						      ? DMA_TO_DEVICE
-						      : DMA_FROM_DEVICE);
-		ret = dma_mapping_error(musb->controller, dma_addr);
-		if (ret)
-			return;
-
-		request->request.dma = dma_addr;
+						      ? DMA_TO_DEVICE : DMA_FROM_DEVICE);
 		request->map_state = MUSB_MAPPED;
 	} else {
 		dma_sync_single_for_device(musb->controller,
@@ -216,12 +208,7 @@ void musb_g_giveback(struct musb_ep *ep,
 
 	ep->busy = 1;
 	spin_unlock(&musb->lock);
-
-	if (!dma_mapping_error(musb->controller, request->dma))
-		unmap_dma_buffer(req, musb);
-	else
-		DBG(0, "dma_mapping_error\n");
-
+	unmap_dma_buffer(req, musb);
 	if (request->status == 0)
 		DBG(1, "%s done request %p,  %d/%d\n",
 		    ep->end_point.name, request, req->request.actual, req->request.length);
@@ -229,7 +216,7 @@ void musb_g_giveback(struct musb_ep *ep,
 		DBG(1, "%s request %p, %d/%d fault %d\n",
 		    ep->end_point.name, request,
 		    req->request.actual, req->request.length, request->status);
-	usb_gadget_giveback_request(&req->ep->end_point, &req->request);
+	req->request.complete(&req->ep->end_point, &req->request);
 	spin_lock(&musb->lock);
 	ep->busy = busy;
 }
@@ -244,13 +231,13 @@ static void nuke(struct musb_ep *ep, const int status)
 {
 	/*struct musb           *musb = ep->musb; */
 	struct musb_request *req = NULL;
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 	void __iomem *epio = ep->musb->endpoints[ep->current_epnum].regs;
 #endif
 
 
 	ep->busy = 1;
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	musb_flush_qmu(ep->hw_ep->epnum, (ep->is_in ? TXQ : RXQ));
 #else
 	if (is_dma_capable() && ep->dma) {
@@ -303,30 +290,31 @@ static inline int max_ep_writesize(struct musb *musb, struct musb_ep *ep)
 
 
 /* Peripheral tx (IN) using Mentor DMA works as follows:
- *	Only mode 0 is used for transfers <= wPktSize,
- *	mode 1 is used for larger transfers,
- *
- *	One of the following happens:
- *	- Host sends IN token which causes an endpoint interrupt
- *		-> TxAvail
- *			-> if DMA is currently busy, exit.
- *			-> if queue is non-empty, txstate().
- *	- Request is queued by the gadget driver.
- *		-> if queue was previously empty, txstate()
- *
- *	txstate()
- *		-> start
- *		  /\	-> setup DMA
- *		  |     (data is transferred to the FIFO, then sent out when
- *		  |	IN token(s) are recd from Host.
- *		  |		-> DMA interrupt on completion
- *		  |		   calls TxAvail.
- *		  |		      -> stop DMA, ~DMAENAB,
- *		  |		      -> set TxPktRdy for last short pkt or zlp
- *		  |		      -> Complete Request
- *		  |		      -> Continue next request (call txstate)
- *		  |___________________________________|
- *
+	Only mode 0 is used for transfers <= wPktSize,
+	mode 1 is used for larger transfers,
+
+	One of the following happens:
+	- Host sends IN token which causes an endpoint interrupt
+		-> TxAvail
+			-> if DMA is currently busy, exit.
+			-> if queue is non-empty, txstate().
+
+	- Request is queued by the gadget driver.
+		-> if queue was previously empty, txstate()
+
+	txstate()
+		-> start
+		  /\	-> setup DMA
+		  |     (data is transferred to the FIFO, then sent out when
+		  |	IN token(s) are recd from Host.
+		  |		-> DMA interrupt on completion
+		  |		   calls TxAvail.
+		  |		      -> stop DMA, ~DMAENAB,
+		  |		      -> set TxPktRdy for last short pkt or zlp
+		  |		      -> Complete Request
+		  |		      -> Continue next request (call txstate)
+		  |___________________________________|
+
  * Non-Mentor DMA engines can of course work differently, such as by
  * upleveling from irq-per-packet to irq-per-buffer.
  */
@@ -379,6 +367,8 @@ static void txstate(struct musb *musb, struct musb_request *req)
 
 	DBG(1, "hw_ep%d, maxpacket %d, fifo count %d, txcsr %03x\n",
 	    epnum, musb_ep->packet_sz, fifo_count, csr);
+
+	USB_LOGGER(TXSTATE, TXSTATE, epnum, musb_ep->packet_sz, fifo_count, csr);
 
 	if (is_buffer_mapped(req)) {
 		struct dma_controller *c = musb->dma_controller;
@@ -446,6 +436,9 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	    request->actual, request->length,
 	    musb_readw(epio, MUSB_TXCSR), fifo_count, musb_readw(epio, MUSB_TXMAXP));
 
+	USB_LOGGER(TXSTATE_END, TXSTATE, musb_ep->end_point.name, use_dma ? "dma" : "pio",
+		   request->actual, request->length, musb_readw(epio, MUSB_TXCSR), fifo_count,
+		   musb_readw(epio, MUSB_TXMAXP));
 }
 
 /*
@@ -468,6 +461,9 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 
 	csr = musb_readw(epio, MUSB_TXCSR);
 	DBG(1, "<== %s, txcsr %04x\n", musb_ep->end_point.name, csr);
+
+
+	USB_LOGGER(MUSB_G_TX, MUSB_G_TX, musb_ep->end_point.name, csr);
 
 	dma = is_dma_capable() ? musb_ep->dma : NULL;
 
@@ -547,8 +543,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 				adbCmdLog(request->buf, request->actual, musb_ep->is_in,
 					  "musb_g_tx");
 				/* pr_info("adb: musb_g_tx length = 0x%x, actual = 0x%x, packet_sz = 0x%x\n",
-				  * request->length, request->actual, musb_ep->packet_sz);
-				  */
+				   request->length, request->actual, musb_ep->packet_sz); */
 			}
 #endif
 			musb_g_giveback(musb_ep, request, 0);
@@ -573,8 +568,10 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 			if (!(musb_read_txfifosz(mbase) & MUSB_FIFOSZ_DPB)) {
 				csr = musb_readw(epio, MUSB_TXCSR);
 				if (csr & MUSB_TXCSR_FIFONOTEMPTY) {
-					if ((csr & MUSB_TXCSR_TXPKTRDY) == 0)
-						musb_writew(epio, MUSB_TXCSR, MUSB_TXCSR_TXPKTRDY);
+					if ((csr & MUSB_TXCSR_TXPKTRDY) == 0) {
+						musb_writew(epio, MUSB_TXCSR,	/*MUSB_TXCSR_MODE
+										   | */ MUSB_TXCSR_TXPKTRDY);
+					}
 					return;
 				}
 			}
@@ -594,29 +591,29 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 
 
 /* Peripheral rx (OUT) using Mentor DMA works as follows:
- *	- Only mode 0 is used.
- *
- *	- Request is queued by the gadget class driver.
- *		-> if queue was previously empty, rxstate()
- *
- *	- Host sends OUT token which causes an endpoint interrupt
- *	  /\      -> RxReady
- *	  |	      -> if request queued, call rxstate
- *	  |		/\	-> setup DMA
- *	  |		|	     -> DMA interrupt on completion
- *	  |		|		-> RxReady
- *	  |		|		      -> stop DMA
- *	  |		|		      -> ack the read
- *	  |		|		      -> if data recd = max expected
- *	  |		|				by the request, or host
- *	  |		|				sent a short packet,
- *	  |		|				complete the request,
- *	  |		|				and start the next one.
- *	  |		|_____________________________________|
- *	  |					 else just wait for the host
- *	  |					    to send the next OUT token.
- *	  |__________________________________________________|
- *
+	- Only mode 0 is used.
+
+	- Request is queued by the gadget class driver.
+		-> if queue was previously empty, rxstate()
+
+	- Host sends OUT token which causes an endpoint interrupt
+	  /\      -> RxReady
+	  |	      -> if request queued, call rxstate
+	  |		/\	-> setup DMA
+	  |		|	     -> DMA interrupt on completion
+	  |		|		-> RxReady
+	  |		|		      -> stop DMA
+	  |		|		      -> ack the read
+	  |		|		      -> if data recd = max expected
+	  |		|				by the request, or host
+	  |		|				sent a short packet,
+	  |		|				complete the request,
+	  |		|				and start the next one.
+	  |		|_____________________________________|
+	  |					 else just wait for the host
+	  |					    to send the next OUT token.
+	  |__________________________________________________|
+
  * Non-Mentor DMA engines can of course work differently.
  */
 
@@ -650,7 +647,7 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 	}
 
 	/* We shouldn't get here while DMA is active, but we do... */
-	if (is_buffer_mapped(req) && dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
+	if (dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
 		DBG(0, "DMA pending...\n");
 		return;
 	}
@@ -679,6 +676,8 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 			use_mode_1 = 0;
 
 		if (request->actual < request->length) {
+
+
 #ifdef RX_DMA_MODE1
 			if (is_buffer_mapped(req) && use_mode_1) {
 				struct dma_controller *c;
@@ -834,8 +833,9 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 	}
 
 	/* reach the end or short packet detected */
-	if (request->actual == request->length || fifo_count < musb_ep->packet_sz)
+	if (request->actual == request->length || fifo_count < musb_ep->packet_sz) {
 		musb_g_giveback(musb_ep, request, 0);
+	}
 }
 
 /*
@@ -884,6 +884,9 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 	DBG(1, "<== %s, rxcsr %04x%s %p\n", musb_ep->end_point.name,
 	    csr, dma ? " (dma)" : "", request);
 
+	USB_LOGGER(MUSB_G_RX, MUSB_G_RX, musb_ep->end_point.name, csr,
+		   (dma != NULL) ? "DMA" : "PIO", request);
+
 	if (csr & MUSB_RXCSR_P_SENTSTALL) {
 		csr |= MUSB_RXCSR_P_WZC_BITS;
 		csr &= ~MUSB_RXCSR_P_SENTSTALL;
@@ -909,7 +912,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 	if (csr & MUSB_RXCSR_FIFOFULL)
 		DBG(1, "%s, FIFO full\n", musb_ep->end_point.name);
 
-	if (dma && dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
+	if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
 
 #ifdef RX_DMA_MODE1
 		/* For short_not_ok type transfers and mode0 transfers */
@@ -960,7 +963,8 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 		 */
 #else
 		/* "should not happen"; likely RXPKTRDY pending for DMA */
-
+		DBG((csr & MUSB_RXCSR_DMAENAB) ? 40 : 40,
+		    "%s busy, csr %04x\n", musb_ep->end_point.name, csr);
 #endif
 		return;
 	}
@@ -989,8 +993,9 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 			} else if (request->actual == request->length) {
 				DBG(2, "Transfer over mode1 done\n");
 				musb_g_giveback(musb_ep, request, 0);
-			} else
+			} else {
 				DBG(2, "Transfer length exceeded!!\n");
+			}
 			return;
 		}
 #endif
@@ -1109,6 +1114,7 @@ end:
 }
 
 
+#ifdef CONFIG_MTK_C2K_SUPPORT
 static char *musb_dbuffer_avail_function_list[] = {
 
 	"adb",
@@ -1144,7 +1150,7 @@ static int check_musb_dbuffer_avail(struct musb *musb, struct musb_ep *musb_ep)
 		if (!f)
 			break;
 
-		DBG(1, "<%s, %d>, name: %s\n", __func__, __LINE__, f->name);
+		pr_warn("<%s, %d>, name: %s\n", __func__, __LINE__, f->name);
 
 		switch (gadget->speed) {
 		case USB_SPEED_SUPER:
@@ -1170,7 +1176,7 @@ static int check_musb_dbuffer_avail(struct musb *musb, struct musb_ep *musb_ep)
 			is_in = (ep->bEndpointAddress & 0x80) >> 7;
 			epnum = (ep->bEndpointAddress & 0x0f);
 
-			DBG(1, "<%s, %d>, ep->bEndpointAddress(%x), address(%x)\n",
+			pr_warn("<%s, %d>, ep->bEndpointAddress(%x), address(%x)\n",
 					__func__, __LINE__, ep->bEndpointAddress,
 					(musb_ep->end_point).address);
 
@@ -1182,15 +1188,15 @@ static int check_musb_dbuffer_avail(struct musb *musb, struct musb_ep *musb_ep)
 					if (musb_dbuffer_avail_function_list[i] == NULL)
 						break;
 
-					DBG(1, "<%s, %d>, comparing:%s\n", __func__,
+					pr_warn("<%s, %d>, comparing:%s\n", __func__,
 							__LINE__, musb_dbuffer_avail_function_list[i]);
 					if (!strcmp(f->name, musb_dbuffer_avail_function_list[i])) {
-						DBG(0, "<%s, %d>, got bulk ep:%x in function :%s\n",
+						pr_warn("<%s, %d>, got bulk ep:%x in function :%s\n",
 								__func__, __LINE__, ep->bEndpointAddress,
 								f->name);
 #ifdef TIME_SPENT_CHECK_MUSB_DBUFFER_AVAIL
 						do_gettimeofday(&tv_after);
-						DBG(0, "<%s, %d>, sec:%d, usec:%d\n",
+						pr_warn("<%s, %d>, sec:%d, usec:%d\n",
 								__func__, __LINE__,
 								(tv_after.tv_sec - tv_before.tv_sec),
 								(tv_after.tv_usec - tv_before.tv_usec));
@@ -1200,7 +1206,7 @@ static int check_musb_dbuffer_avail(struct musb *musb, struct musb_ep *musb_ep)
 				}
 #ifdef TIME_SPENT_CHECK_MUSB_DBUFFER_AVAIL
 				do_gettimeofday(&tv_after);
-				DBG(0, "<%s, %d>, sec:%d, usec:%d\n", __func__,
+				pr_warn("<%s, %d>, sec:%d, usec:%d\n", __func__,
 						__LINE__, (tv_after.tv_sec - tv_before.tv_sec),
 						(tv_after.tv_usec - tv_before.tv_usec));
 #endif
@@ -1210,8 +1216,9 @@ static int check_musb_dbuffer_avail(struct musb *musb, struct musb_ep *musb_ep)
 	}
 	return 0;
 
-	DBG(0, "<%s, %d>, should not be here\n", __func__, __LINE__);
+	pr_warn("<%s, %d>, should not be here\n", __func__, __LINE__);
 }
+#endif
 
 static void fifo_setup(struct musb *musb, struct musb_ep *musb_ep)
 {
@@ -1238,9 +1245,12 @@ static void fifo_setup(struct musb *musb, struct musb_ep *musb_ep)
 	if (musb_ep->fifo_mode == MUSB_BUF_DOUBLE
 	    && (musb_ep->type == USB_ENDPOINT_XFER_BULK
 		|| musb_ep->type == USB_ENDPOINT_XFER_ISOC)) {
-
+#ifdef CONFIG_MTK_C2K_SUPPORT
 		if (check_musb_dbuffer_avail(musb, musb_ep))
 			dbuffer_needed = 1;
+#else
+		dbuffer_needed = 1;
+#endif
 	}
 
 	if (dbuffer_needed) {
@@ -1356,7 +1366,7 @@ static int musb_gadget_enable(struct usb_ep *ep, const struct usb_endpoint_descr
 			DBG(0, "packet size beyond hardware FIFO size\n");
 			goto fail;
 		}
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 		musb->intrtxe |= (1 << epnum);
 		musb_writew(mbase, MUSB_INTRTXE, musb->intrtxe);
 #endif
@@ -1396,7 +1406,7 @@ static int musb_gadget_enable(struct usb_ep *ep, const struct usb_endpoint_descr
 			DBG(0, "packet size beyond hardware FIFO size\n");
 			goto fail;
 		}
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 		musb->intrrxe |= (1 << epnum);
 		musb_writew(mbase, MUSB_INTRRXE, musb->intrrxe);
 #endif
@@ -1422,8 +1432,7 @@ static int musb_gadget_enable(struct usb_ep *ep, const struct usb_endpoint_descr
 		/* don't flush fifo when enable, because sometimes usb
 		 * will receive packets before ep enabled. when flush fifo
 		 * here will lost those packets. We will flush fifo during
-		 * disabe ep
-		 */
+		 * disabe ep */
 #if 0
 		csr = MUSB_RXCSR_FLUSHFIFO | MUSB_RXCSR_CLRDATATOG;
 		if (musb_ep->type == USB_ENDPOINT_XFER_ISOC)
@@ -1439,7 +1448,7 @@ static int musb_gadget_enable(struct usb_ep *ep, const struct usb_endpoint_descr
 
 	fifo_setup(musb, musb_ep);
 
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 	/* NOTE:  all the I/O code _should_ work fine without DMA, in case
 	 * for some reason you run out of channels here.
 	 */
@@ -1457,7 +1466,7 @@ static int musb_gadget_enable(struct usb_ep *ep, const struct usb_endpoint_descr
 	musb_ep->wedged = 0;
 	status = 0;
 
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	mtk_qmu_enable(musb, epnum, !(musb_ep->is_in));
 #endif
 
@@ -1499,14 +1508,14 @@ static int musb_gadget_disable(struct usb_ep *ep)
 
 	/* zero the endpoint sizes */
 	if (musb_ep->is_in) {
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 		musb->intrtxe &= ~(1 << epnum);
 		musb_writew(musb->mregs, MUSB_INTRTXE, musb->intrtxe);
 #endif
 		musb_writew(epio, MUSB_TXMAXP, 0);
 	} else {
 		u16 csr;
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 		musb->intrrxe &= ~(1 << epnum);
 		musb_writew(musb->mregs, MUSB_INTRRXE, musb->intrrxe);
 #endif
@@ -1546,8 +1555,10 @@ struct usb_request *musb_alloc_request(struct usb_ep *ep, gfp_t gfp_flags)
 	struct musb_request *request = NULL;
 
 	request = kzalloc(sizeof(*request), gfp_flags);
-	if (!request)
+	if (!request) {
+		DBG(0, "not enough memory\n");
 		return NULL;
+	}
 
 	request->request.dma = DMA_ADDR_INVALID;
 	request->epnum = musb_ep->current_epnum;
@@ -1579,13 +1590,19 @@ struct free_record {
  */
 void musb_ep_restart(struct musb *musb, struct musb_request *req)
 {
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	/* limit debug mechanism to avoid printk too much */
-	DBG_LIMIT(10, "<== %s request %p len %u on hw_ep%d",
+	static DEFINE_RATELIMIT_STATE(ratelimit, 1 * HZ, 10);
+
+	if (!(__ratelimit(&ratelimit)))
+		return;
+
+	QMU_INFO("<== %s request %p len %u on hw_ep%d\n",
 	    req->tx ? "TX/IN" : "RX/OUT", &req->request, req->request.length, req->epnum);
 #else
 	DBG(2, "<== %s request %p len %u on hw_ep%d\n",
 	    req->tx ? "TX/IN" : "RX/OUT", &req->request, req->request.length, req->epnum);
+
 	musb_ep_select(musb->mregs, req->epnum);
 	if (req->tx)
 		txstate(musb, req);
@@ -1632,32 +1649,27 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req, gfp_t g
 	if (!musb_ep->desc) {
 		DBG(2, "req %p queued to %s while ep %s\n", req, ep->name, "disabled");
 		status = -ESHUTDOWN;
-		unmap_dma_buffer(request, musb);
-		goto unlock;
+		goto cleanup;
 	}
 
 	/* add request to the list */
 	list_add_tail(&request->list, &musb_ep->req_list);
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	if (request->request.dma != DMA_ADDR_INVALID) {
 		/* TX case */
 		if (request->tx) {
 			/* TX QMU don't have info for length sent, set this field in advance */
 			request->request.actual = request->request.length;
-#ifdef CONFIG_MTK_MUSB_QMU_PURE_ZLP_SUPPORT
-			if (request->request.length >= 0) {
-#else
 			/* only enqueue for length > 0 packet. Don't send ZLP here for MSC protocol. */
 			if (request->request.length > 0) {
-#endif
+
 				musb_kick_D_CmdQ(musb, request);
 
-#ifndef CONFIG_MTK_MUSB_QMU_PURE_ZLP_SUPPORT
 			} else if (request->request.length == 0) {	/* for UMS special case */
 				int cnt = 50; /* 50*200us, total 10 ms */
 				int is_timeout = 1;
 
-				QMU_WARN("TX ZLP sent case\n");
+				QMU_INFO("TX ZLP sent case\n");
 
 				/* wait QMU tx done, should be enough in UMS case due to protocol */
 				while (cnt--) {
@@ -1674,10 +1686,10 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req, gfp_t g
 
 				} else {
 					/* let qmu_done_tx to handle this */
-					QMU_WARN("TX ZLP sent in qmu_done_tx\n");
-					goto unlock;
+					QMU_INFO("TX ZLP sent in qmu_done_tx\n");
+					goto cleanup;
 				}
-#endif
+
 			} else {
 				QMU_ERR("ERR, TX, request->request.length(%d)\n",
 					request->request.length);
@@ -1686,7 +1698,9 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req, gfp_t g
 			musb_kick_D_CmdQ(musb, request);
 		}
 	}
+	goto cleanup;
 #else
+
 #ifdef RX_DMA_MODE1
 	/* it this is the head of the queue, start i/o ... */
 	if (!musb_ep->busy && &request->list == musb_ep->req_list.next) {
@@ -1712,7 +1726,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req, gfp_t g
 #endif
 #endif
 
-unlock:
+cleanup:
 	spin_unlock_irqrestore(&musb->lock, lockflags);
 	return status;
 }
@@ -1744,7 +1758,7 @@ static int musb_gadget_dequeue(struct usb_ep *ep, struct usb_request *request)
 	/* if the hardware doesn't have the request, easy ... */
 	if (musb_ep->req_list.next != &req->list || musb_ep->busy)
 		musb_g_giveback(musb_ep, request, -ECONNRESET);
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 	else {
 		QMU_DBG("dequeue req(%p), ep(%d), swep(%d)\n", request, musb_ep->hw_ep->epnum,
 			 ep->address);
@@ -1801,7 +1815,7 @@ static int musb_gadget_set_halt(struct usb_ep *ep, int value)
 
 	spin_lock_irqsave(&musb->lock, flags);
 
-	if (musb_ep->type == USB_ENDPOINT_XFER_ISOC) {
+	if (USB_ENDPOINT_XFER_ISOC == musb_ep->type) {
 		status = -EINVAL;
 		goto done;
 	}
@@ -1912,14 +1926,14 @@ static void musb_gadget_fifo_flush(struct usb_ep *ep)
 	spin_lock_irqsave(&musb->lock, flags);
 	musb_ep_select(mbase, (u8) epnum);
 
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 	/* disable interrupts */
 	musb_writew(mbase, MUSB_INTRTXE, musb->intrtxe & ~(1 << epnum));
 #endif
 
 	if (musb_ep->is_in) {
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-		QMU_WARN("fifo flush(%d), sw(%d)\n", epnum, ep->address);
+#ifdef MUSB_QMU_SUPPORT
+		QMU_INFO("fifo flush(%d), sw(%d)\n", epnum, ep->address);
 		musb_flush_qmu(epnum, TXQ);
 		musb_restart_qmu(musb, epnum, TXQ);
 #endif
@@ -1937,7 +1951,7 @@ static void musb_gadget_fifo_flush(struct usb_ep *ep)
 			musb_writew(epio, MUSB_TXCSR, csr);
 		}
 	} else {
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifdef MUSB_QMU_SUPPORT
 		QMU_WARN("fifo flush(%d), sw(%d)\n", epnum, ep->address);
 		musb_flush_qmu(epnum, RXQ);
 		musb_restart_qmu(musb, epnum, RXQ);
@@ -1948,83 +1962,12 @@ static void musb_gadget_fifo_flush(struct usb_ep *ep)
 		musb_writew(epio, MUSB_RXCSR, csr);
 	}
 
-#ifndef CONFIG_MTK_MUSB_QMU_SUPPORT
+#ifndef MUSB_QMU_SUPPORT
 	/* re-enable interrupt */
 	musb_writew(mbase, MUSB_INTRTXE, musb->intrtxe);
 #endif
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
-
-#if defined(CONFIG_MTK_MD_DIRECT_TETHERING_SUPPORT)
-static void musb_gadget_suspend_control(struct usb_ep *ep)
-{
-	struct musb_ep	*musb_ep = to_musb_ep(ep);
-	struct musb	*musb = musb_ep->musb;
-	u8		epnum = musb_ep->current_epnum;
-	unsigned long	flags;
-
-	DBG(2, "musb_gadget_suspend_control : %s...", ep->name);
-
-	spin_lock_irqsave(&musb->lock, flags);
-
-	nuke(musb_ep, -ECONNRESET);
-
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-	if (musb_ep->is_in) { /* TX */
-		musb_writeb(musb->mregs, MUSB_QIMSR, musb_readb(musb->mregs, MUSB_QIMSR) | ((1<<0)<<(epnum)));
-	} else {
-		musb_writeb(musb->mregs, MUSB_QIMSR, musb_readb(musb->mregs, MUSB_QIMSR) | ((1<<8)<<(epnum)));
-	}
-#endif
-
-
-	spin_unlock_irqrestore(&musb->lock, flags);
-}
-
-static void musb_gadget_resume_control(struct usb_ep *ep)
-{
-	struct musb_ep	*musb_ep = to_musb_ep(ep);
-	struct musb	*musb = musb_ep->musb;
-	u8		epnum = musb_ep->current_epnum;
-	unsigned long	flags;
-
-	int timeout_count = 100; /* 50ms*100 */
-	u32 int_md = musb_readb(musb->mregs, MUSB_USB_MDL1INTM);
-
-	DBG(2, "%s : %s...", __func__, ep->name);
-
-	/* check if MD finish deactivate follow */
-
-	while (int_md && (timeout_count != 0)) {
-		mdelay(50);
-		int_md = musb_readb(musb->mregs, MUSB_USB_MDL1INTM);
-		DBG(2, "%s : int_md: %d\n", __func__, int_md);
-		timeout_count--;
-	}
-
-	DBG(2, "musb_gadget_resume_control : timeout_count: %d\n", timeout_count);
-
-	if (int_md)
-		DBG(2, "ep resume timeout, U3D_LV1IER_MD:%x\n", int_md);
-
-	spin_lock_irqsave(&musb->lock, flags);
-
-	nuke(musb_ep, -ECONNRESET);
-
-#ifdef CONFIG_MTK_MUSB_QMU_SUPPORT
-	if (musb_ep->is_in) { /* TX */
-		musb_writeb(musb->mregs, MUSB_USBGCSR, musb_readb(musb->mregs, MUSB_USBGCSR) | ((1<<0)<<(epnum)));
-		musb_writeb(musb->mregs, MUSB_QIMCR, musb_readb(musb->mregs, MUSB_QIMCR) | ((1<<0)<<(epnum)));
-		musb_restart_qmu(musb, epnum, 0);
-	} else {
-		musb_writeb(musb->mregs, MUSB_USBGCSR, musb_readb(musb->mregs, MUSB_USBGCSR) | ((16<<0)<<(epnum)));
-		musb_writeb(musb->mregs, MUSB_QIMCR, musb_readb(musb->mregs, MUSB_QIMCR) | ((8<<0)<<(epnum)));
-		musb_restart_qmu(musb, epnum, 1);
-	}
-#endif
-	spin_unlock_irqrestore(&musb->lock, flags);
-}
-#endif
 
 static const struct usb_ep_ops musb_ep_ops = {
 	.enable = musb_gadget_enable,
@@ -2036,11 +1979,7 @@ static const struct usb_ep_ops musb_ep_ops = {
 	.set_halt = musb_gadget_set_halt,
 	.set_wedge = musb_gadget_set_wedge,
 	.fifo_status = musb_gadget_fifo_status,
-	.fifo_flush = musb_gadget_fifo_flush,
-#if defined(CONFIG_MTK_MD_DIRECT_TETHERING_SUPPORT) || defined(CONFIG_MTK_MD_DIRECT_LOGGING_SUPPORT)
-	.suspend_control = musb_gadget_suspend_control,
-	.resume_control	= musb_gadget_resume_control,
-#endif
+	.fifo_flush = musb_gadget_fifo_flush
 };
 
 /* ----------------------------------------------------------------------- */
@@ -2135,8 +2074,7 @@ static int musb_gadget_set_self_powered(struct usb_gadget *gadget, int is_selfpo
 static void musb_pullup(struct musb *musb, int is_on, bool usb_in)
 {
 	u8 power;
-
-	DBG(0, "MUSB: gadget pull up %d start, musb->power:%d\n", is_on, musb->power);
+	DBG(0, "MUSB: gadget pull up %d start\n", is_on);
 	if (musb->power) {
 		power = musb_readb(musb->mregs, MUSB_POWER);
 		if (is_on)
@@ -2144,6 +2082,17 @@ static void musb_pullup(struct musb *musb, int is_on, bool usb_in)
 		else
 			power &= ~MUSB_POWER_SOFTCONN;
 		musb_writeb(musb->mregs, MUSB_POWER, power);
+	} else {
+		if (!usb_in && is_on)
+			DBG(0, "no USB cable, don't need to turn on USB\n");
+		else if (musb->is_host)
+			DBG(0, "USB is host, don't need to control USB\n");
+		else if (musb->in_ipo_off)
+			DBG(0, "USB is charging mdoe, don't need to control USB\n");
+		else if (is_on)
+			musb_start(musb);
+		else
+			musb_stop(musb);
 	}
 	DBG(0, "MUSB: gadget pull up %d end\n", is_on);
 }
@@ -2171,71 +2120,60 @@ static int musb_gadget_vbus_draw(struct usb_gadget *gadget, unsigned mA)
 	return usb_phy_set_power(musb->xceiv, mA);
 }
 
-/* default value 0 */
-static int usb_rdy;
-void set_usb_rdy(void)
-{
-	DBG(0, "set usb_rdy, wake up bat\n");
-	usb_rdy = 1;
-#ifdef CONFIG_MTK_SMART_BATTERY
-	wake_up_bat();
-#endif
-}
-bool is_usb_rdy(void)
-{
-	if (usb_rdy)
-		return true;
-	else
-		return false;
-}
-static void do_connect_rescue_work(struct work_struct *work)
-{
-	DBG(0, "do_connect_rescue_work, issue connection work\n");
-	mt_usb_connect();
-}
-
-ktime_t ktime_ready;
+int first_connect = 1;
+int check_delay_done = 1;
+static unsigned long target_jffy;
+#define ENUM_GAP_DELAY 50
+#define ENUM_GAP_SEC 2
 static int musb_gadget_pullup(struct usb_gadget *gadget, int is_on)
 {
 	struct musb *musb = gadget_to_musb(gadget);
-	unsigned long        flags;
-	bool usb_in = false;
+	/* unsigned long        flags; */
+	bool usb_in;
 
 	DBG(0, "is_on=%d, softconnect=%d ++\n", is_on, musb->softconnect);
 
 	is_on = !!is_on;
+
+	/* delay peform at most once to avoid pmic cocurrency with init */
+	if (!check_delay_done && musb->is_ready && !first_connect) {
+		/* perform delay*/
+		DBG(0, "check perform delay needed\n");
+		while (time_before_eq(jiffies, target_jffy)) {
+			DBG(0, "sleep %d ms\n", ENUM_GAP_DELAY);
+			msleep(ENUM_GAP_DELAY);
+			if (first_connect) {
+				DBG(0, "got first_conn in loop\n");
+				break;
+			}
+		}
+		DBG(0, "delay done, check_delay_done to 1\n");
+		check_delay_done = 1;
+	}
+
+
+	/* only set once when user space function is ready */
+	if (is_on && !musb->is_ready) {
+		musb->is_ready = true;
+		target_jffy = jiffies + ENUM_GAP_SEC*HZ;
+	}
+
 	pm_runtime_get_sync(musb->controller);
 
+	/* NOTE: pmic would enable irq internally */
+	usb_in = usb_cable_connected();
 
 	/* NOTE: this assumes we are sensing vbus; we'd rather
 	 * not pullup unless the B-session is active.
 	 */
 
-	spin_lock_irqsave(&musb->lock, flags);
-
-	/* MTK additional */
-	DBG(0, "is_on=%d, softconnect=%d ++\n", is_on, musb->softconnect);
-	if (is_on) {
-		int delay_time;
-		static struct delayed_work connect_rescue_work;
-
-		ktime_ready = ktime_get();
-		musb->is_ready = true;
-		set_usb_rdy();
-
-		delay_time = 0;
-
-		INIT_DELAYED_WORK(&connect_rescue_work, do_connect_rescue_work);
-		DBG(0, "issue connect_rescue_work on is_ready begin, delay_time:%d ms\n", delay_time);
-		schedule_delayed_work(&connect_rescue_work, msecs_to_jiffies(delay_time));
-		DBG(0, "issue connect_rescue_work on is_ready end, delay_time:%d ms\n", delay_time);
-	}
-
+	/* Remove spin_lock to prevent dead lock */
+	/* spin_lock_irqsave(&musb->lock, flags); */
 	if (is_on != musb->softconnect) {
 		musb->softconnect = is_on;
 		musb_pullup(musb, is_on, usb_in);
 	}
-	spin_unlock_irqrestore(&musb->lock, flags);
+	/* spin_unlock_irqrestore(&musb->lock, flags); */
 
 	pm_runtime_put(musb->controller);
 
@@ -2264,11 +2202,20 @@ static const struct usb_gadget_ops musb_gadget_operations = {
  * about there being only one external upstream port.  It assumes
  * all peripheral ports are external...
  */
+
+/* #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0) */
+#if 0
+static void musb_gadget_release(struct device *dev)
+{
+	/* kref_put(WHAT) */
+}
+#endif
+
 static void init_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum, int is_in)
 {
 	struct musb_hw_ep *hw_ep = musb->endpoints + epnum;
 
-	/* memset(ep, 0, sizeof *ep); */
+	memset(ep, 0, sizeof *ep);
 
 	ep->current_epnum = epnum;
 	ep->musb = musb;
@@ -2280,30 +2227,26 @@ static void init_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum, 
 	sprintf(ep->name, "ep%d%s", epnum,
 		(!epnum || hw_ep->is_shared_fifo) ? "" : (is_in ? "in" : "out"));
 
+
+	DBG(0, "EP %d name is %s\n", epnum, ep->name);
 	ep->end_point.name = ep->name;
 	INIT_LIST_HEAD(&ep->end_point.ep_list);
 	if (!epnum) {
-		ep->end_point.maxpacket = 64;
-		ep->end_point.maxpacket_limit = 64;
+		usb_ep_set_maxpacket_limit(&ep->end_point, 64);
 		ep->end_point.caps.type_control = true;
 		ep->end_point.ops = &musb_g_ep0_ops;
 		musb->g.ep0 = &ep->end_point;
 	} else {
-		if (is_in) {
-			ep->end_point.maxpacket = hw_ep->max_packet_sz_tx;
-			ep->end_point.maxpacket_limit = hw_ep->max_packet_sz_tx;
-		} else {
-			ep->end_point.maxpacket = hw_ep->max_packet_sz_rx;
-			ep->end_point.maxpacket_limit = hw_ep->max_packet_sz_rx;
-		}
-
+		if (is_in)
+			usb_ep_set_maxpacket_limit(&ep->end_point, hw_ep->max_packet_sz_tx);
+		else
+			usb_ep_set_maxpacket_limit(&ep->end_point, hw_ep->max_packet_sz_rx);
 		ep->end_point.caps.type_iso = true;
 		ep->end_point.caps.type_bulk = true;
 		ep->end_point.caps.type_int = true;
 		ep->end_point.ops = &musb_ep_ops;
 		list_add_tail(&ep->end_point.ep_list, &musb->g.ep_list);
 	}
-
 	if (!epnum || hw_ep->is_shared_fifo) {
 		ep->end_point.caps.dir_in = true;
 		ep->end_point.caps.dir_out = true;
@@ -2360,20 +2303,27 @@ int musb_gadget_setup(struct musb *musb)
 	musb->g.speed = USB_SPEED_UNKNOWN;
 
 	/* this "gadget" abstracts/virtualizes the controller */
+/* #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0) */
+#if 0
+	dev_set_name(&musb->g.dev, "gadget");
+	musb->g.dev.parent = musb->controller;
+	musb->g.dev.dma_mask = musb->controller->dma_mask;
+	musb->g.dev.release = musb_gadget_release;
+#endif
 	musb->g.name = musb_driver_name;
+
 	musb->g.is_otg = 1;
 
 	musb_g_init_endpoints(musb);
 
 	musb->is_active = 0;
 	musb_platform_try_idle(musb, 0);
-
-#ifdef CONFIG_OF
-	/*gadget device dma ops is null,so add musb controller dma ops*/
-	/* to gadget device dma ops, otherwise will go do dma dump ops.*/
-	if (musb->controller->archdata.dma_ops) {
-		DBG(0, "musb controller dma ops is non-null\n");
-		musb->g.dev.archdata.dma_ops = musb->controller->archdata.dma_ops;
+/* #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0) */
+#if 0
+	status = device_register(&musb->g.dev);
+	if (status != 0) {
+		put_device(&musb->g.dev);
+		return status;
 	}
 #endif
 	status = usb_add_gadget_udc(musb->controller, &musb->g);
@@ -2390,6 +2340,11 @@ err:
 void musb_gadget_cleanup(struct musb *musb)
 {
 	usb_del_gadget_udc(&musb->g);
+/* #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0) */
+#if 0
+	if (musb->g.dev.parent)
+		device_unregister(&musb->g.dev);
+#endif
 }
 
 /*
@@ -2426,8 +2381,7 @@ static int musb_gadget_start(struct usb_gadget *g, struct usb_gadget_driver *dri
 	musb->gadget_driver = driver;
 
 	spin_lock_irqsave(&musb->lock, flags);
-	/* MTK hack, leave this to connection work */
-	musb->is_active = 0;
+	musb->is_active = 1;
 
 	otg_set_peripheral(otg, &musb->g);
 	musb->xceiv->otg->state = OTG_STATE_B_IDLE;
@@ -2619,7 +2573,7 @@ int polling_vbus_value(void *data)
 		vbus_value = battery_meter_get_charger_voltage();
 #endif
 		DBG(0, "musb::Vbus (%d)\n", vbus_value);
-		DBG(0, "OTG_State: (%s)\n", otg_state_string(mtk_musb->xceiv->state));
+		DBG(0, "OTG_State: (%s)\n", otg_state_string(mtk_musb->xceiv->otg->state));
 
 		switch (mtk_musb->xceiv->otg->state) {
 		case OTG_STATE_B_IDLE:
@@ -2670,17 +2624,8 @@ int polling_vbus_value(void *data)
 			}
 			DBG(0, "%s: Vbus (%d)\n", __func__, vbus_value);
 
-			{
-				u32 val = 0;
-
-				val = USBPHY_READ32(0x6c);
-				val = (val & ~(0xff<<0)) | (0x13<<0);
-				USBPHY_WRITE32(0x6c, val);
-
-				val = USBPHY_READ32(0x6c);
-				val = (val & ~(0xff<<8)) | (0x3f<<8);
-				USBPHY_WRITE32(0x6c, val);
-			}
+			USBPHY_WRITE8(0x6c, 0x13);
+			USBPHY_WRITE8(0x6d, 0x3f);
 
 			/* Set Vbus Pulsing Length */
 			musb_writeb(mtk_musb->mregs, 0x7B, 1);
@@ -2718,12 +2663,7 @@ int polling_vbus_value(void *data)
 			DBG(0, "musb::Vbus (%d)\n", vbus_value);
 
 			if (!timeout_flag) {
-				u32 val = 0;
-
-				val = USBPHY_READ32(0x6c);
-				val = (val & ~(0xff<<0)) | (0x2f<<0);
-				USBPHY_WRITE32(0x6c, val);
-
+				USBPHY_WRITE8(0x6c, 0x2f);
 
 				power = musb_readb(mtk_musb->mregs, MUSB_POWER);
 				DBG(0, "Setting SOFT CONNECT: power: %02x\n", power);

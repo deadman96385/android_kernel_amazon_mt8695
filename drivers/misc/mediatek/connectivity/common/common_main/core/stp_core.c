@@ -2640,11 +2640,11 @@ INT32 mtk_wcn_stp_send_data(const PUINT8 buffer, const UINT32 length, const UINT
 	if (!stp_psm_is_to_block_traffic(STP_PSM_CORE(stp_core_ctx))) {
 		if (stp_psm_has_pending_data(STP_PSM_CORE(stp_core_ctx))) {
 			STP_WARN_FUNC("***** Release psm hold data before send normal data *****\n");
-			stp_psm_release_data(STP_PSM_CORE(stp_core_ctx));
+					stp_psm_release_data(STP_PSM_CORE(stp_core_ctx));
 		}
 	} else {
 		ret = stp_psm_hold_data(STP_PSM_CORE(stp_core_ctx), buffer, length, type);
-		stp_psm_notify_wmt_wakeup(STP_PSM_CORE(stp_core_ctx));
+				stp_psm_notify_wmt_wakeup(STP_PSM_CORE(stp_core_ctx));
 		/*-----------------------------STP_PSM_UnLock-----------------------------------*/
 		stp_psm_thread_lock_release(STP_PSM_CORE(stp_core_ctx));
 		return ret;
@@ -2823,12 +2823,8 @@ INT32 mtk_wcn_stp_send_data_raw(const PUINT8 buffer, const UINT32 length, const 
 		return length;
 	}
 
-	if (length >= 6)
-		STP_DBG_FUNC("mtk_wcn_stp_send_data_raw, type = %d data = %x %x %x %x %x %x ", type,
-				buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
-	else if (length > 0)
-		STP_DBG_FUNC("mtk_wcn_stp_send_data_raw, type = %d data = %x", type, buffer[0]);
-
+	STP_DBG_FUNC("mtk_wcn_stp_send_data_raw, type = %d, data = %x %x %x %x %x %x ", type,
+		     buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 	/* remember tx type, forward following rx to this type */
 	STP_SET_PENDING_TYPE(stp_core_ctx, type);
 
@@ -3511,6 +3507,7 @@ INT32 mtk_wcn_stp_wmt_evt_err_trg_assert(VOID)
 
 	return ret;
 }
+
 
 INT32 mtk_wcn_stp_coredump_timeout_handle(VOID)
 {

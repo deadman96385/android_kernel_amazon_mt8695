@@ -248,7 +248,7 @@ INT32 osal_dbg_assert_aee(const PINT8 module, const PINT8 detail_description)
 {
 	osal_err_print("[WMT-ASSERT] [E][Module]:%s, [INFO]%s\n", module, detail_description);
 
-#ifdef WMT_PLAT_ALPS
+#ifdef CONFIG_MTK_AEE_FEATURE
 	/* aee_kernel_warning(module,detail_description); */
 	aee_kernel_warning_api(__FILE__, __LINE__, DB_OPT_WCN_ISSUE_INFO, module, detail_description);
 #endif
@@ -285,7 +285,6 @@ PVOID osal_memset(PVOID buf, INT32 i, UINT32 len)
 PVOID osal_memcpy(PVOID dst, const PVOID src, UINT32 len)
 {
 	return memcpy(dst, src, len);
-
 }
 
 VOID osal_memcpy_fromio(PVOID dst, const PVOID src, UINT32 len)
@@ -1174,7 +1173,6 @@ INT32 osal_usleep_range(ULONG min, ULONG max)
 	usleep_range(min, max);
 	return 0;
 }
-
 INT32 osal_gettimeofday(PINT32 sec, PINT32 usec)
 {
 	INT32 ret = 0;

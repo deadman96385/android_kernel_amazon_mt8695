@@ -1147,6 +1147,27 @@ static int vivid_create_instance(struct platform_device *pdev, int inst)
 		vfd->lock = &dev->mutex;
 		video_set_drvdata(vfd, dev);
 
+#ifdef CONFIG_VIDEO_VIVID_CEC
+		if (in_type_counter[HDMI]) {
+			struct cec_adapter *adap;
+
+			adap = vivid_cec_alloc_adap(dev, 0, false);
+			ret = PTR_ERR_OR_ZERO(adap);
+			if (ret < 0)
+				goto unreg_dev;
+			dev->cec_rx_adap = adap;
+			ret = cec_register_adapter(adap, &pdev->dev);
+			if (ret < 0) {
+				cec_delete_adapter(adap);
+				dev->cec_rx_adap = NULL;
+				goto unreg_dev;
+			}
+			cec_s_phys_addr(adap, 0, false);
+			v4l2_info(&dev->v4l2_dev, "CEC adapter %s registered for HDMI input %d\n",
+				  dev_name(&adap->devnode.dev), i);
+		}
+#endif
+
 		ret = video_register_device(vfd, VFL_TYPE_GRABBER, vid_cap_nr[inst]);
 		if (ret < 0)
 			goto unreg_dev;
@@ -1171,6 +1192,34 @@ static int vivid_create_instance(struct platform_device *pdev, int inst)
 		 */
 		vfd->lock = &dev->mutex;
 		video_set_drvdata(vfd, dev);
+
+#ifdef CONFIG_VIDEO_VIVID_CEC
+		for (i = 0; i < dev->num_outputs; i++) {
+			struct cec_adapter *adap;
+
+			if (dev->output_type[i] != HDMI)
+				continue;
+			dev->cec_output2bus_map[i] = bus_cnt;
+			adap = vivid_cec_alloc_adap(dev, bus_cnt, true);
+			ret = PTR_ERR_OR_ZERO(adap);
+			if (ret < 0)
+				goto unreg_dev;
+			dev->cec_tx_adap[bus_cnt] = adap;
+			ret = cec_register_adapter(adap, &pdev->dev);
+			if (ret < 0) {
+				cec_delete_adapter(adap);
+				dev->cec_tx_adap[bus_cnt] = NULL;
+				goto unreg_dev;
+			}
+			bus_cnt++;
+			if (bus_cnt <= out_type_counter[HDMI])
+				cec_s_phys_addr(adap, bus_cnt << 12, false);
+			else
+				cec_s_phys_addr(adap, 0x1000, false);
+			v4l2_info(&dev->v4l2_dev, "CEC adapter %s registered for HDMI output %d\n",
+				  dev_name(&adap->devnode.dev), i);
+		}
+#endif
 
 		ret = video_register_device(vfd, VFL_TYPE_GRABBER, vid_out_nr[inst]);
 		if (ret < 0)

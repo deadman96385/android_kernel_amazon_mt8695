@@ -15,7 +15,6 @@
 #define __MTK_BOOT_H__
 #include "mtk_boot_common.h"
 #include "mtk_boot_reason.h"
-#include "mtk_chip.h"
 
 /*META COM port type*/
 enum meta_com_type {

@@ -24,6 +24,7 @@
 int do_wlan_drv_init(int chip_id)
 {
 	int i_ret = 0;
+
 	int ret = 0;
 
 	WMT_DETECT_INFO_FUNC("start to do wlan module init 0x%x\n", chip_id);
@@ -47,7 +48,6 @@ int do_wlan_drv_init(int chip_id)
 
 	case 0x6630:
 	case 0x6797:
-	case 0x6758:
 	case 0x6759:
 #ifdef MTK_WCN_WLAN_GEN3
 		/* WLAN driver init */
@@ -72,7 +72,6 @@ int do_wlan_drv_init(int chip_id)
 	}
 
 	i_ret += ret;
-
 	WMT_DETECT_INFO_FUNC("finish wlan module init\n");
 
 	return i_ret;

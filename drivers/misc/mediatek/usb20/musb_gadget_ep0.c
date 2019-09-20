@@ -15,6 +15,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
  * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
@@ -321,7 +326,10 @@ __acquires(musb->lock)
 				request = next_request(musb_ep);
 				if (!musb_ep->busy && request) {
 					/* limit debug mechanism to avoid printk too much */
-					DBG_LIMIT(10, "restarting the request");
+					static DEFINE_RATELIMIT_STATE(ratelimit, 1 * HZ, 10);
+
+					if ((__ratelimit(&ratelimit)))
+						DBG(0, "restarting the request\n");
 					musb_ep_restart(musb, request);
 				} else if (!is_in) { /* Modification for ALPS00451478 */
 					csr  = musb_readw(regs, MUSB_RXCSR);
@@ -426,11 +434,6 @@ __acquires(musb->lock)
 					default:
 						goto stall;
 					}
-
-					if (musb->usb_rev6_setting &&
-						(musb->test_mode_nr == MUSB_TEST_K ||
-						musb->test_mode_nr == MUSB_TEST_J))
-						musb->usb_rev6_setting(0x0);
 
 					/* enter test mode after irq */
 #if defined(CONFIG_USBIF_COMPLIANCE)
@@ -672,6 +675,10 @@ musb_read_setup(struct musb *musb, struct usb_ctrlrequest *req)
 		le16_to_cpu(req->wIndex),
 		le16_to_cpu(req->wLength));
 
+	USB_LOGGER(MUSB_READ_SETUP, MUSB_READ_SETUP, req->bRequestType,
+		req->bRequest, le16_to_cpu(req->wValue), le16_to_cpu(req->wIndex),
+		le16_to_cpu(req->wLength));
+
 	/* clean up any leftover transfers */
 	r = next_ep0_request(musb);
 	if (r)
@@ -718,6 +725,9 @@ __acquires(musb->lock)
 		return -EOPNOTSUPP;
 	spin_unlock(&musb->lock);
 
+	USB_LOGGER(FORWARD_TO_DRIVER,	FORWARD_TO_DRIVER,
+		musb->gadget_driver->driver.name);
+
 	retval = musb->gadget_driver->setup(&musb->g, ctrlrequest);
 
 	if (ctrlrequest->bRequest == USB_REQ_SET_CONFIGURATION) {
@@ -752,6 +762,9 @@ irqreturn_t musb_g_ep0_irq(struct musb *musb)
 
 	DBG(2, "csr %04x, count %d, ep0stage %s\n",
 			csr, len, decode_ep0stage(musb->ep0_state));
+
+	USB_LOGGER(MUSB_G_EP0_IRQ, MUSB_G_EP0_IRQ, csr, len,
+		musb_readb(mbase, MUSB_FADDR), decode_ep0stage(musb->ep0_state));
 
 	if (csr & MUSB_CSR0_P_DATAEND) {
 		/*
@@ -833,7 +846,7 @@ irqreturn_t musb_g_ep0_irq(struct musb *musb)
 		else if (musb->test_mode) {
 			DBG(0, "entering TESTMODE\n");
 			musb_sync_with_bat(musb, USB_SUSPEND);
-			if (musb->test_mode_nr == MUSB_TEST_PACKET)
+			if (MUSB_TEST_PACKET == musb->test_mode_nr)
 				musb_load_testpacket(musb);
 
 			musb_writeb(mbase, MUSB_TESTMODE,
@@ -865,7 +878,7 @@ irqreturn_t musb_g_ep0_irq(struct musb *musb)
 			goto setup;
 
 		if (unlikely(setup_end_err))
-			ERR("SetupEnd, ep0 idle\n");
+				ERR("SetupEnd, ep0 idle\n");
 
 		retval = IRQ_HANDLED;
 		musb->ep0_state = MUSB_EP0_STAGE_IDLE;

@@ -400,6 +400,15 @@ static void pstore_console_write(struct console *con, const char *s, unsigned c)
 	}
 }
 
+void pstore_bconsole_write(struct console *con, const char *s, unsigned c)
+{
+	u64 id;
+	bool compressed = false;
+
+	if (psinfo)
+		psinfo->write_buf(PSTORE_TYPE_CONSOLE, 1, &id, 0, s, compressed, c, psinfo);
+}
+
 static struct console pstore_console = {
 	.name	= "pstore",
 	.write	= pstore_console_write,

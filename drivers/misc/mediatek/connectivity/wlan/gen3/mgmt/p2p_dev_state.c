@@ -1,3 +1,17 @@
+/*
+* Copyright (C) 2016 MediaTek Inc.
+*
+* This program is free software: you can redistribute it and/or modify it under the terms of the
+* GNU General Public License version 2 as published by the Free Software Foundation.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+* See the GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License along with this program.
+* If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "precomp.h"
 
 BOOLEAN
@@ -12,10 +26,12 @@ p2pDevStateInit_IDLE(IN P_ADAPTER_T prAdapter,
 		if (!LINK_IS_EMPTY(&(prChnlReqInfo->rP2pChnlReqLink))) {
 			fgIsTransition = TRUE;
 			*peNextState = P2P_DEV_STATE_REQING_CHANNEL;
+			DBGLOG(P2P, INFO, "try to get the next chann\n");
 			break;
 		}
 
 		/* Stay in IDLE state. */
+		DBGLOG(P2P, INFO, "prepare to enter sleep in idle\n");
 		UNSET_NET_ACTIVE(prAdapter, P2P_DEV_BSS_INDEX);
 		nicDeactivateNetwork(prAdapter, P2P_DEV_BSS_INDEX);
 	} while (FALSE);
@@ -26,7 +42,6 @@ p2pDevStateInit_IDLE(IN P_ADAPTER_T prAdapter,
 VOID p2pDevStateAbort_IDLE(IN P_ADAPTER_T prAdapter)
 {
 	/* Currently Aobrt IDLE do nothing. */
-	return;
 }				/* p2pDevStateAbort_IDLE */
 
 BOOLEAN
@@ -97,7 +112,6 @@ p2pDevStateAbort_REQING_CHANNEL(IN P_ADAPTER_T prAdapter,
 		}
 	} while (FALSE);
 
-	return;
 }				/* p2pDevStateAbort_REQING_CHANNEL */
 
 VOID
@@ -118,21 +132,30 @@ p2pDevStateInit_CHNL_ON_HAND(IN P_ADAPTER_T prAdapter,
 		prP2pBssInfo->eBand = prChnlReqInfo->eBand;
 		prP2pBssInfo->eBssSCO = prChnlReqInfo->eChnlSco;
 
-		cnmTimerStartTimer(prAdapter, &(prP2pDevFsmInfo->rP2pFsmTimeoutTimer), prChnlReqInfo->u4MaxInterval);
+		DBGLOG(P2P, INFO, "Start channel on hand timer, Cookie: 0x%llx, Interval: %d, elistenExtend: %d\n",
+			prChnlReqInfo->u8Cookie, prChnlReqInfo->u4MaxInterval, prP2pDevFsmInfo->eListenExted);
+
+		if (prP2pDevFsmInfo->eListenExted != P2P_DEV_EXT_LISTEN_ING) {
+			cnmTimerStartTimer(prAdapter, &(prP2pDevFsmInfo->rP2pFsmTimeoutTimer),
+				prChnlReqInfo->u4MaxInterval);
 
 		kalP2PIndicateChannelReady(prAdapter->prGlueInfo,
 					   prChnlReqInfo->u8Cookie,
 					   prChnlReqInfo->ucReqChnlNum,
 					   prChnlReqInfo->eBand, prChnlReqInfo->eChnlSco, prChnlReqInfo->u4MaxInterval);
+		} else
+			cnmTimerStartTimer(prAdapter, &(prP2pDevFsmInfo->rP2pFsmTimeoutTimer),
+				(P2P_EXT_LISTEN_TIME_MS - prChnlReqInfo->u4MaxInterval));
 	} while (FALSE);
 
-	return;
 }				/* p2pDevStateInit_CHNL_ON_HAND */
 
 VOID
 p2pDevStateAbort_CHNL_ON_HAND(IN P_ADAPTER_T prAdapter,
 			      IN P_BSS_INFO_T prP2pBssInfo,
-			      IN P_P2P_DEV_FSM_INFO_T prP2pDevFsmInfo, IN P_P2P_CHNL_REQ_INFO_T prChnlReqInfo)
+			IN P_P2P_DEV_FSM_INFO_T prP2pDevFsmInfo,
+			IN P_P2P_CHNL_REQ_INFO_T prChnlReqInfo,
+			IN ENUM_P2P_DEV_STATE_T eNextState)
 {
 	do {
 		ASSERT_BREAK((prAdapter != NULL) || (prChnlReqInfo != NULL));
@@ -143,15 +166,24 @@ p2pDevStateAbort_CHNL_ON_HAND(IN P_ADAPTER_T prAdapter,
 		prP2pBssInfo->eBand = prChnlReqInfo->eOriBand;
 		prP2pBssInfo->eBssSCO = prChnlReqInfo->eOriChnlSco;
 
+		DBGLOG(P2P, INFO, "p2p state trans abort chann on hand, eListenExted: %d, eNextState: %d\n",
+			prP2pDevFsmInfo->eListenExted, eNextState);
+		if (prP2pDevFsmInfo->eListenExted != P2P_DEV_EXT_LISTEN_ING ||
+			eNextState != P2P_DEV_STATE_CHNL_ON_HAND) {
+			/*
+			 * Here maybe have a bug, when it's extlistening, a new remain_on_channel
+			 * was sent to driver? need to verify
+			 */
+			prP2pDevFsmInfo->eListenExted = P2P_DEV_NOT_EXT_LISTEN;
 		kalP2PIndicateChannelExpired(prAdapter->prGlueInfo,
 					     prChnlReqInfo->u8Cookie,
 					     prChnlReqInfo->ucReqChnlNum,
 					     prChnlReqInfo->eBand, prChnlReqInfo->eChnlSco);
 
 		p2pFuncReleaseCh(prAdapter, prP2pDevFsmInfo->ucBssIndex, prChnlReqInfo);
+		}
 	} while (FALSE);
 
-	return;
 }				/* p2pDevStateAbort_CHNL_ON_HAND */
 
 VOID p2pDevStateInit_SCAN(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIndex, IN P_P2P_SCAN_REQ_INFO_T prScanReqInfo)
@@ -164,7 +196,6 @@ VOID p2pDevStateInit_SCAN(IN P_ADAPTER_T prAdapter, IN UINT_8 ucBssIndex, IN P_P
 		p2pFuncRequestScan(prAdapter, ucBssIndex, prScanReqInfo);
 	} while (FALSE);
 
-	return;
 }				/* p2pDevStateInit_CHNL_ON_HAND */
 
 VOID p2pDevStateAbort_SCAN(IN P_ADAPTER_T prAdapter, IN P_P2P_DEV_FSM_INFO_T prP2pDevFsmInfo)
@@ -181,7 +212,6 @@ VOID p2pDevStateAbort_SCAN(IN P_ADAPTER_T prAdapter, IN P_P2P_DEV_FSM_INFO_T prP
 		kalP2PIndicateScanDone(prAdapter->prGlueInfo, 0xFF, prScanInfo->fgIsAbort);
 	} while (FALSE);
 
-	return;
 }				/* p2pDevStateAbort_CHNL_ON_HAND */
 
 BOOLEAN
@@ -262,5 +292,4 @@ p2pDevStateAbort_OFF_CHNL_TX(IN P_ADAPTER_T prAdapter,
 		}
 	} while (FALSE);
 
-	return;
 }				/* p2pDevSateAbort_OFF_CHNL_TX */

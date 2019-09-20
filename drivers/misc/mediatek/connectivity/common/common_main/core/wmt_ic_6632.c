@@ -764,7 +764,7 @@ static INT32 mt6632_sw_init(P_WMT_HIF_CONF pWmtHifConf)
 	ctrlPa2 = 0;
 	wmt_core_ctrl(WMT_CTRL_GET_PATCH_NUM, &ctrlPa1, &ctrlPa2);
 	patch_num = ctrlPa1;
-	WMT_DBG_FUNC("patch total num = [%d]\n", patch_num);
+	WMT_INFO_FUNC("patch total num = [%d]\n", patch_num);
 
 	/* improve patch down load speed */
 	WMT_DBG_FUNC("improve patch dwn speed, clock rate promote, copy data use DMA at firmware side\n");
@@ -1234,7 +1234,6 @@ static INT32 mt6632_ver_check(VOID)
 	ULONG ctrlPa1;
 	ULONG ctrlPa2;
 
-
 	/* 1. identify chip versions: HVR(HW_VER) and FVR(FW_VER) */
 	WMT_LOUD_FUNC("MT6632: before read hw_ver (hw version)\n");
 	iret = wmt_core_reg_rw_raw(0, GEN_HVR, &hw_ver, GEN_VER_MASK);
@@ -1260,7 +1259,7 @@ static INT32 mt6632_ver_check(VOID)
 		return -3;
 	}
 
-	WMT_DBG_FUNC("MT6632: wmt ic info: %s.%s (0x%x, WMTHWVER:%d, patch_ext:%s)\n",
+	WMT_INFO_FUNC("MT6632: wmt ic info: %s.%s (0x%x, WMTHWVER:%d, patch_ext:%s)\n",
 		      p_info->cChipName, p_info->cChipVersion,
 		      p_info->u4HwVer, p_info->eWmtHwVer, p_info->cPatchNameExt);
 
@@ -1977,7 +1976,7 @@ static INT32 wmt_stp_wifi_lte_coex(VOID)
 		if (iRet)
 			WMT_ERR_FUNC("wmt_core:set_wifi_lte_coex_table_0 fail(%d)\n", iRet);
 		else
-			WMT_DBG_FUNC("wmt_core:set_wifi_lte_coex_table_0 ok\n");
+			WMT_INFO_FUNC("wmt_core:set_wifi_lte_coex_table_0 ok\n");
 	}
 
 	return iRet;

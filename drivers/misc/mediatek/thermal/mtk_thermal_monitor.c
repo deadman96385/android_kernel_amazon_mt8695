@@ -819,8 +819,9 @@ struct gpu_index_st {
 };
 
 static struct cpu_index_st cpu_index_list[8];	/* /< 8-Core is maximum */
+#if 0
 static struct gpu_index_st gpu_index;
-
+#endif
 
 #define SEEK_BUFF(x, c) \
 do { \
@@ -842,6 +843,7 @@ enum {
 
 static int mtk_sysinfo_get_info(unsigned int mask)
 {
+#if 0
 	int i;
 	int nocpucores = 0, *cpufreqs, *cpuloadings;
 	int nogpucores = 0, *gpufreqs, *gpuloadings;
@@ -856,6 +858,7 @@ static int mtk_sysinfo_get_info(unsigned int mask)
 	/* ****************** */
 	/* CPU Frequency */
 	/* ****************** */
+
 	if (mask & THERMAL_SYS_INFO_CPU) {
 		if (mtk_thermal_get_cpu_info(&nocpucores, &cpufreqs, &cpuloadings))
 			;	/* TODO: print error log */
@@ -909,7 +912,7 @@ static int mtk_sysinfo_get_info(unsigned int mask)
 			  cpu_index_list[0].freq, cpu_index_list[1].freq,
 			  cpu_index_list[2].freq, cpu_index_list[3].freq);
 	}
-
+#endif
 	return 0;
 }
 
@@ -1561,11 +1564,12 @@ loff_t *data)
 	if (kstrtoint(desc, 10, &mtm_phone_call_ongoing) == 0) {
 		if ((mtm_phone_call_ongoing == 0) || (mtm_phone_call_ongoing == 1)) {
 			g_mtm_phone_call_ongoing = mtm_phone_call_ongoing;
-
+#if 0
 			if (mtm_phone_call_ongoing  == 1)
 				mtk_thermal_set_user_scenarios(MTK_THERMAL_SCEN_CALL);
 			else if (mtm_phone_call_ongoing == 0)
 				mtk_thermal_clear_user_scenarios(MTK_THERMAL_SCEN_CALL);
+#endif
 		}
 		return count;
 	}

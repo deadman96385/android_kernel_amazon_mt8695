@@ -716,18 +716,18 @@ INT32 _stp_psm_release_data(MTKSTP_PSM_T *stp_psm)
 		osal_lock_sleepable_lock(&stp_psm->hold_fifo_spinlock_global);
 
 		if (winspace_flag == 0) {
-			ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8)&type, sizeof(UINT8));
-			ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8)&len, sizeof(UINT32));
+		ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8) &type, sizeof(UINT8));
+		ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8) &len, sizeof(UINT32));
 
-			if (len > STP_PSM_PACKET_SIZE_MAX) {
-				STP_PSM_ERR_FUNC("***psm packet's length too Long!****\n");
-				STP_PSM_INFO_FUNC("***reset psm's fifo***\n");
-			} else {
-				osal_memset(stp_psm->out_buf, 0, STP_PSM_TX_SIZE);
-				ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8) stp_psm->out_buf, len);
-			}
+		if (len > STP_PSM_PACKET_SIZE_MAX) {
+			STP_PSM_ERR_FUNC("***psm packet's length too Long!****\n");
+			STP_PSM_INFO_FUNC("***reset psm's fifo***\n");
+		} else {
+			osal_memset(stp_psm->out_buf, 0, STP_PSM_TX_SIZE);
+			ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8) stp_psm->out_buf, len);
+		}
 
-			ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8)delimiter, 2);
+		ret = osal_fifo_out(&stp_psm->hold_fifo, (PUINT8) delimiter, 2);
 		}
 
 		if (delimiter[0] == 0xbb && delimiter[1] == 0xbb) {
@@ -743,12 +743,10 @@ INT32 _stp_psm_release_data(MTKSTP_PSM_T *stp_psm)
 
 			osal_fifo_reset(&stp_psm->hold_fifo);
 		}
-
 		if (winspace_flag == 0)
-			i--;
+		i--;
 		/* psm_fifo_unlock(stp_psm); */
 		osal_unlock_sleepable_lock(&stp_psm->hold_fifo_spinlock_global);
-
 		if (winspace_flag > 0 && winspace_flag < 10)
 			osal_sleep_ms(2);
 		else if (winspace_flag >= 10) {
@@ -1138,7 +1136,7 @@ static inline INT32 _stp_psm_notify_wmt(MTKSTP_PSM_T *stp_psm, const MTKSTP_PSM_
 				ret = STP_PSM_OPERATION_FAIL;
 			}
 		} else if (action == WAKEUP || action == HOST_AWAKE) {
-			STP_PSM_DBG_FUNC("In ACT state, dont do WAKEUP/HOST_AWAKE again\n");
+			STP_PSM_INFO_FUNC("In ACT state, dont do WAKEUP/HOST_AWAKE again\n");
 			_stp_psm_release_data(stp_psm);
 		} else {
 			STP_PSM_ERR_FUNC("invalid operation, the case should not happen\n");

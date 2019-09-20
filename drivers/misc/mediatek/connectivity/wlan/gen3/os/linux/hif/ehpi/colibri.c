@@ -1,56 +1,27 @@
 /*
-** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/hif/ehpi/colibri.c#1
-*/
-
-/*! \file   "colibri.c"
-    \brief  Brief description.
-
-    Detail description.
+* Copyright (C) 2016 MediaTek Inc.
+*
+* This program is free software: you can redistribute it and/or modify it under the terms of the
+* GNU General Public License version 2 as published by the Free Software Foundation.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+* See the GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License along with this program.
+* If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*
-** Log: colibri.c
-**
-** 09 17 2012 cm.chang
-** [BORA00002149] [MT6630 Wi-Fi] Initial software development
-** Duplicate source from MT6620 v2.3 driver branch
-** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
- *
- * 04 08 2011 cp.wu
- * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
- * 1. correction: RX aggregation is not limited to SDIO but for all host interface options
- * 2. add forward declarations for DBG-only symbols
- *
- * 04 06 2011 cp.wu
- * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
- * correcting ISR behaviour for EHPI
- *
- * 04 06 2011 cp.wu
- * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
- * 1. do not check for pvData inside wlanNetCreate() due to it is NULL for eHPI  port
- * 2. update perm_addr as well for MAC address
- * 3. not calling check_mem_region() anymore for eHPI
- * 4. correct MSC_CS macro for 0-based notation
- *
- * 04 01 2011 cp.wu
- * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
- * 1. simplify config.h due to aggregation options could be also applied for eHPI/SPI interface
- * 2. use spin-lock instead of semaphore for protecting eHPI access because of possible access from ISR
- * 3. request_irq() API has some changes between linux kernel 2.6.12 and 2.6.26
- *
- * 03 31 2011 cp.wu
- * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
- * 1. always reset GPIO mode to INPUT mode
- * 2. SA_SHIRQ has been deprecated in later linux kernel
- *
- * 03 14 2011 cp.wu
- * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
- * remove unused variables.
- *
- * 03 11 2011 cp.wu
- * [WCXRP00000540] [MT5931][Driver] Add eHPI8/eHPI16 support to Linux Glue Layer
- * add porting layer for eHPI.
+** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/hif/ehpi/colibri.c#1
 */
+
+/*
+ * ! \file   "colibri.c"
+ *  \brief  Brief description.
+ *
+ *   Detail description.
+ */
 
 /******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -147,8 +118,8 @@ WLAN_STATUS glRegisterBus(probe_card pfProbe, remove_card pfRemove)
 	ASSERT(pfProbe);
 	ASSERT(pfRemove);
 
-	pr_info("mtk_sdio: MediaTek eHPI WLAN driver\n");
-	pr_info("mtk_sdio: Copyright MediaTek Inc.\n");
+	DBGLOG(INIT, INFO, "mtk_sdio: MediaTek eHPI WLAN driver\n");
+	DBGLOG(INIT, INFO, "mtk_sdio: Copyright MediaTek Inc.\n");
 
 	if (pfProbe(NULL) != WLAN_STATUS_SUCCESS) {
 		pfRemove();
@@ -174,7 +145,6 @@ VOID glUnregisterBus(remove_card pfRemove)
 
 	/* TODO: eHPI uninitialization */
 
-	return;
 }				/* end of glUnregisterBus() */
 
 /*----------------------------------------------------------------------------*/
@@ -190,6 +160,7 @@ VOID glUnregisterBus(remove_card pfRemove)
 VOID glSetHifInfo(P_GLUE_INFO_T prGlueInfo, ULONG ulCookie)
 {
 	P_GL_HIF_INFO_T prHif = NULL;
+
 	ASSERT(prGlueInfo);
 
 	prHif = &prGlueInfo->rHifInfo;
@@ -198,7 +169,6 @@ VOID glSetHifInfo(P_GLUE_INFO_T prGlueInfo, ULONG ulCookie)
 	prHif->mcr_addr_base = mt5931_mcr_base + EHPI_OFFSET_ADDR;
 	prHif->mcr_data_base = mt5931_mcr_base + EHPI_OFFSET_DATA;
 
-	return;
 }				/* end of glSetHifInfo() */
 
 /*----------------------------------------------------------------------------*/
@@ -213,6 +183,7 @@ VOID glSetHifInfo(P_GLUE_INFO_T prGlueInfo, ULONG ulCookie)
 VOID glClearHifInfo(P_GLUE_INFO_T prGlueInfo)
 {
 	P_GL_HIF_INFO_T prHif = NULL;
+
 	ASSERT(prGlueInfo);
 
 	prHif = &prGlueInfo->rHifInfo;
@@ -221,7 +192,6 @@ VOID glClearHifInfo(P_GLUE_INFO_T prGlueInfo)
 	prHif->mcr_addr_base = 0;
 	prHif->mcr_data_base = 0;
 
-	return;
 }				/* end of glClearHifInfo() */
 
 /*----------------------------------------------------------------------------*/
@@ -267,7 +237,6 @@ VOID glBusRelease(PVOID pvData)
 	/* 2. uninitialize eHPI control registers */
 	collibri_ehpi_reg_uninit();
 
-	return;
 }				/* end of glBusRelease() */
 
 /*----------------------------------------------------------------------------*/
@@ -300,9 +269,9 @@ INT_32 glBusSetIrq(PVOID pvData, PVOID pfnIsr, PVOID pvCookie)
 			       IRQF_DISABLED | IRQF_SHARED | IRQF_TRIGGER_FALLING, pDev->name, pvCookie);
 
 	if (i4Status < 0)
-		pr_debug("request_irq(%d) failed\n", pDev->irq);
+		DBGLOG(INTR, ERROR, "request_irq(%d) failed\n", pDev->irq);
 	else
-		pr_info("request_irq(%d) success with dev_id(%x)\n", pDev->irq, (unsigned int)pvCookie);
+		DBGLOG(INTR, INFO, "request_irq(%d) success with dev_id(%x)\n", pDev->irq, (unsigned int)pvCookie);
 
 	return i4Status;
 }
@@ -322,7 +291,7 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 	struct net_device *prDev = (struct net_device *)pvData;
 
 	if (!prDev) {
-		pr_info("Invalid net_device context.\n");
+		DBGLOG(IRQ, INFO, "Invalid net_device context.\n");
 		return;
 	}
 
@@ -334,7 +303,6 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 
 	busFreeIrq();
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -349,7 +317,6 @@ VOID glBusFreeIrq(PVOID pvData, PVOID pvCookie)
 /*----------------------------------------------------------------------------*/
 VOID glSetPowerState(IN P_GLUE_INFO_T prGlueInfo, IN UINT_32 ePowerMode)
 {
-	return;
 }
 
 #if DBG
@@ -393,7 +360,7 @@ static void initTrig(void)
 
 /*----------------------------------------------------------------------------*/
 /*!
-* \brief This function congifure platform-dependent interupt triger type.
+* \brief This function congifure platform-dependent interrupt triger type.
 *
 * \return N/A
 */
@@ -440,9 +407,8 @@ static VOID collibri_ehpi_reg_init(VOID)
 	u4RegValue |= EHPI_CONFIG;
 	MSC2 = u4RegValue;
 
-	pr_info("EHPI new MSC2:0x%08x\n", MSC2);
+	DBGLOG(INIT, INFO, "EHPI new MSC2:0x%08x\n", MSC2);
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -461,7 +427,6 @@ static VOID collibri_ehpi_reg_uninit(VOID)
 	u4RegValue &= ~MSC_CS(4, 0xFFFF);
 	MSC2 = u4RegValue;
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -478,7 +443,7 @@ static VOID mt5931_ehpi_reg_init(VOID)
 	/* 1. request memory regioin */
 	reso = request_mem_region((unsigned long)MEM_MAPPED_ADDR, (unsigned long)MEM_MAPPED_LEN, (char *)MODULE_PREFIX);
 	if (!reso) {
-		pr_err("request_mem_region(0x%08X) failed.\n", MEM_MAPPED_ADDR);
+		DBGLOG(INIT, ERROR, "request_mem_region(0x%08X) failed.\n", MEM_MAPPED_ADDR);
 		return;
 	}
 
@@ -486,11 +451,10 @@ static VOID mt5931_ehpi_reg_init(VOID)
 	mt5931_mcr_base = ioremap_nocache(MEM_MAPPED_ADDR, MEM_MAPPED_LEN);
 	if (!(mt5931_mcr_base)) {
 		release_mem_region(MEM_MAPPED_ADDR, MEM_MAPPED_LEN);
-		pr_err("ioremap_nocache(0x%08X) failed.\n", MEM_MAPPED_ADDR);
+		DBGLOG(INIT, ERROR, "ioremap_nocache(0x%08X) failed.\n", MEM_MAPPED_ADDR);
 		return;
 	}
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -507,7 +471,6 @@ static VOID mt5931_ehpi_reg_uninit(VOID)
 
 	release_mem_region(MEM_MAPPED_ADDR, MEM_MAPPED_LEN);
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/

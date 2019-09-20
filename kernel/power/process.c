@@ -20,11 +20,16 @@
 #include <trace/events/power.h>
 #include <linux/wakeup_reason.h>
 #include <linux/cpuset.h>
+#include <linux/reboot.h>
+#include "../drivers/misc/mediatek/hdmi/hdmitx/mt8695/inc/hdmicec.h"
 
 /*
  * Timeout for stopping processes
  */
 unsigned int __read_mostly freeze_timeout_msecs = 20 * MSEC_PER_SEC;
+#ifdef CONFIG_SUSPEND_RAM
+bool mem_suspend_done = 0;
+#endif
 
 static int try_to_freeze_tasks(bool user_only)
 {
@@ -172,6 +177,11 @@ int freeze_processes(void)
  * (if any) before thawing the userspace tasks. So, it is the responsibility
  * of the caller to thaw the userspace tasks, when the time is right.
  */
+#ifdef CONFIG_SUSPEND_RAM
+extern unsigned int hdmi_irq;
+extern struct mtk_cec *global_cec;
+extern void hdmi_cec_deinit(struct mtk_cec *cec);
+#endif
 int freeze_kernel_threads(void)
 {
 	int error;
@@ -179,6 +189,12 @@ int freeze_kernel_threads(void)
 	pr_info("Freezing remaining freezable tasks ... ");
 
 	pm_nosig_freezing = true;
+#ifdef CONFIG_SUSPEND_RAM
+	/*disable CEC and hdmi irq when suspend to mem, recover by resume with reboot. WoBle can wake up to resume followed by a reboot*/
+	disable_irq(hdmi_irq);
+	hdmi_cec_deinit(global_cec);
+	mem_suspend_done = 1;
+#endif
 	error = try_to_freeze_tasks(false);
 	if (!error)
 		pr_cont("done.");
@@ -206,6 +222,8 @@ void thaw_processes(void)
 
 	pr_info("Restarting tasks ... ");
 
+
+
 	__usermodehelper_set_disable_depth(UMH_FREEZING);
 	thaw_workqueues();
 
@@ -226,6 +244,12 @@ void thaw_processes(void)
 
 	schedule();
 	pr_cont("done.\n");
+#ifdef CONFIG_SUSPEND_RAM
+	/*reboot after resume from mem suspend*/
+	if (mem_suspend_done) {
+		emergency_restart();
+	}
+#endif
 	trace_suspend_resume(TPS("thaw_processes"), 0, false);
 }
 

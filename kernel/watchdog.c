@@ -26,6 +26,10 @@
 #include <linux/perf_event.h>
 #include <linux/kthread.h>
 
+#ifdef CONFIG_AMAZON_SIGN_OF_LIFE
+#include <linux/sign_of_life.h>
+#endif
+
 /*
  * The run state of the lockup detectors is controlled by the content of the
  * 'watchdog_enabled' variable. Each lockup detector has its dedicated bit -
@@ -346,9 +350,12 @@ static void watchdog_check_hardlockup_other_cpu(void)
 		if (per_cpu(hard_watchdog_warn, next_cpu) == true)
 			return;
 
-		if (hardlockup_panic)
+		if (hardlockup_panic) {
+#ifdef CONFIG_AMAZON_SIGN_OF_LIFE
+			life_cycle_set_boot_reason(WARMBOOT_BY_KERNEL_WATCHDOG);
+#endif
 			panic("Watchdog detected hard LOCKUP on cpu %u", next_cpu);
-		else
+		} else
 			WARN(1, "Watchdog detected hard LOCKUP on cpu %u", next_cpu);
 
 		per_cpu(hard_watchdog_warn, next_cpu) = true;

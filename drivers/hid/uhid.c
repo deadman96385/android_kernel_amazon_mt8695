@@ -382,6 +382,27 @@ static int uhid_hid_output_report(struct hid_device *hid, __u8 *buf,
 	return uhid_hid_output_raw(hid, buf, count, HID_OUTPUT_REPORT);
 }
 
+static void hid_battery_level_ind(struct hid_device *hid,
+				unsigned int battery_level)
+{
+	struct uhid_device *uhid = hid->driver_data;
+	unsigned long flags;
+	struct uhid_event *ev;
+
+	ev = kzalloc(sizeof(*ev), GFP_ATOMIC);
+	if (!ev)
+		return;
+
+	ev->type = UHID_OUTPUT;
+	ev->u.output.size = sizeof(battery_level);
+	ev->u.output.rtype = UHID_OUTPUT_BATTERY_REPORT;
+	memcpy(ev->u.output.data, &battery_level, sizeof(battery_level));
+
+	spin_lock_irqsave(&uhid->qlock, flags);
+	uhid_queue(uhid, ev);
+	spin_unlock_irqrestore(&uhid->qlock, flags);
+}
+
 static struct hid_ll_driver uhid_hid_driver = {
 	.start = uhid_hid_start,
 	.stop = uhid_hid_stop,
@@ -390,6 +411,7 @@ static struct hid_ll_driver uhid_hid_driver = {
 	.parse = uhid_hid_parse,
 	.raw_request = uhid_hid_raw_request,
 	.output_report = uhid_hid_output_report,
+	.battery_level_ind = hid_battery_level_ind,
 };
 
 #ifdef CONFIG_COMPAT

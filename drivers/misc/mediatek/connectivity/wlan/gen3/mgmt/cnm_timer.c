@@ -1,24 +1,26 @@
 /*
-** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/mgmt/cnm_timer.c#1
-*/
-
-/*! \file   "cnm_timer.c"
-    \brief
-
+* Copyright (C) 2016 MediaTek Inc.
+*
+* This program is free software: you can redistribute it and/or modify it under the terms of the
+* GNU General Public License version 2 as published by the Free Software Foundation.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+* See the GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License along with this program.
+* If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*
-** Log: cnm_timer.c
-**
-** 02 21 2013 cm.chang
-** [BORA00002149] [MT6630 Wi-Fi] Initial software development
-** Refine code to protect zero timeout interval like FW
-**
-** 09 17 2012 cm.chang
-** [BORA00002149] [MT6630 Wi-Fi] Initial software development
-** Duplicate source from MT6620 v2.3 driver branch
-** (Davinci label: MT6620_WIFI_Driver_V2_3_120913_1942_As_MT6630_Base)
+** Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/mgmt/cnm_timer.c#1
 */
+
+/*
+ * ! \file   "cnm_timer.c"
+ *  \brief
+ *
+ */
 
 /*******************************************************************************
 *                         C O M P I L E R   F L A G S
@@ -79,15 +81,26 @@
 static BOOLEAN cnmTimerSetTimer(IN P_ADAPTER_T prAdapter, IN OS_SYSTIME rTimeout)
 {
 	P_ROOT_TIMER prRootTimer;
+	BOOLEAN fgNeedWakeLock;
 
 	ASSERT(prAdapter);
 
 	prRootTimer = &prAdapter->rRootTimer;
 
-	kalCancelTimer(prAdapter->prGlueInfo);
 	kalSetTimer(prAdapter->prGlueInfo, rTimeout);
 
-	return FALSE;
+	if (rTimeout <= SEC_TO_SYSTIME(WAKE_LOCK_MAX_TIME)) {
+		fgNeedWakeLock = TRUE;
+
+		if (!prRootTimer->fgWakeLocked) {
+			KAL_WAKE_LOCK(prAdapter, &prRootTimer->rWakeLock);
+			prRootTimer->fgWakeLocked = TRUE;
+		}
+	} else {
+		fgNeedWakeLock = FALSE;
+	}
+
+	return fgNeedWakeLock;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -102,6 +115,7 @@ static BOOLEAN cnmTimerSetTimer(IN P_ADAPTER_T prAdapter, IN OS_SYSTIME rTimeout
 VOID cnmTimerInitialize(IN P_ADAPTER_T prAdapter)
 {
 	P_ROOT_TIMER prRootTimer;
+
 	KAL_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prAdapter);
@@ -116,7 +130,6 @@ VOID cnmTimerInitialize(IN P_ADAPTER_T prAdapter)
 
 	KAL_WAKE_LOCK_INIT(prAdapter, &prRootTimer->rWakeLock, "WLAN Timer");
 	prRootTimer->fgWakeLocked = FALSE;
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -132,6 +145,7 @@ VOID cnmTimerInitialize(IN P_ADAPTER_T prAdapter)
 VOID cnmTimerDestroy(IN P_ADAPTER_T prAdapter)
 {
 	P_ROOT_TIMER prRootTimer;
+
 	KAL_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prAdapter);
@@ -150,7 +164,6 @@ VOID cnmTimerDestroy(IN P_ADAPTER_T prAdapter)
 
 	/* Note: glue layer will be responsible for timer destruction */
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -194,12 +207,15 @@ cnmTimerInitTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN PFN_MGMT_TI
 	}
 #endif
 
+	if (prTimer->pfMgmtTimeOutFunc == pfFunc && prTimer->rLinkEntry.prNext) {
+		DBGLOG(CNM, WARN, "re-init timer, func %p\n", pfFunc);
+		show_stack(NULL, NULL);
+	}
 	LINK_ENTRY_INITIALIZE(&prTimer->rLinkEntry);
 
 	prTimer->pfMgmtTimeOutFunc = pfFunc;
 	prTimer->ulDataPtr = ulDataPtr;
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -214,6 +230,7 @@ cnmTimerInitTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN PFN_MGMT_TI
 static VOID cnmTimerStopTimer_impl(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN BOOLEAN fgAcquireSpinlock)
 {
 	P_ROOT_TIMER prRootTimer;
+
 	KAL_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prAdapter);
@@ -278,6 +295,7 @@ VOID cnmTimerStartTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN UINT_
 	P_ROOT_TIMER prRootTimer;
 	P_LINK_T prTimerList;
 	OS_SYSTIME rExpiredSysTime, rTimeoutSystime;
+
 	KAL_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prAdapter);
@@ -326,7 +344,6 @@ VOID cnmTimerStartTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN UINT_
 
 	KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_TIMER);
 
-	return;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -348,6 +365,7 @@ VOID cnmTimerDoTimeOutCheck(IN P_ADAPTER_T prAdapter)
 	PFN_MGMT_TIMEOUT_FUNC pfMgmtTimeOutFunc;
 	ULONG ulTimeoutDataPtr;
 	BOOLEAN fgNeedWakeLock;
+
 	KAL_SPIN_LOCK_DECLARATION();
 
 	ASSERT(prAdapter);
@@ -366,7 +384,8 @@ VOID cnmTimerDoTimeOutCheck(IN P_ADAPTER_T prAdapter)
 	LINK_FOR_EACH(prLinkEntry, prTimerList) {
 		prTimer = LINK_ENTRY(prLinkEntry, TIMER_T, rLinkEntry);
 		ASSERT(prTimer);
-
+		if (prLinkEntry->prNext == NULL)
+			DBGLOG(CNM, WARN, "timer was re-inited, func %p\n", prTimer->pfMgmtTimeOutFunc);
 		/* Check if this entry is timeout. */
 		if (!TIME_BEFORE(rCurSysTime, prTimer->rExpiredSysTime)) {
 			cnmTimerStopTimer_impl(prAdapter, prTimer, FALSE);

@@ -71,7 +71,6 @@ static const WMT_IC_PIN_STATE cmb_aif2pin_stat[] = {
 	[CMB_STUB_AIF_1] = WMT_IC_AIF_1,
 	[CMB_STUB_AIF_2] = WMT_IC_AIF_2,
 	[CMB_STUB_AIF_3] = WMT_IC_AIF_3,
-	[CMB_STUB_AIF_4] = WMT_IC_AIF_4,
 };
 
 #if CFG_WMT_PS_SUPPORT
@@ -289,8 +288,6 @@ INT32 wmt_lib_init(VOID)
 		WMT_ERR_FUNC("wmt_plat_init() fail(%d)\n", iRet);
 		return -3;
 	}
-
-	wmt_plat_stub_init();
 
 #if CFG_WMT_PS_SUPPORT
 	iRet = wmt_lib_ps_init();
@@ -906,7 +903,6 @@ VOID wmt_lib_sdio_deep_sleep_flag_set_cb_reg(PF_WMT_SDIO_DEEP_SLEEP flag_cb)
 	sdio_deep_sleep_flag_set = flag_cb;
 }
 #endif
-
 VOID wmt_lib_sdio_reg_rw_cb(PF_WMT_SDIO_DEBUG reg_rw_cb)
 {
 	sdio_reg_rw = reg_rw_cb;

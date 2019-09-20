@@ -208,7 +208,7 @@ static INT32 wmt_fb_notifier_callback(struct notifier_block *self, ULONG event, 
 		g_es_lr_flag_for_quick_sleep = 0;
 		g_es_lr_flag_for_lpbk_onoff = 1;
 		osal_unlock_sleepable_lock(&g_es_lr_lock);
-		WMT_DBG_FUNC("@@@@@@@@@@wmt enter UNBLANK @@@@@@@@@@@@@@\n");
+		WMT_WARN_FUNC("@@@@@@@@@@wmt enter UNBLANK @@@@@@@@@@@@@@\n");
 		if (hif_info == 0)
 			break;
 		schedule_work(&gPwrOnOffWork);
@@ -218,7 +218,7 @@ static INT32 wmt_fb_notifier_callback(struct notifier_block *self, ULONG event, 
 		g_es_lr_flag_for_quick_sleep = 1;
 		g_es_lr_flag_for_lpbk_onoff = 0;
 		osal_unlock_sleepable_lock(&g_es_lr_lock);
-		WMT_DBG_FUNC("@@@@@@@@@@wmt enter early POWERDOWN @@@@@@@@@@@@@@\n");
+		WMT_WARN_FUNC("@@@@@@@@@@wmt enter early POWERDOWN @@@@@@@@@@@@@@\n");
 		schedule_work(&gPwrOnOffWork);
 		break;
 	default:
@@ -428,7 +428,7 @@ INT32 wmt_dev_patch_get(PUINT8 pPatchName, osal_firmware **ppPatch)
 		WMT_ERR_FUNC("failed to open or read!(%s)\n", pPatchName);
 		return -1;
 	}
-	WMT_DBG_FUNC("loader firmware %s  ok!!\n", pPatchName);
+	WMT_INFO_FUNC("loader firmware %s  ok!!\n", pPatchName);
 	iRet = 0;
 	*ppPatch = fw;
 
@@ -604,6 +604,7 @@ LONG wmt_dev_tm_temp_query(VOID)
 			query_cond = 1;
 		} else
 			WMT_DBG_FUNC("idle traffic ....\n");
+
 		/* only WIFI tx power might make temperature varies largely */
 #if 0
 		if (!query_cond) {
@@ -828,14 +829,14 @@ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
 		} while (0);
 		break;
 	case WMT_IOCTL_LPBK_POWER_CTRL:
-		do {
-			MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
+			do {
+				MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
 
 			if (arg)
 				bRet = mtk_wcn_wmt_func_on(WMTDRV_TYPE_LPBK);
-			else
-				bRet = mtk_wcn_wmt_func_off(WMTDRV_TYPE_LPBK);
-			iRet = (bRet == MTK_WCN_BOOL_FALSE) ? -EFAULT : 0;
+				else
+					bRet = mtk_wcn_wmt_func_off(WMTDRV_TYPE_LPBK);
+				iRet = (bRet == MTK_WCN_BOOL_FALSE) ? -EFAULT : 0;
 		} while (0);
 		break;
 	case WMT_IOCTL_LPBK_TEST:
@@ -1159,7 +1160,7 @@ LONG WMT_unlocked_ioctl(struct file *filp, UINT32 cmd, ULONG arg)
 					WMT_ERR_FUNC("string convert fail(%d)\n", iRet);
 					break;
 				}
-				WMT_INFO_FUNC("dynamic dump data buf[%d]:(0x%x)\n", i, int_buf[i]);
+				WMT_INFO_FUNC("dynamic dump data buf[%d]:(0x%x)\n", j, int_buf[j]);
 			}
 			wmt_plat_set_dynamic_dumpmem(int_buf);
 			kfree(pBuf);
@@ -1271,7 +1272,7 @@ static INT32 WMT_init(VOID)
 	INT32 ret = -1;
 	ENUM_WMT_CHIP_TYPE chip_type;
 
-	WMT_DBG_FUNC("WMT Version= %s DATE=%s\n", MTK_WMT_VERSION, MTK_WMT_DATE);
+	WMT_INFO_FUNC("WMT Version= %s DATE=%s\n", MTK_WMT_VERSION, MTK_WMT_DATE);
 	/* Prepare a UINT8 device */
 	/*static allocate chrdev */
 	gWmtInitDone = 0;
@@ -1365,7 +1366,7 @@ static INT32 WMT_init(VOID)
 	else
 		WMT_INFO_FUNC("wmt register fb_notifier OK!\n");
 #endif /* CONFIG_EARLYSUSPEND */
-	WMT_DBG_FUNC("success\n");
+	WMT_INFO_FUNC("success\n");
 
 	return 0;
 

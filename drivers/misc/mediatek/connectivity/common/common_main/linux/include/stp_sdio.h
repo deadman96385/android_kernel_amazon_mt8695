@@ -74,7 +74,6 @@
 #define CSR		(0x00D8)	/* MT6630 & MT6632 only for the moment */
 
 
-
 /* Common HIF register bit field address */
 /* CCCR_F0*/
 #define CCCR_F0_RX_CRC	(0x1)
@@ -112,7 +111,6 @@
 #define STP_SDIO_RXDBG 1	/* depends on STP_SDIO_DBG_SUPPORT */
 #define STP_SDIO_TXDBG 1	/* depends on STP_SDIO_DBG_SUPPORT */
 #define STP_TXDBG 1
-
 /* sdio bus settings */
 #define STP_SDIO_BLK_SIZE (512UL)
 
@@ -186,7 +184,6 @@ typedef struct _MTK_WCN_STP_SDIO_PKT_BUF {
 	UINT32 tx_buf_ts[STP_SDIO_TX_BUF_CNT];
 	UINT64 tx_buf_local_ts[STP_SDIO_TX_BUF_CNT];
 	ULONG tx_buf_local_nsec[STP_SDIO_TX_BUF_CNT];
-
 #if KMALLOC_UPDATE
 	PUINT8 rx_buf;
 #else

@@ -245,7 +245,6 @@ extern VOID wmt_lib_flush_rx(VOID);
 extern UINT32 wmt_lib_co_clock_flag_get(VOID);
 extern INT32 wmt_lib_sdio_reg_rw(INT32 func_num, INT32 direction, UINT32 offset, UINT32 value);
 
-
 #if WMT_PLAT_ALPS
 extern PINT8 wmt_uart_port_desc;	/* defined in mtk_wcn_cmb_stub_alps.cpp */
 #endif

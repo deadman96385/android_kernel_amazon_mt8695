@@ -28,6 +28,8 @@ endif
 
 subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/mmp/
 
+subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/
+subdir-ccflags-y += -I$(srctree)/include/linux/
 obj-y	+= common/
 obj-$(CONFIG_MTK_AEE_FEATURE)	+= aed/
 obj-$(CONFIG_MTK_AEE_FEATURE)	+= ipanic/

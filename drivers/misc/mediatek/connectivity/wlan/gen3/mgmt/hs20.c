@@ -1,18 +1,27 @@
 /*
-** Id: //Department/DaVinci/BRANCHES/HS2_DEV_SW/MT6620_WIFI_DRIVER_V2_1_HS_2_0/mgmt/hs20.c#2
-*/
-
-/*! \file   "hs20.c"
-    \brief  This file including the hotspot 2.0 related function.
-
-    This file provided the macros and functions library support for the
-    protocol layer hotspot 2.0 related function.
-
+* Copyright (C) 2016 MediaTek Inc.
+*
+* This program is free software: you can redistribute it and/or modify it under the terms of the
+* GNU General Public License version 2 as published by the Free Software Foundation.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+* See the GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License along with this program.
+* If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*
-** Log: hs20.c
+** Id: //Department/DaVinci/BRANCHES/HS2_DEV_SW/MT6620_WIFI_DRIVER_V2_1_HS_2_0/mgmt/hs20.c#2
+*/
+
+/*
+ * ! \file   "hs20.c"
+ *  \brief  This file including the hotspot 2.0 related function.
  *
+ *   This file provided the macros and functions library support for the
+ *   protocol layer hotspot 2.0 related function.
  */
 
  /*******************************************************************************
@@ -109,7 +118,7 @@ VOID hs20GenerateHS20IE(IN P_ADAPTER_T prAdapter, OUT P_MSDU_INFO_T prMsduInfo)
 	ASSERT(prMsduInfo);
 
 	if (prMsduInfo->ucBssIndex != KAL_NETWORK_TYPE_AIS_INDEX) {
-		pr_info("[%s] prMsduInfo->ucBssIndex(%d) is not KAL_NETWORK_TYPE_AIS_INDEX\n",
+		DBGLOG(HS20, INFO, "[%s] prMsduInfo->ucBssIndex(%d) is not KAL_NETWORK_TYPE_AIS_INDEX\n",
 			__func__, prMsduInfo->ucBssIndex);
 		return;
 	}
@@ -158,7 +167,8 @@ VOID hs20FillExtCapIE(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo, P_MSDU_INFO
 		SET_EXT_CAP(prExtCap->aucCapabilities, ELEM_MAX_LEN_EXT_CAP, ELEM_EXT_CAP_WNM_NOTIFICATION_BIT);
 	}
 
-	pr_info("IE_SIZE(prExtCap) = %d, %d %d\n", IE_SIZE(prExtCap), ELEM_HDR_LEN, ELEM_MAX_LEN_EXT_CAP);
+	DBGLOG(HS20, INFO, "IE_SIZE(prExtCap) = %d, %d %d\n", IE_SIZE(prExtCap),
+		ELEM_HDR_LEN, ELEM_MAX_LEN_EXT_CAP);
 	ASSERT(IE_SIZE(prExtCap) <= (ELEM_HDR_LEN + ELEM_MAX_LEN_EXT_CAP));
 
 	prMsduInfo->u2FrameLength += IE_SIZE(prExtCap);
@@ -322,16 +332,16 @@ BOOLEAN hs20IsGratuitousArp(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prCurrSwRfb)
 
 	kalPrint("Recv ARP 0x%04X\n", htons(*pu2ArpOper));
 	kalPrint("SENDER[" MACSTR "] [%d:%d:%d:%d]\n", MAC2STR(pucSenderMac), *pucSenderIP,
-		 *(pucSenderIP + 1), *(pucSenderIP + 2), *(pucSenderIP + 3));
+		*(pucSenderIP + 1), *(pucSenderIP + 2), *(pucSenderIP + 3));
 	kalPrint("TARGET[" MACSTR "] [%d:%d:%d:%d]\n", MAC2STR(pucTargetMac), *pucTargetIP,
-		 *(pucTargetIP + 1), *(pucTargetIP + 2), *(pucTargetIP + 3));
+		*(pucTargetIP + 1), *(pucTargetIP + 2), *(pucTargetIP + 3));
 #endif
 
 	/* IsGratuitousArp */
 	if (!kalMemCmp(pucSenderIP, pucTargetIP, 4)) {
 		kalPrint("Drop Gratuitous ARP from [" MACSTR "] [%d:%d:%d:%d]\n",
-			 MAC2STR(pucSenderMac), *pucTargetIP, *(pucTargetIP + 1),
-			 *(pucTargetIP + 2), *(pucTargetIP + 3));
+			MAC2STR(pucSenderMac), *pucTargetIP, *(pucTargetIP + 1),
+			*(pucTargetIP + 2), *(pucTargetIP + 3));
 		return TRUE;
 	}
 	return FALSE;
@@ -441,9 +451,9 @@ BOOLEAN hs20IsUnsecuredFrame(IN P_ADAPTER_T prAdapter, IN P_BSS_INFO_T prBssInfo
 #endif
 
 #if CFG_ENABLE_GTK_FRAME_FILTER
-	if (hs20IsForgedGTKFrame(prAdapter, prBssInfo, prCurrSwRfb)) {
+	if (hs20IsForgedGTKFrame(prAdapter, prBssInfo, prCurrSwRfb))
 		return TRUE;
-	} else
+	 /* } else the else is very strange and not make sense here, mark for coding style check*/
 #endif
 	if (*pu2PktIpVer == htons(ETH_P_ARP))
 		return hs20IsGratuitousArp(prAdapter, prCurrSwRfb);
@@ -470,13 +480,11 @@ BOOLEAN hs20IsFrameFilterEnabled(IN P_ADAPTER_T prAdapter, IN P_BSS_INFO_T prBss
 		return FALSE;
 
 	if (prBssDesc->fgIsSupportHS20) {
-		if (!(prBssDesc->ucHotspotConfig & ELEM_HS_CONFIG_DGAF_DISABLED_MASK)) {
+		if (!(prBssDesc->ucHotspotConfig & ELEM_HS_CONFIG_DGAF_DISABLED_MASK))
 			return TRUE;
-		} else {
 			/* Disable frame filter only if DGAF == 1 */
 			return FALSE;
 		}
-	}
 #endif
 
 	/* For Now, always return true to run hs20 check even for legacy AP */
@@ -491,12 +499,13 @@ WLAN_STATUS hs20SetBssidPool(IN P_ADAPTER_T prAdapter, IN PVOID pvBuffer, IN ENU
 
 	prHS20Info = &(prAdapter->rWifiVar.rHS20Info);
 
-	pr_info("[%s]Set Bssid Pool! enable[%d] num[%d]\n", __func__, prParamBssidPool->fgIsEnable,
+	DBGLOG(HS20, INFO, "[%s]Set Bssid Pool! enable[%d] num[%d]\n", __func__, prParamBssidPool->fgIsEnable,
 		prParamBssidPool->ucNumBssidPool);
 
 	for (ucIdx = 0; ucIdx < prParamBssidPool->ucNumBssidPool; ucIdx++) {
 		COPY_MAC_ADDR(prHS20Info->arBssidPool[ucIdx].aucBSSID, &prParamBssidPool->arBSSID[ucIdx]);
-		pr_info("[%s][%d][" MACSTR "]\n", __func__, ucIdx, MAC2STR(prHS20Info->arBssidPool[ucIdx].aucBSSID));
+		DBGLOG(HS20, INFO, "[%s][%d][" MACSTR "]\n", __func__, ucIdx,
+			MAC2STR(prHS20Info->arBssidPool[ucIdx].aucBSSID));
 	}
 	prHS20Info->fgIsHS2SigmaMode = prParamBssidPool->fgIsEnable;
 	prHS20Info->ucNumBssidPoolEntry = prParamBssidPool->ucNumBssidPool;

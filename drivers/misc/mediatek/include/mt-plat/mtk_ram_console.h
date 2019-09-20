@@ -67,12 +67,6 @@ extern void aee_rr_rec_hotplug_footprint(int cpu, u8 fp);
 extern void aee_rr_rec_hotplug_cpu_event(u8 val);
 extern void aee_rr_rec_hotplug_cb_index(u8 val);
 extern void aee_rr_rec_hotplug_cb_fp(unsigned long val);
-extern void aee_rr_rec_hotplug_cb_times(unsigned long val);
-extern void aee_rr_rec_hps_cb_enter_times(unsigned long long val);
-extern void aee_rr_rec_hps_cb_cpu_bitmask(unsigned int val);
-extern void aee_rr_rec_hps_cb_footprint(unsigned int val);
-extern void aee_rr_rec_hps_cb_fp_times(unsigned long long val);
-extern void aee_rr_rec_last_init_func(unsigned long val);
 #ifdef CONFIG_MTK_EMMC_SUPPORT
 extern void last_kmsg_store_to_emmc(void);
 #endif
@@ -88,21 +82,6 @@ static inline void aee_rr_rec_hotplug_cb_index(u8 val)
 {
 }
 static inline void aee_rr_rec_hotplug_cb_fp(unsigned long val)
-{
-}
-static inline void aee_rr_rec_hotplug_cb_times(unsigned long val)
-{
-}
-static inline void aee_rr_rec_hps_cb_enter_times(unsigned long long val)
-{
-}
-static inline void aee_rr_rec_hps_cb_cpu_bitmask(unsigned int val)
-{
-}
-static inline void aee_rr_rec_hps_cb_footprint(unsigned int val)
-{
-}
-static inline void aee_rr_rec_hps_cb_fp_times(unsigned long long val)
 {
 }
 static inline int aee_rr_curr_fiq_step(void)

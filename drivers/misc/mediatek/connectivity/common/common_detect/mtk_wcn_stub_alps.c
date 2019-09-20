@@ -93,10 +93,10 @@ int gConnectivityChipId = -1;
 char *wmt_uart_port_desc = "ttyMT2";
 EXPORT_SYMBOL(wmt_uart_port_desc);
 
-void mtk_wcn_cmb_sdio_request_eirq(msdc_sdio_irq_handler_t irq_handler, void *data);
-void mtk_wcn_cmb_sdio_enable_eirq(void);
-void mtk_wcn_cmb_sdio_disable_eirq(void);
-void mtk_wcn_cmb_sdio_register_pm(pm_callback_t pm_cb, void *data);
+static void mtk_wcn_cmb_sdio_request_eirq(msdc_sdio_irq_handler_t irq_handler, void *data);
+static void mtk_wcn_cmb_sdio_enable_eirq(void);
+static void mtk_wcn_cmb_sdio_disable_eirq(void);
+static void mtk_wcn_cmb_sdio_register_pm(pm_callback_t pm_cb, void *data);
 
 struct sdio_ops mt_sdio_ops[4] = {
 	{NULL, NULL, NULL, NULL},
@@ -446,7 +446,7 @@ int mtk_wcn_cmb_stub_do_reset(unsigned int type)
 }
 EXPORT_SYMBOL(mtk_wcn_cmb_stub_do_reset);
 
-void __weak mtk_wcn_cmb_sdio_enable_eirq(void)
+static void mtk_wcn_cmb_sdio_enable_eirq(void)
 {
 	if (atomic_read(&irq_enable_flag))
 		CMB_STUB_LOG_DBG("wifi eint has been enabled\n");
@@ -459,7 +459,7 @@ void __weak mtk_wcn_cmb_sdio_enable_eirq(void)
 	}
 }
 
-void __weak mtk_wcn_cmb_sdio_disable_eirq(void)
+static void mtk_wcn_cmb_sdio_disable_eirq(void)
 {
 	if (!atomic_read(&irq_enable_flag))
 		CMB_STUB_LOG_DBG("wifi eint has been disabled!\n");
@@ -472,14 +472,14 @@ void __weak mtk_wcn_cmb_sdio_disable_eirq(void)
 	}
 }
 
-irqreturn_t __weak mtk_wcn_cmb_sdio_eirq_handler_stub(int irq, void *data)
+irqreturn_t mtk_wcn_cmb_sdio_eirq_handler_stub(int irq, void *data)
 {
 	if ((mtk_wcn_cmb_sdio_eirq_handler != NULL) && (atomic_read(&sdio_claim_irq_enable_flag) != 0))
 		mtk_wcn_cmb_sdio_eirq_handler(mtk_wcn_cmb_sdio_eirq_data);
 	return IRQ_HANDLED;
 }
 
-void __weak mtk_wcn_cmb_sdio_request_eirq(msdc_sdio_irq_handler_t irq_handler, void *data)
+static void mtk_wcn_cmb_sdio_request_eirq(msdc_sdio_irq_handler_t irq_handler, void *data)
 {
 	struct device_node *node;
 	int ret = -EINVAL;
@@ -518,7 +518,7 @@ void __weak mtk_wcn_cmb_sdio_request_eirq(msdc_sdio_irq_handler_t irq_handler, v
 	CMB_STUB_LOG_INFO("exit %s\n", __func__);
 }
 
-void __weak mtk_wcn_cmb_sdio_register_pm(pm_callback_t pm_cb, void *data)
+static void mtk_wcn_cmb_sdio_register_pm(pm_callback_t pm_cb, void *data)
 {
 	CMB_STUB_LOG_DBG("mtk_wcn_cmb_sdio_register_pm (0x%p, 0x%p)\n", pm_cb, data);
 	/* register pm change callback */
@@ -526,7 +526,7 @@ void __weak mtk_wcn_cmb_sdio_register_pm(pm_callback_t pm_cb, void *data)
 	mtk_wcn_cmb_sdio_pm_data = data;
 }
 
-void __weak mtk_wcn_cmb_sdio_on(int sdio_port_num)
+static void mtk_wcn_cmb_sdio_on(int sdio_port_num)
 {
 	pm_message_t state = {.event = PM_EVENT_USER_RESUME };
 
@@ -545,7 +545,7 @@ void __weak mtk_wcn_cmb_sdio_on(int sdio_port_num)
 		CMB_STUB_LOG_WARN("mtk_wcn_cmb_sdio_on no sd callback!!\n");
 }
 
-void __weak mtk_wcn_cmb_sdio_off(int sdio_port_num)
+static void mtk_wcn_cmb_sdio_off(int sdio_port_num)
 {
 	pm_message_t state = {.event = PM_EVENT_USER_SUSPEND };
 
@@ -564,7 +564,7 @@ void __weak mtk_wcn_cmb_sdio_off(int sdio_port_num)
 	mtk_wcn_cmb_sdio_disable_eirq();
 }
 
-int __weak board_sdio_ctrl(unsigned int sdio_port_num, unsigned int on)
+int board_sdio_ctrl(unsigned int sdio_port_num, unsigned int on)
 {
 	CMB_STUB_LOG_DBG("mt_mtk_wcn_cmb_sdio_ctrl (%d, %d)\n", sdio_port_num, on);
 	if (on) {
@@ -593,7 +593,7 @@ int __weak board_sdio_ctrl(unsigned int sdio_port_num, unsigned int on)
 }
 EXPORT_SYMBOL(board_sdio_ctrl);
 
-int __weak mtk_wcn_sdio_irq_flag_set(int flag)
+int mtk_wcn_sdio_irq_flag_set(int flag)
 {
 	if (flag != 0)
 		atomic_set(&sdio_claim_irq_enable_flag, 1);

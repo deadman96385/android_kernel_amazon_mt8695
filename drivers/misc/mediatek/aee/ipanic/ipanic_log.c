@@ -48,17 +48,21 @@ int ipanic_kmsg_dump3(struct kmsg_dumper *dumper, char *buf, size_t len)
 }
 EXPORT_SYMBOL(ipanic_kmsg_dump3);
 
-void ipanic_klog_region(struct kmsg_dumper *dumper)
-{
-	static struct ipanic_log_index next = { 0 };
+/*
+* void ipanic_klog_region(struct kmsg_dumper *dumper)
+* {
+	* static struct ipanic_log_index next = { 0 };
 
-	dumper->cur_idx = next.seq ? next.idx : 0;
-	dumper->cur_seq = next.seq ? next.seq : 0;
-	dumper->next_idx = 0;
-	dumper->next_seq = 0;
-	next.idx = 0;
-	next.seq = 0;
-}
+	* dumper->cur_idx = next.seq ? next.idx : log_first_idx;
+	* dumper->cur_seq = next.seq ? next.seq : log_first_seq;
+	* dumper->next_idx = log_next_idx;
+	* dumper->next_seq = log_next_seq;
+	* next.idx = log_next_idx;
+	* next.seq = log_next_seq;
+	* LOGD("kernel log region: [%x:%llx,%x:%llx]", dumper->cur_idx, dumper->cur_seq,
+		* dumper->next_idx, dumper->next_seq);
+* }
+*/
 
 int ipanic_klog_buffer(void *data, unsigned char *buffer, size_t sz_buf)
 {

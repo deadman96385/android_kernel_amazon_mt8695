@@ -29,8 +29,7 @@ struct gpio_led_data {
 	u8 new_level;
 	u8 can_sleep;
 	u8 blinking;
-	int (*platform_gpio_blink_set)(struct gpio_desc *desc, int state,
-			unsigned long *delay_on, unsigned long *delay_off);
+	gpio_blink_set_t platform_gpio_blink_set;
 };
 
 static void gpio_led_work(struct work_struct *work)
@@ -88,8 +87,7 @@ static int gpio_blink_set(struct led_classdev *led_cdev,
 
 static int create_gpio_led(const struct gpio_led *template,
 	struct gpio_led_data *led_dat, struct device *parent,
-	int (*blink_set)(struct gpio_desc *, int, unsigned long *,
-			 unsigned long *))
+	gpio_blink_set_t blink_set)
 {
 	int ret, state;
 
@@ -138,6 +136,8 @@ static int create_gpio_led(const struct gpio_led *template,
 	led_dat->cdev.brightness = state ? LED_FULL : LED_OFF;
 	if (!template->retain_state_suspended)
 		led_dat->cdev.flags |= LED_CORE_SUSPENDRESUME;
+	if (template->panic_indicator)
+		led_dat->cdev.flags |= LED_PANIC_INDICATOR;
 
 	ret = gpiod_direction_output(led_dat->gpiod, state);
 	if (ret < 0)
@@ -219,6 +219,8 @@ static struct gpio_leds_priv *gpio_leds_create(struct platform_device *pdev)
 
 		if (fwnode_property_present(child, "retain-state-suspended"))
 			led.retain_state_suspended = 1;
+		if (fwnode_property_present(child, "panic-indicator"))
+			led.panic_indicator = 1;
 
 		ret = create_gpio_led(&led, &priv->leds[priv->num_leds],
 				      dev, NULL);

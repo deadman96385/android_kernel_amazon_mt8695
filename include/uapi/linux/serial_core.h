@@ -261,7 +261,4 @@
 /* STM32 USART */
 #define PORT_STM32	113
 
-/* Mediatek */
-#define PORT_MTK	114
-
 #endif /* _UAPILINUX_SERIAL_CORE_H */

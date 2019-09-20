@@ -9,8 +9,6 @@ menuconfig INPUT_TOUCHSCREEN
 
 	  If unsure, say Y.
 
-source "drivers/input/touchscreen/mediatek/Kconfig"
-
 if INPUT_TOUCHSCREEN
 
 config TOUCHSCREEN_PROPERTIES
@@ -116,13 +114,6 @@ config TOUCHSCREEN_ATMEL_MXT
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called atmel_mxt_ts.
-
-config TOUCHSCREEN_ATMEL_MXT144U
-	bool "MXT144U for Mediatek package"
-	depends on I2C
-	help
-	  Say Y here if you have Atmel mXT series I2C touchscreen,
-	  such as TMXT144U, connected to your system.
 
 config TOUCHSCREEN_AUO_PIXCIR
 	tristate "AUO in-cell touchscreen using Pixcir ICs"
@@ -1114,5 +1105,7 @@ config TOUCHSCREEN_ROHM_BU21023
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called bu21023_ts.
+
+source "drivers/input/touchscreen/mediatek/Kconfig"
 
 endif

@@ -591,7 +591,7 @@ static _osal_inline_ INT32 stp_sdio_do_own_clr(INT32 wait)
 			/* 4 <2> handle ownership back interrupt */
 			STPSDIO_DBG_FUNC("firmware ownback is polled!(%d)\n",
 					 CLR_OWN_RETRY - retry);
-			/*osal_usleep_range(2000, 2000);*/
+			/* udelay(2000); */
 			break;
 		}
 		STPSDIO_DBG_FUNC("firmware ownback is no polled, wait for (%d us) and retry\n", delay_us);
@@ -659,6 +659,7 @@ INT32 stp_sdio_own_ctrl(SDIO_PS_OP op)
 	osal_signal_init(pOsalSignal);
 	switch (op) {
 	case OWN_SET:
+		/* ret = stp_sdio_do_own_set(); */
 		gp_info->wakeup_flag = 0;
 		gp_info->sleep_flag = 1;
 		osal_trigger_event(&gp_info->tx_rx_event);
@@ -749,10 +750,10 @@ static VOID stp_sdio_tx_rx_handling(PVOID pData)
 		return;
 	}
 	clt_ctx = pInfo->sdio_cltctx;
-	STPSDIO_DBG_FUNC("stp_tx_rx_thread runns\n");
+	STPSDIO_INFO_FUNC("stp_tx_rx_thread runns\n");
 	while (!osal_thread_should_stop(&pInfo->tx_rx_thread)) {
 		while_loop_counter++;
-		osal_ftrace_print("loop_count:%d\n", while_loop_counter);
+		osal_ftrace_print("%s|loop_count:%d\n", __func__, while_loop_counter);
 		/* <0> get CHLPCR information */
 		if (pInfo->awake_flag == 0) {
 			if (CLTCTX_CID(clt_ctx) == 0x6632)
@@ -2535,7 +2536,7 @@ static INT32 stp_sdio_ownback_poll(const MTK_WCN_HIF_SDIO_CLTCTX clt_ctx, UINT32
 		/*if (chisr_value & FW_OWN_BACK_INT) { */
 		if (chlpcr & C_FW_COM_DRV_OWN) {
 			/* 4 <2> handle ownership back interrupt */
-			STPSDIO_DBG_FUNC("Driver own is polled!(%d)\n", retry);
+			STPSDIO_INFO_FUNC("Driver own is polled!(%d)\n", retry);
 			gp_info->awake_flag = 1;
 			break;
 		}
@@ -2673,7 +2674,7 @@ static INT32 stp_sdio_probe(const MTK_WCN_HIF_SDIO_CLTCTX clt_ctx,
 		STPSDIO_ERR_FUNC("request FW-Own back fail!(%d)\n", ret);
 		goto out;
 	}
-	STPSDIO_DBG_FUNC("request FW-Own back done\n");
+	STPSDIO_INFO_FUNC("request FW-Own back done\n");
 
 #if STP_SDIO_POLL_OWNBACK_INTR
 	/* 4 <3.1> polling own back bit */

@@ -138,7 +138,7 @@ __weak void aee_kdump_reboot(AEE_REBOOT_MODE reboot_mode, const char *msg, ...)
 
 	va_start(ap, msg);
 	vsnprintf(str, 80, msg, ap);
-	pr_notice("%s", str);
+	LOGE("%s", str);
 	va_end(ap);
 }
 
@@ -207,7 +207,7 @@ __weak void ipanic_oops_free(struct aee_oops *oops, int erase)
 {
 }
 
-__weak void mrdump_mini_per_cpu_regs(int cpu, struct pt_regs *regs, struct task_struct *tsk)
+__weak void mrdump_mini_per_cpu_regs(int cpu, struct pt_regs *regs)
 {
 }
 #endif

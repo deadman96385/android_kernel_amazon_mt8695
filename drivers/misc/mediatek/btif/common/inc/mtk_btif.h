@@ -47,7 +47,7 @@
 #else
 #define BTIF_RX_BUFFER_SIZE (1024 * 64)
 #endif
-#define BTIF_TX_BUFFER_FIFO_SIZE (1024 * 4)
+#define BTIF_TX_FIFO_SIZE (1024 * 4)
 
 /*------------Register Defination End ----------------*/
 
@@ -77,13 +77,13 @@ typedef enum _ENUM_BTIF_STATE_ {
 #define ENABLE_BTIF_RX_DMA 1
 #define ENABLE_BTIF_TX_DMA 1
 
-#ifdef ENABLE_BTIF_TX_DMA
+#if ENABLE_BTIF_TX_DMA
 #define BTIF_TX_MODE BTIF_MODE_DMA
 #else
 #define BTIF_TX_MODE BTIF_MODE_PIO
 #endif
 
-#ifdef ENABLE_BTIF_RX_DMA
+#if ENABLE_BTIF_RX_DMA
 #define BTIF_RX_MODE BTIF_MODE_DMA
 #else
 #define BTIF_RX_MODE BTIF_MODE_PIO
